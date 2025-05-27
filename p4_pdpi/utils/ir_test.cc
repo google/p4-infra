@@ -31,8 +31,8 @@
 #include "gutil/proto.h"
 #include "gutil/proto_matchers.h"
 #include "gutil/status_matchers.h"
+#include "netaddr/ipv6_address.h"
 #include "p4_pdpi/ir.pb.h"
-#include "p4_pdpi/netaddr/ipv6_address.h"
 
 namespace pdpi {
 namespace {

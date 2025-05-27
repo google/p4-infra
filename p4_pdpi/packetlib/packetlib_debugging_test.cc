@@ -22,7 +22,7 @@
 #include "gutil/testing.h"
 #include "p4_pdpi/packetlib/packetlib.h"
 #include "p4_pdpi/packetlib/packetlib.pb.h"
-#include "p4_pdpi/string_encodings/readable_byte_string.h"
+#include "string_encodings/readable_byte_string.h"
 
 // This file contains tests for manually debugging the packetlib library. If
 // you're adding a new test it should focus on general library behaviors:
@@ -40,7 +40,7 @@ class PacketlibParsingTest : public testing::Test {
  public:
   std::string ByteStringToTest() const {
     auto byte_string =
-        pdpi::ReadableByteStringToByteString(readable_byte_string_);
+        string_encodings::ReadableByteStringToByteString(readable_byte_string_);
     CHECK_OK(byte_string);  // CRASH OK
     return *byte_string;
   }
