@@ -18,9 +18,9 @@
 #include <optional>
 
 #include "gtest/gtest.h"
-#include "p4_pdpi/netaddr/ipv4_address.h"
-#include "p4_pdpi/netaddr/ipv6_address.h"
-#include "p4_pdpi/netaddr/mac_address.h"
+#include "netaddr/ipv4_address.h"
+#include "netaddr/ipv6_address.h"
+#include "netaddr/mac_address.h"
 
 namespace pdpi {
 namespace {

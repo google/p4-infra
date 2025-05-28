@@ -1,5 +1,5 @@
 load("@com_google_googleapis_imports//:imports.bzl", "cc_proto_library")
-load("//p4_pdpi/testing:diff_test.bzl", "cmd_diff_test")
+load("@com_google_gutil//gutil:diff_test.bzl", "cmd_diff_test")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -30,11 +30,11 @@ cc_library(
     deps = [
         ":bit_widths",
         ":packetlib_cc_proto",
-        "//p4_pdpi/netaddr:ipv4_address",
-        "//p4_pdpi/netaddr:ipv6_address",
-        "//p4_pdpi/netaddr:mac_address",
-        "//p4_pdpi/string_encodings:bit_string",
-        "//p4_pdpi/string_encodings:hex_string",
+        "//netaddr:ipv4_address",
+        "//netaddr:ipv6_address",
+        "//netaddr:mac_address",
+        "//string_encodings:bit_string",
+        "//string_encodings:hex_string",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/numeric:bits",
         "@com_google_absl//absl/status",
@@ -64,8 +64,8 @@ cc_test(
     srcs = ["packetlib_fuzzer_test.cc"],
     deps = [
         ":packetlib",
-        "//p4_pdpi/string_encodings:hex_string",
-        "//p4_pdpi/string_encodings:readable_byte_string",
+        "//string_encodings:hex_string",
+        "//string_encodings:readable_byte_string",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
@@ -104,7 +104,7 @@ cc_test(
     deps = [
         ":packetlib",
         ":packetlib_cc_proto",
-        "//p4_pdpi/string_encodings:readable_byte_string",
+        "//string_encodings:readable_byte_string",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -133,7 +133,7 @@ cc_test(
     deps = [
         ":packetlib",
         ":packetlib_cc_proto",
-        "//p4_pdpi/string_encodings:readable_byte_string",
+        "//string_encodings:readable_byte_string",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_googletest//:gtest_main",
