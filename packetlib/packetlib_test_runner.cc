@@ -25,8 +25,8 @@
 #include "gutil/proto.h"
 #include "gutil/status.h"
 #include "gutil/testing.h"
-#include "p4_pdpi/packetlib/packetlib.h"
-#include "p4_pdpi/packetlib/packetlib.pb.h"
+#include "packetlib/packetlib.h"
+#include "packetlib/packetlib.pb.h"
 #include "string_encodings/readable_byte_string.h"
 
 namespace packetlib {

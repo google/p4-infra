@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "p4_pdpi/packetlib/packetlib.h"
+#include "packetlib/packetlib.h"
 
 #include <algorithm>
 #include <bitset>
@@ -39,8 +39,8 @@
 #include "netaddr/ipv4_address.h"
 #include "netaddr/ipv6_address.h"
 #include "netaddr/mac_address.h"
-#include "p4_pdpi/packetlib/bit_widths.h"
-#include "p4_pdpi/packetlib/packetlib.pb.h"
+#include "packetlib/bit_widths.h"
+#include "packetlib/packetlib.pb.h"
 #include "string_encodings/bit_string.h"
 #include "string_encodings/hex_string.h"
 

@@ -145,7 +145,7 @@ cc_test(
 cmd_diff_test(
     name = "packetlib_test",
     actual_cmd = "$(execpath :packetlib_test_runner)",
-    expected = "//p4_pdpi/packetlib:packetlib_test_runner.expected",
+    expected = "//packetlib:packetlib_test_runner.expected",
     tools = [
         ":packetlib_test_runner",
     ],

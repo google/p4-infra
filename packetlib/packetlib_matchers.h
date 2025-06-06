@@ -16,7 +16,7 @@
 #define P4_INFRA_P4_PDPI_PACKETLIB_PACKETLIB_MATCHERS_H_
 
 #include "gutil/proto_matchers.h"
-#include "p4_pdpi/packetlib/packetlib.pb.h"
+#include "packetlib/packetlib.pb.h"
 
 namespace packetlib {
 

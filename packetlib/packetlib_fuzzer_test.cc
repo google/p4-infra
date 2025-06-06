@@ -27,7 +27,7 @@
 #include "gtest/gtest.h"
 #include "gutil/proto.h"
 #include "gutil/status_matchers.h"
-#include "p4_pdpi/packetlib/packetlib.h"
+#include "packetlib/packetlib.h"
 #include "string_encodings/hex_string.h"
 #include "string_encodings/readable_byte_string.h"
 

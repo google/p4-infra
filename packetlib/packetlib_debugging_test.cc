@@ -20,8 +20,8 @@
 #include "gtest/gtest.h"
 #include "gutil/status_matchers.h"
 #include "gutil/testing.h"
-#include "p4_pdpi/packetlib/packetlib.h"
-#include "p4_pdpi/packetlib/packetlib.pb.h"
+#include "packetlib/packetlib.h"
+#include "packetlib/packetlib.pb.h"
 #include "string_encodings/readable_byte_string.h"
 
 // This file contains tests for manually debugging the packetlib library. If
