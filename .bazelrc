@@ -1,3 +1,5 @@
+common --enable_bzlmod
+
 build --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
 run --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
 
