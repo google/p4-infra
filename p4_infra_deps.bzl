@@ -82,10 +82,10 @@ def p4_infra_deps():
     if not native.existing_rule("com_google_gutil"):
         http_archive(
             name = "com_google_gutil",
-            # Newest commit on main as of 2025-05-14.
-            url = "https://github.com/google/gutil/archive/d2f1bdd819287c3951adaba5ea6e5426d2eefff1.zip",
-            strip_prefix = "gutil-d2f1bdd819287c3951adaba5ea6e5426d2eefff1",
-            sha256 = "033bcab2835a0aea0427d38503f5ae2bd478af134ab8f3e75b65d2cd444ac8ca",
+            # Newest commit on main as of 2025-07-01.
+            url = "https://github.com/google/gutil/archive/4904fcbed388703c581ddcac529e574785386769.zip",
+            strip_prefix = "gutil-4904fcbed388703c581ddcac529e574785386769",
+            sha256 = "ead4303a3e155149bca23c6ad503a42f664ebce07ffec86f04685b27d4109879",
         )
     if not native.existing_rule("com_github_otg_models"):
         http_archive(
