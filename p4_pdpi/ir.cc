@@ -78,61 +78,61 @@ namespace {
 // -- IrP4Info utilities -------------------------------------------------------
 
 template <class Value>
-bool IsSupported(const Value &value) {
+bool IsSupported(const Value& value) {
   return !value.is_unsupported();
 }
 
-bool IsSupported(const IrActionReference &action_ref) {
+bool IsSupported(const IrActionReference& action_ref) {
   return !action_ref.action().is_unsupported();
 }
 template <class Key, class Value>
-void RemoveUnsupportedValues(google::protobuf::Map<Key, Value> &map) {
+void RemoveUnsupportedValues(google::protobuf::Map<Key, Value>& map) {
   google::protobuf::Map<Key, Value> tmp;
-  for (auto &[key, value] : map) {
+  for (auto& [key, value] : map) {
     if (IsSupported(value)) tmp.insert({key, std::move(value)});
   }
   map = std::move(tmp);
 }
 template <class Value>
 void RemoveUnsupportedValues(
-    google::protobuf::RepeatedPtrField<Value> &values) {
+    google::protobuf::RepeatedPtrField<Value>& values) {
   google::protobuf::RepeatedPtrField<Value> tmp;
-  for (auto &value : values) {
+  for (auto& value : values) {
     if (IsSupported(value)) tmp.Add(std::move(value));
   }
   values = std::move(tmp);
 }
 
-void RemoveUnsupportedTables(IrP4Info &p4_info) {
+void RemoveUnsupportedTables(IrP4Info& p4_info) {
   RemoveUnsupportedValues(*p4_info.mutable_tables_by_id());
   RemoveUnsupportedValues(*p4_info.mutable_tables_by_name());
 }
 
-void RemoveUnsupportedActions(IrP4Info &p4_info) {
+void RemoveUnsupportedActions(IrP4Info& p4_info) {
   RemoveUnsupportedValues(*p4_info.mutable_actions_by_id());
   RemoveUnsupportedValues(*p4_info.mutable_actions_by_name());
-  for (auto &[id, table] : *p4_info.mutable_tables_by_id()) {
+  for (auto& [id, table] : *p4_info.mutable_tables_by_id()) {
     RemoveUnsupportedValues(*table.mutable_entry_actions());
     RemoveUnsupportedValues(*table.mutable_default_only_actions());
   }
-  for (auto &[name, table] : *p4_info.mutable_tables_by_name()) {
+  for (auto& [name, table] : *p4_info.mutable_tables_by_name()) {
     RemoveUnsupportedValues(*table.mutable_entry_actions());
     RemoveUnsupportedValues(*table.mutable_default_only_actions());
   }
 }
 
-void RemoveUnsupportedMatchFields(IrP4Info &p4_info) {
-  for (auto &[id, table] : *p4_info.mutable_tables_by_id()) {
+void RemoveUnsupportedMatchFields(IrP4Info& p4_info) {
+  for (auto& [id, table] : *p4_info.mutable_tables_by_id()) {
     RemoveUnsupportedValues(*table.mutable_match_fields_by_id());
     RemoveUnsupportedValues(*table.mutable_match_fields_by_name());
   }
-  for (auto &[name, table] : *p4_info.mutable_tables_by_name()) {
+  for (auto& [name, table] : *p4_info.mutable_tables_by_name()) {
     RemoveUnsupportedValues(*table.mutable_match_fields_by_id());
     RemoveUnsupportedValues(*table.mutable_match_fields_by_name());
   }
 }
 
-bool IsPresentInP4Info(const IrTable &table, const IrP4Info &p4_info) {
+bool IsPresentInP4Info(const IrTable& table, const IrP4Info& p4_info) {
   switch (table.table_case()) {
     case IrTable::kP4Table:
       return p4_info.tables_by_id().contains(table.p4_table().table_id());
@@ -147,8 +147,8 @@ bool IsPresentInP4Info(const IrTable &table, const IrP4Info &p4_info) {
   return true;
 }
 
-bool IsPresentInP4Info(const IrActionField &action_field,
-                       const IrP4Info &p4_info) {
+bool IsPresentInP4Info(const IrActionField& action_field,
+                       const IrP4Info& p4_info) {
   switch (action_field.action_field_case()) {
     case IrActionField::kP4ActionField:
       return p4_info.actions_by_id().contains(
@@ -166,13 +166,13 @@ bool IsPresentInP4Info(const IrActionField &action_field,
 
 // If a reference is from an unsupported table or any of the action field
 // references are from unsupported actions, then the reference is dangling.
-bool IsDanglingReference(const IrTableReference &reference,
-                         const IrP4Info &p4_info) {
+bool IsDanglingReference(const IrTableReference& reference,
+                         const IrP4Info& p4_info) {
   // Check if the source table is present.
   if (!IsPresentInP4Info(reference.source_table(), p4_info)) return true;
 
   // Check if the source action (if there is one) is present.
-  for (const IrTableReference::FieldReference &field_reference :
+  for (const IrTableReference::FieldReference& field_reference :
        reference.field_references()) {
     if (field_reference.source().has_action_field() &&
         !IsPresentInP4Info(field_reference.source().action_field(), p4_info)) {
@@ -183,10 +183,10 @@ bool IsDanglingReference(const IrTableReference &reference,
 }
 
 void RemoveDanglingReferences(
-    const IrP4Info &p4_info,
-    google::protobuf::RepeatedPtrField<IrTableReference> &references) {
+    const IrP4Info& p4_info,
+    google::protobuf::RepeatedPtrField<IrTableReference>& references) {
   google::protobuf::RepeatedPtrField<IrTableReference> tmp;
-  for (auto &reference : references) {
+  for (auto& reference : references) {
     if (!IsDanglingReference(reference, p4_info)) tmp.Add(std::move(reference));
   }
   references = std::move(tmp);
@@ -197,21 +197,21 @@ void RemoveDanglingReferences(
 // support references to or from them. If that changes, this should also remove
 // references FROM unsupported fields and references TO an unsupported field
 // from a supported field.
-void RemoveDanglingReferences(IrP4Info &p4_info) {
-  for (auto &[id, table] : *p4_info.mutable_tables_by_id()) {
+void RemoveDanglingReferences(IrP4Info& p4_info) {
+  for (auto& [id, table] : *p4_info.mutable_tables_by_id()) {
     RemoveDanglingReferences(p4_info, *table.mutable_incoming_references());
     RemoveDanglingReferences(p4_info, *table.mutable_outgoing_references());
   }
-  for (auto &[name, table] : *p4_info.mutable_tables_by_name()) {
+  for (auto& [name, table] : *p4_info.mutable_tables_by_name()) {
     RemoveDanglingReferences(p4_info, *table.mutable_incoming_references());
     RemoveDanglingReferences(p4_info, *table.mutable_outgoing_references());
   }
-  for (auto &[name, table] : *p4_info.mutable_built_in_tables()) {
+  for (auto& [name, table] : *p4_info.mutable_built_in_tables()) {
     RemoveDanglingReferences(p4_info, *table.mutable_incoming_references());
     RemoveDanglingReferences(p4_info, *table.mutable_outgoing_references());
   }
   google::protobuf::Map<std::string, int32_t> new_dependency_rank_by_table_name;
-  for (auto &[name, value] : *p4_info.mutable_dependency_rank_by_table_name()) {
+  for (auto& [name, value] : *p4_info.mutable_dependency_rank_by_table_name()) {
     if (IsBuiltInTable(name) || p4_info.tables_by_name().contains(name)) {
       new_dependency_rank_by_table_name.insert({name, value});
     }
@@ -222,7 +222,7 @@ void RemoveDanglingReferences(IrP4Info &p4_info) {
 
 }  // namespace
 
-void RemoveUnsupportedEntities(IrP4Info &p4_info) {
+void RemoveUnsupportedEntities(IrP4Info& p4_info) {
   RemoveUnsupportedTables(p4_info);
   RemoveUnsupportedActions(p4_info);
   RemoveUnsupportedMatchFields(p4_info);
@@ -240,12 +240,12 @@ namespace {
 // anything that has a set of annotations, a bitwidth and named type
 // information).
 template <typename T>
-StatusOr<Format> GetFormatForP4InfoElement(const T &element,
-                                           const P4TypeInfo &type_info) {
+StatusOr<Format> GetFormatForP4InfoElement(const T& element,
+                                           const P4TypeInfo& type_info) {
   bool is_sdn_string = false;
   if (element.has_type_name()) {
-    const auto &name = element.type_name().name();
-    ASSIGN_OR_RETURN(const auto *named_type,
+    const auto& name = element.type_name().name();
+    ASSIGN_OR_RETURN(const auto* named_type,
                      gutil::FindPtrOrStatus(type_info.new_types(), name),
                      _ << "Type definition for \"" << name << "\" not found");
     if (named_type->has_translated_type()) {
@@ -256,7 +256,7 @@ StatusOr<Format> GetFormatForP4InfoElement(const T &element,
     }
   }
   std::vector<std::string> annotations;
-  for (const auto &annotation : element.annotations()) {
+  for (const auto& annotation : element.annotations()) {
     annotations.push_back(annotation);
   }
   return GetFormat(annotations, element.bitwidth(), is_sdn_string);
@@ -264,20 +264,20 @@ StatusOr<Format> GetFormatForP4InfoElement(const T &element,
 
 // Add a single packet-io metadata to the IR.
 absl::Status ProcessPacketIoMetadataDefinition(
-    const p4::config::v1::ControllerPacketMetadata &data,
-    google::protobuf::Map<uint32_t, IrPacketIoMetadataDefinition> *by_id,
-    google::protobuf::Map<std::string, IrPacketIoMetadataDefinition> *by_name,
-    const P4TypeInfo &type_info) {
-  const std::string &kind = data.preamble().name();
+    const p4::config::v1::ControllerPacketMetadata& data,
+    google::protobuf::Map<uint32_t, IrPacketIoMetadataDefinition>* by_id,
+    google::protobuf::Map<std::string, IrPacketIoMetadataDefinition>* by_name,
+    const P4TypeInfo& type_info) {
+  const std::string& kind = data.preamble().name();
   if (!by_id->empty()) {
     // Only checking by_id, since by_id->size() == by_name->size()
     return InvalidArgumentErrorBuilder()
            << "Found duplicate \"" << kind << "\" controller packet metadata";
   }
-  for (const auto &metadata : data.metadata()) {
+  for (const auto& metadata : data.metadata()) {
     IrPacketIoMetadataDefinition ir_metadata;
     *ir_metadata.mutable_metadata() = metadata;
-    ASSIGN_OR_RETURN(const auto &format,
+    ASSIGN_OR_RETURN(const auto& format,
                      GetFormatForP4InfoElement(metadata, type_info));
     ir_metadata.set_format(format);
     if (absl::c_any_of(metadata.annotations(),
@@ -301,10 +301,10 @@ absl::Status ProcessPacketIoMetadataDefinition(
 // Searches for an annotation with the given name and extract a single uint32_t
 // number from the argument. Fails if the annotation appears multiple times.
 StatusOr<uint32_t> GetNumberInAnnotation(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations,
-    const std::string &annotation_name) {
+    const google::protobuf::RepeatedPtrField<std::string>& annotations,
+    const std::string& annotation_name) {
   absl::optional<uint32_t> result;
-  for (const std::string &annotation : annotations) {
+  for (const std::string& annotation : annotations) {
     absl::string_view view = annotation;
     if (absl::ConsumePrefix(&view, absl::StrCat("@", annotation_name, "("))) {
       if (result.has_value()) {
@@ -331,10 +331,10 @@ StatusOr<uint32_t> GetNumberInAnnotation(
 }
 
 absl::flat_hash_set<std::string> GetMandatoryMatches(
-    const IrTableDefinition &table) {
+    const IrTableDefinition& table) {
   absl::flat_hash_set<std::string> mandatory_matches(
       table.match_fields_by_name().size());
-  for (const auto &iter : table.match_fields_by_name()) {
+  for (const auto& iter : table.match_fields_by_name()) {
     if (iter.second.match_field().match_type() == MatchField::EXACT) {
       mandatory_matches.insert(iter.second.match_field().name());
     }
@@ -342,7 +342,7 @@ absl::flat_hash_set<std::string> GetMandatoryMatches(
   return mandatory_matches;
 }
 
-absl::Status ValidateMatchFieldDefinition(const IrMatchFieldDefinition &match) {
+absl::Status ValidateMatchFieldDefinition(const IrMatchFieldDefinition& match) {
   switch (match.match_field().match_type()) {
     case p4::config::v1::MatchField::LPM:
     case p4::config::v1::MatchField::TERNARY:
@@ -363,10 +363,10 @@ absl::Status ValidateMatchFieldDefinition(const IrMatchFieldDefinition &match) {
   }
 }
 
-absl::StatusOr<uint32_t> TableAliasToId(const p4::config::v1::P4Info &p4_info,
+absl::StatusOr<uint32_t> TableAliasToId(const p4::config::v1::P4Info& p4_info,
                                         absl::string_view table_alias) {
   absl::flat_hash_map<std::string, uint32_t> table_alias_to_table_id;
-  for (const p4::config::v1::Table &table : p4_info.tables()) {
+  for (const p4::config::v1::Table& table : p4_info.tables()) {
     if (table.preamble().alias() == table_alias) {
       return table.preamble().id();
     }
@@ -376,13 +376,13 @@ absl::StatusOr<uint32_t> TableAliasToId(const p4::config::v1::P4Info &p4_info,
 }
 
 absl::StatusOr<uint32_t> MatchFieldNameToId(
-    const p4::config::v1::P4Info &p4_info, uint32_t table_id,
+    const p4::config::v1::P4Info& p4_info, uint32_t table_id,
     absl::string_view match_field_name) {
-  for (const p4::config::v1::Table &table : p4_info.tables()) {
+  for (const p4::config::v1::Table& table : p4_info.tables()) {
     if (table.preamble().id() != table_id) {
       continue;
     }
-    for (const p4::config::v1::MatchField &match_field : table.match_fields()) {
+    for (const p4::config::v1::MatchField& match_field : table.match_fields()) {
       if (match_field.name() == match_field_name) {
         return match_field.id();
       }
@@ -399,14 +399,14 @@ absl::StatusOr<uint32_t> MatchFieldNameToId(
 // moved to IrTableEntryReference.
 ABSL_DEPRECATED("Use ParseRefersToAnnotations instead")
 absl::StatusOr<std::vector<IrMatchFieldReference>> GetRefersToAnnotations(
-    const p4::config::v1::P4Info &p4info,
-    const ::google::protobuf::RepeatedPtrField<std::string> &annotations) {
+    const p4::config::v1::P4Info& p4info,
+    const ::google::protobuf::RepeatedPtrField<std::string>& annotations) {
   std::vector<IrMatchFieldReference> result;
   ASSIGN_OR_RETURN(
       const std::vector<ParsedRefersToAnnotation> refers_to_annotations,
       ParseAllRefersToAnnotations(annotations));
 
-  for (const auto &refers_to_annotation : refers_to_annotations) {
+  for (const auto& refers_to_annotation : refers_to_annotations) {
     absl::string_view table = refers_to_annotation.table;
     absl::string_view match_field = refers_to_annotation.field;
 
@@ -429,12 +429,12 @@ absl::StatusOr<std::vector<IrMatchFieldReference>> GetRefersToAnnotations(
 }
 
 std::vector<std::string> GetMissingFields(
-    const absl::flat_hash_set<std::string> &actual_fields,
+    const absl::flat_hash_set<std::string>& actual_fields,
     absl::flat_hash_set<std::string> expected_fields) {
   // Erase actual fields from expected_fields.
   // Whatever remains are the missing fields.
   absl::erase_if(expected_fields,
-                 [&](const auto &k) { return actual_fields.contains(k); });
+                 [&](const auto& k) { return actual_fields.contains(k); });
 
   // Convert to a vector so we can sort the fields to ensure stability.
   std::vector<std::string> missing_fields(expected_fields.begin(),
@@ -444,8 +444,8 @@ std::vector<std::string> GetMissingFields(
 }
 
 absl::Status CheckMandatoryMatches(
-    const absl::flat_hash_set<std::string> &actual_matches,
-    const IrTableDefinition &table) {
+    const absl::flat_hash_set<std::string>& actual_matches,
+    const IrTableDefinition& table) {
   auto expected_matches = GetMandatoryMatches(table);
   int expected_matches_size = expected_matches.size();
   int actual_matches_size = actual_matches.size();
@@ -461,14 +461,14 @@ absl::Status CheckMandatoryMatches(
          << " instead.";
 }
 
-absl::Status CheckParams(const absl::flat_hash_set<std::string> &actual_params,
-                         const IrActionDefinition &action) {
+absl::Status CheckParams(const absl::flat_hash_set<std::string>& actual_params,
+                         const IrActionDefinition& action) {
   if (actual_params.size() == action.params_by_name().size()) {
     return absl::OkStatus();
   }
   auto expected_params_size = action.params_by_name().size();
   absl::flat_hash_set<std::string> expected_params(expected_params_size);
-  for (const auto &[name, _] : action.params_by_name()) {
+  for (const auto& [name, _] : action.params_by_name()) {
     expected_params.insert(name);
   }
   auto missing_params =
@@ -483,11 +483,11 @@ absl::Status CheckParams(const absl::flat_hash_set<std::string> &actual_params,
 // Verifies the contents of the PI representation and translates to the IR
 // message
 StatusOr<IrMatch> PiMatchFieldToIr(
-    const IrP4Info &info, const TranslationOptions &options,
-    const IrMatchFieldDefinition &ir_match_definition,
-    const p4::v1::FieldMatch &pi_match) {
+    const IrP4Info& info, const TranslationOptions& options,
+    const IrMatchFieldDefinition& ir_match_definition,
+    const p4::v1::FieldMatch& pi_match) {
   IrMatch match_entry;
-  const MatchField &match_field = ir_match_definition.match_field();
+  const MatchField& match_field = ir_match_definition.match_field();
   uint32_t bitwidth = match_field.bitwidth();
   absl::string_view match_name = match_field.name();
   std::vector<std::string> invalid_reasons;
@@ -505,7 +505,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
         break;
       }
       match_entry.set_name(match_field.name());
-      const absl::StatusOr<IrValue> &exact = ArbitraryByteStringToIrValue(
+      const absl::StatusOr<IrValue>& exact = ArbitraryByteStringToIrValue(
           ir_match_definition.format(), bitwidth, pi_match.exact().value());
       if (!exact.ok()) {
         invalid_reasons.push_back(
@@ -530,21 +530,21 @@ StatusOr<IrMatch> PiMatchFieldToIr(
             "represented by omitting the match altogether."));
       }
       match_entry.set_name(match_field.name());
-      const absl::StatusOr<std::string> &mask =
+      const absl::StatusOr<std::string>& mask =
           PrefixLenToMask(prefix_len, bitwidth);
       if (!mask.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, mask.status().message()));
         break;
       }
-      const absl::StatusOr<std::string> &value =
+      const absl::StatusOr<std::string>& value =
           ArbitraryToNormalizedByteString(pi_match.lpm().value(), bitwidth);
       if (!value.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, value.status().message()));
         break;
       }
-      const absl::StatusOr<std::string> &intersection =
+      const absl::StatusOr<std::string>& intersection =
           Intersection(*value, *mask);
       if (!intersection.ok()) {
         invalid_reasons.push_back(
@@ -558,7 +558,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
         break;
       }
       match_entry.mutable_lpm()->set_prefix_length(prefix_len);
-      const absl::StatusOr<IrValue> &ir_value = ArbitraryByteStringToIrValue(
+      const absl::StatusOr<IrValue>& ir_value = ArbitraryByteStringToIrValue(
           ir_match_definition.format(), bitwidth, *value);
       if (!ir_value.ok()) {
         invalid_reasons.push_back(
@@ -575,14 +575,14 @@ StatusOr<IrMatch> PiMatchFieldToIr(
         break;
       }
 
-      const absl::StatusOr<std::string> &value =
+      const absl::StatusOr<std::string>& value =
           ArbitraryToNormalizedByteString(pi_match.ternary().value(), bitwidth);
       if (!value.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, value.status().message()));
         break;
       }
-      const absl::StatusOr<std::string> &mask =
+      const absl::StatusOr<std::string>& mask =
           ArbitraryToNormalizedByteString(pi_match.ternary().mask(), bitwidth);
       if (!mask.ok()) {
         invalid_reasons.push_back(
@@ -598,7 +598,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
         break;
       }
       match_entry.set_name(match_field.name());
-      const absl::StatusOr<std::string> &intersection =
+      const absl::StatusOr<std::string>& intersection =
           Intersection(*value, *mask);
       if (!intersection.ok()) {
         invalid_reasons.push_back(
@@ -611,7 +611,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
             absl::CEscape(*value), " Mask: ", absl::CEscape(*mask)));
         break;
       }
-      const absl::StatusOr<IrValue> &ir_value = ArbitraryByteStringToIrValue(
+      const absl::StatusOr<IrValue>& ir_value = ArbitraryByteStringToIrValue(
           ir_match_definition.format(), bitwidth, *value);
       if (!ir_value.ok()) {
         invalid_reasons.push_back(
@@ -619,7 +619,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
         break;
       }
       *match_entry.mutable_ternary()->mutable_value() = *ir_value;
-      const absl::StatusOr<IrValue> &ir_mask = ArbitraryByteStringToIrValue(
+      const absl::StatusOr<IrValue>& ir_mask = ArbitraryByteStringToIrValue(
           ir_match_definition.format(), bitwidth, *mask);
       if (!ir_mask.ok()) {
         invalid_reasons.push_back(
@@ -637,7 +637,7 @@ StatusOr<IrMatch> PiMatchFieldToIr(
       }
 
       match_entry.set_name(match_field.name());
-      const absl::StatusOr<IrValue> &ir_value = ArbitraryByteStringToIrValue(
+      const absl::StatusOr<IrValue>& ir_value = ArbitraryByteStringToIrValue(
           ir_match_definition.format(), bitwidth, pi_match.optional().value());
       if (!ir_value.ok()) {
         invalid_reasons.push_back(
@@ -662,22 +662,22 @@ StatusOr<IrMatch> PiMatchFieldToIr(
 
 // Translates the action invocation from its PI form to IR.
 absl::Status PiActionToIr(
-    const IrP4Info &info, const TranslationOptions &options,
-    const p4::v1::Action &pi_action,
-    const google::protobuf::RepeatedPtrField<IrActionReference> &valid_actions,
-    IrActionInvocation &action_entry) {
+    const IrP4Info& info, const TranslationOptions& options,
+    const p4::v1::Action& pi_action,
+    const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
+    IrActionInvocation& action_entry) {
   uint32_t action_id = pi_action.action_id();
 
-  const auto &status_or_ir_action_definition =
+  const auto& status_or_ir_action_definition =
       gutil::FindPtrOrStatus(info.actions_by_id(), action_id);
   if (!status_or_ir_action_definition.ok()) {
     return absl::InvalidArgumentError(absl::StrCat(
         kNewBullet, "Action ID ", action_id, " does not exist in the P4Info."));
   }
-  const auto *ir_action_definition = *status_or_ir_action_definition;
+  const auto* ir_action_definition = *status_or_ir_action_definition;
 
   if (absl::c_find_if(valid_actions,
-                      [action_id](const IrActionReference &action) {
+                      [action_id](const IrActionReference& action) {
                         return action.action().preamble().id() == action_id;
                       }) == valid_actions.end()) {
     return absl::InvalidArgumentError(
@@ -695,7 +695,7 @@ absl::Status PiActionToIr(
         absl::StrCat(kNewBullet, "Action has @unsupported annotation."));
   }
 
-  for (const auto &param : pi_action.params()) {
+  for (const auto& param : pi_action.params()) {
     const absl::Status duplicate = gutil::InsertIfUnique(
         used_params, param.param_id(),
         absl::StrCat("Duplicate param field with ID ", param.param_id(), "."));
@@ -711,10 +711,10 @@ absl::Status PiActionToIr(
           kNewBullet, "Unable to find param ID ", param.param_id(), "."));
       continue;
     }
-    const auto *ir_param_definition = *status_or_ir_param_definition;
-    IrActionInvocation::IrActionParam *param_entry = action_entry.add_params();
+    const auto* ir_param_definition = *status_or_ir_param_definition;
+    IrActionInvocation::IrActionParam* param_entry = action_entry.add_params();
     param_entry->set_name(ir_param_definition->param().name());
-    const absl::StatusOr<IrValue> &ir_value = ArbitraryByteStringToIrValue(
+    const absl::StatusOr<IrValue>& ir_value = ArbitraryByteStringToIrValue(
         ir_param_definition->format(), ir_param_definition->param().bitwidth(),
         param.value());
     if (!ir_value.ok()) {
@@ -726,7 +726,7 @@ absl::Status PiActionToIr(
     actual_params.insert(param_entry->name());
     *param_entry->mutable_value() = std::move(*ir_value);
   }
-  const auto &num_params_status =
+  const auto& num_params_status =
       CheckParams(actual_params, *ir_action_definition);
   if (!num_params_status.ok()) {
     invalid_reasons.push_back(
@@ -741,13 +741,13 @@ absl::Status PiActionToIr(
 
 // Translates the action set from its PI form to IR.
 absl::Status PiActionSetToIr(
-    const IrP4Info &info, const TranslationOptions &options,
-    const p4::v1::ActionProfileActionSet &pi_action_set,
-    const google::protobuf::RepeatedPtrField<IrActionReference> &valid_actions,
-    IrActionSet &ir_action_set) {
+    const IrP4Info& info, const TranslationOptions& options,
+    const p4::v1::ActionProfileActionSet& pi_action_set,
+    const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
+    IrActionSet& ir_action_set) {
   std::vector<std::string> invalid_reasons;
-  for (const auto &pi_profile_action : pi_action_set.action_profile_actions()) {
-    auto *ir_action = ir_action_set.add_actions();
+  for (const auto& pi_profile_action : pi_action_set.action_profile_actions()) {
+    auto* ir_action = ir_action_set.add_actions();
     absl::Status action_status =
         PiActionToIr(info, options, pi_profile_action.action(), valid_actions,
                      *ir_action->mutable_action());
@@ -782,12 +782,12 @@ absl::Status PiActionSetToIr(
 // one of p4::v1::{PacketIn, PacketOut} and O is one of {IrPacketIn,
 // IrPacketOut}.
 template <typename I, typename O>
-StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
-                           const I &packet, const TranslationOptions &options) {
+StatusOr<O> PiPacketIoToIr(const IrP4Info& info, const std::string& kind,
+                           const I& packet, const TranslationOptions& options) {
   O result;
   result.set_payload(packet.payload());
 
-  const std::string &packet_description = absl::StrCat("'", kind, "' message");
+  const std::string& packet_description = absl::StrCat("'", kind, "' message");
   google::protobuf::Map<uint32_t, IrPacketIoMetadataDefinition> metadata_by_id;
   if (kind == "packet-in") {
     metadata_by_id = info.packet_in_metadata_by_id();
@@ -801,9 +801,9 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
 
   std::vector<std::string> invalid_reasons;
   absl::flat_hash_set<uint32_t> used_metadata_ids(packet.metadata().size());
-  for (const auto &metadata : packet.metadata()) {
+  for (const auto& metadata : packet.metadata()) {
     uint32_t id = metadata.metadata_id();
-    const absl::Status &duplicate = gutil::InsertIfUnique(
+    const absl::Status& duplicate = gutil::InsertIfUnique(
         used_metadata_ids, id,
         absl::StrCat("Duplicate metadata found with ID ", id, "."));
     if (!duplicate.ok()) {
@@ -811,7 +811,7 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
       continue;
     }
 
-    const auto &status_or_metadata_definition_ptr =
+    const auto& status_or_metadata_definition_ptr =
         gutil::FindPtrOrStatus(metadata_by_id, id);
     if (!status_or_metadata_definition_ptr.ok()) {
       invalid_reasons.push_back(
@@ -834,7 +834,7 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
     }
 
     IrPacketMetadata ir_metadata;
-    const std::string &metadata_name = metadata_definition.metadata().name();
+    const std::string& metadata_name = metadata_definition.metadata().name();
     ir_metadata.set_name(metadata_name);
     const absl::StatusOr<IrValue> ir_value = ArbitraryByteStringToIrValue(
         metadata_definition.format(), metadata_definition.metadata().bitwidth(),
@@ -848,9 +848,9 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
     *result.add_metadata() = ir_metadata;
   }
   // Check for missing metadata
-  for (const auto &item : metadata_by_id) {
-    const auto &id = item.first;
-    const auto &meta = item.second;
+  for (const auto& item : metadata_by_id) {
+    const auto& id = item.first;
+    const auto& meta = item.second;
     if (!used_metadata_ids.contains(id)) {
       invalid_reasons.push_back(
           absl::StrCat(kNewBullet, "Metadata '", meta.metadata().name(),
@@ -869,12 +869,12 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info &info, const std::string &kind,
 
 // Verifies the contents of the IR representation and translates to the PI
 // message.
-absl::Status IrMatchFieldToPi(const IrP4Info &info,
-                              const TranslationOptions &options,
-                              const IrMatchFieldDefinition &ir_match_definition,
-                              const IrMatch &ir_match,
-                              p4::v1::FieldMatch &match_entry) {
-  const MatchField &match_field = ir_match_definition.match_field();
+absl::Status IrMatchFieldToPi(const IrP4Info& info,
+                              const TranslationOptions& options,
+                              const IrMatchFieldDefinition& ir_match_definition,
+                              const IrMatch& ir_match,
+                              p4::v1::FieldMatch& match_entry) {
+  const MatchField& match_field = ir_match_definition.match_field();
   uint32_t bitwidth = match_field.bitwidth();
   absl::string_view match_name = match_field.name();
 
@@ -894,14 +894,14 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
       }
 
       match_entry.set_field_id(match_field.id());
-      const absl::Status &valid = ValidateIrValueFormat(
+      const absl::Status& valid = ValidateIrValueFormat(
           ir_match.exact(), ir_match_definition.format(), options);
 
       if (!valid.ok()) {
         invalid_reasons.push_back(absl::StrCat(kNewBullet, valid.message()));
         break;
       }
-      const absl::StatusOr<std::string> &value = IrValueToNormalizedByteString(
+      const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
           ir_match.exact(), ir_match_definition.match_field().bitwidth());
       if (!value.ok()) {
         invalid_reasons.push_back(
@@ -931,13 +931,13 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
         break;
       }
 
-      const absl::Status &valid = ValidateIrValueFormat(
+      const absl::Status& valid = ValidateIrValueFormat(
           ir_match.lpm().value(), ir_match_definition.format(), options);
       if (!valid.ok()) {
         invalid_reasons.push_back(absl::StrCat(kNewBullet, valid.message()));
         break;
       }
-      const absl::StatusOr<std::string> &value = IrValueToNormalizedByteString(
+      const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
           ir_match.lpm().value(), ir_match_definition.match_field().bitwidth());
       if (!value.ok()) {
         invalid_reasons.push_back(
@@ -952,14 +952,14 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
         break;
       }
       match_entry.set_field_id(match_field.id());
-      const absl::StatusOr<std::string> &mask =
+      const absl::StatusOr<std::string>& mask =
           PrefixLenToMask(prefix_len, bitwidth);
       if (!mask.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, mask.status().message()));
         break;
       }
-      const absl::StatusOr<std::string> &intersection =
+      const absl::StatusOr<std::string>& intersection =
           Intersection(*value, *mask);
       if (!intersection.ok()) {
         invalid_reasons.push_back(
@@ -985,21 +985,21 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
         break;
       }
 
-      const absl::Status &valid_value = ValidateIrValueFormat(
+      const absl::Status& valid_value = ValidateIrValueFormat(
           ir_match.ternary().value(), ir_match_definition.format(), options);
       if (!valid_value.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, valid_value.message()));
         break;
       }
-      const absl::Status &valid_mask = ValidateIrValueFormat(
+      const absl::Status& valid_mask = ValidateIrValueFormat(
           ir_match.ternary().mask(), ir_match_definition.format(), options);
       if (!valid_mask.ok()) {
         invalid_reasons.push_back(
             absl::StrCat(kNewBullet, valid_mask.message()));
         break;
       }
-      const absl::StatusOr<std::string> &value = IrValueToNormalizedByteString(
+      const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
           ir_match.ternary().value(),
           ir_match_definition.match_field().bitwidth());
       if (!value.ok()) {
@@ -1007,7 +1007,7 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
             absl::StrCat(kNewBullet, value.status().message()));
         break;
       }
-      const absl::StatusOr<std::string> &mask = IrValueToNormalizedByteString(
+      const absl::StatusOr<std::string>& mask = IrValueToNormalizedByteString(
           ir_match.ternary().mask(),
           ir_match_definition.match_field().bitwidth());
       if (!mask.ok()) {
@@ -1023,7 +1023,7 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
         break;
       }
       match_entry.set_field_id(match_field.id());
-      const absl::StatusOr<std::string> &intersection =
+      const absl::StatusOr<std::string>& intersection =
           Intersection(*value, *mask);
       if (!intersection.ok()) {
         invalid_reasons.push_back(
@@ -1050,13 +1050,13 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
       }
 
       match_entry.set_field_id(match_field.id());
-      const absl::Status &valid = ValidateIrValueFormat(
+      const absl::Status& valid = ValidateIrValueFormat(
           ir_match.optional().value(), ir_match_definition.format(), options);
       if (!valid.ok()) {
         invalid_reasons.push_back(absl::StrCat(kNewBullet, valid.message()));
         break;
       }
-      const absl::StatusOr<std::string> &value = IrValueToNormalizedByteString(
+      const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
           ir_match.optional().value(),
           ir_match_definition.match_field().bitwidth());
       if (!value.ok()) {
@@ -1087,22 +1087,22 @@ absl::Status IrMatchFieldToPi(const IrP4Info &info,
 
 // Translates the action invocation from its IR form to PI.
 absl::Status IrActionInvocationToPi(
-    const IrP4Info &info, const TranslationOptions &options,
-    const IrActionInvocation &ir_table_action,
-    const google::protobuf::RepeatedPtrField<IrActionReference> &valid_actions,
-    p4::v1::Action &action) {
-  const std::string &action_name = ir_table_action.name();
+    const IrP4Info& info, const TranslationOptions& options,
+    const IrActionInvocation& ir_table_action,
+    const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
+    p4::v1::Action& action) {
+  const std::string& action_name = ir_table_action.name();
 
-  const auto &status_or_ir_action_definition =
+  const auto& status_or_ir_action_definition =
       gutil::FindPtrOrStatus(info.actions_by_name(), action_name);
   if (!status_or_ir_action_definition.ok()) {
     return absl::InvalidArgumentError(absl::StrCat(
         ActionName(action_name), " does not exist in the P4Info."));
   }
-  const auto *ir_action_definition = *status_or_ir_action_definition;
+  const auto* ir_action_definition = *status_or_ir_action_definition;
 
   if (absl::c_find_if(
-          valid_actions, [action_name](const IrActionReference &action) {
+          valid_actions, [action_name](const IrActionReference& action) {
             return action.action().preamble().alias() == action_name;
           }) == valid_actions.end()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
@@ -1118,7 +1118,7 @@ absl::Status IrActionInvocationToPi(
   }
 
   absl::flat_hash_set<std::string> used_params(ir_table_action.params().size());
-  for (const auto &param : ir_table_action.params()) {
+  for (const auto& param : ir_table_action.params()) {
     if (auto duplicate = used_params.insert(param.name()).second; !duplicate) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Duplicate parameter field found with name '",
@@ -1126,24 +1126,24 @@ absl::Status IrActionInvocationToPi(
       continue;
     }
 
-    const auto &status_or_ir_param_definition = gutil::FindPtrOrStatus(
+    const auto& status_or_ir_param_definition = gutil::FindPtrOrStatus(
         ir_action_definition->params_by_name(), param.name());
     if (!status_or_ir_param_definition.ok()) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Unable to find parameter '", param.name(), "'."));
       continue;
     }
-    const auto *ir_param_definition = *status_or_ir_param_definition;
-    p4::v1::Action_Param *param_entry = action.add_params();
+    const auto* ir_param_definition = *status_or_ir_param_definition;
+    p4::v1::Action_Param* param_entry = action.add_params();
     param_entry->set_param_id(ir_param_definition->param().id());
-    const absl::Status &valid = ValidateIrValueFormat(
+    const absl::Status& valid = ValidateIrValueFormat(
         param.value(), ir_param_definition->format(), options);
     if (!valid.ok()) {
       invalid_reasons.push_back(
           GenerateReason(ParamName(param.name()), valid.message()));
       continue;
     }
-    const absl::StatusOr<std::string> &value = IrValueToNormalizedByteString(
+    const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
         param.value(), ir_param_definition->param().bitwidth());
     if (!value.ok()) {
       invalid_reasons.push_back(
@@ -1157,7 +1157,7 @@ absl::Status IrActionInvocationToPi(
     }
   }
 
-  const auto &num_params_status =
+  const auto& num_params_status =
       CheckParams(used_params, *ir_action_definition);
   if (!num_params_status.ok()) {
     invalid_reasons.push_back(
@@ -1173,14 +1173,14 @@ absl::Status IrActionInvocationToPi(
 
 // Translates the action set from its IR form to PI.
 absl::Status IrActionSetToPi(
-    const IrP4Info &info, const TranslationOptions &options,
-    const IrActionSet &ir_action_set,
-    const google::protobuf::RepeatedPtrField<IrActionReference> &valid_actions,
-    p4::v1::ActionProfileActionSet &pi) {
+    const IrP4Info& info, const TranslationOptions& options,
+    const IrActionSet& ir_action_set,
+    const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
+    p4::v1::ActionProfileActionSet& pi) {
   std::vector<std::string> invalid_reasons;
   pi.mutable_action_profile_actions()->Reserve(ir_action_set.actions().size());
-  for (const auto &ir_action : ir_action_set.actions()) {
-    auto *pi_action = pi.add_action_profile_actions();
+  for (const auto& ir_action : ir_action_set.actions()) {
+    auto* pi_action = pi.add_action_profile_actions();
     absl::Status action_status =
         IrActionInvocationToPi(info, options, ir_action.action(), valid_actions,
                                *pi_action->mutable_action());
@@ -1218,14 +1218,14 @@ p4::v1::PacketMetadata CreatePaddingMetadata(uint32_t metadata_id) {
 }
 
 template <typename I, typename O>
-StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
-                           const O &packet, const TranslationOptions &options) {
+StatusOr<I> IrPacketIoToPi(const IrP4Info& info, const std::string& kind,
+                           const O& packet, const TranslationOptions& options) {
   I result;
   std::vector<std::string> invalid_reasons;
   result.set_payload(packet.payload());
   google::protobuf::Map<std::string, IrPacketIoMetadataDefinition>
       metadata_by_name;
-  const std::string &packet_description = absl::StrCat("'", kind, "' message");
+  const std::string& packet_description = absl::StrCat("'", kind, "' message");
   if (kind == "packet-in") {
     metadata_by_name = info.packet_in_metadata_by_name();
   } else if (kind == "packet-out") {
@@ -1238,9 +1238,9 @@ StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
 
   absl::flat_hash_set<std::string> used_metadata_names(
       packet.metadata().size());
-  for (const auto &metadata : packet.metadata()) {
-    const std::string &name = metadata.name();
-    const absl::Status &duplicate = gutil::InsertIfUnique(
+  for (const auto& metadata : packet.metadata()) {
+    const std::string& name = metadata.name();
+    const absl::Status& duplicate = gutil::InsertIfUnique(
         used_metadata_names, name,
         absl::StrCat("Duplicate metadata found with name '", name, "'."));
 
@@ -1249,14 +1249,14 @@ StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
       continue;
     }
 
-    const auto &status_or_metadata_definition_ptr =
+    const auto& status_or_metadata_definition_ptr =
         gutil::FindPtrOrStatus(metadata_by_name, name);
     if (!status_or_metadata_definition_ptr.ok()) {
       invalid_reasons.push_back(absl::StrCat(kNewBullet, "Metadata with name ",
                                              name, " not defined."));
       continue;
     }
-    const pdpi::IrPacketIoMetadataDefinition &metadata_definition =
+    const pdpi::IrPacketIoMetadataDefinition& metadata_definition =
         **status_or_metadata_definition_ptr;
 
     // Metadata with @padding annotation must not be present in IR
@@ -1272,7 +1272,7 @@ StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
 
     p4::v1::PacketMetadata pi_metadata;
     pi_metadata.set_metadata_id(metadata_definition.metadata().id());
-    const absl::Status &valid = ValidateIrValueFormat(
+    const absl::Status& valid = ValidateIrValueFormat(
         metadata.value(), metadata_definition.format(), options);
     if (!valid.ok()) {
       invalid_reasons.push_back(
@@ -1294,7 +1294,7 @@ StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
     *result.add_metadata() = pi_metadata;
   }
   // Check for missing metadata
-  for (const auto &[name, metadata] : metadata_by_name) {
+  for (const auto& [name, metadata] : metadata_by_name) {
     // Insert padding metadata into PI representation.
     if (metadata.is_padding()) {
       *result.add_metadata() = CreatePaddingMetadata(metadata.metadata().id());
@@ -1318,15 +1318,15 @@ StatusOr<I> IrPacketIoToPi(const IrP4Info &info, const std::string &kind,
 // CAUTION: Calling this function is relatively expensive and should only be
 // done during IrP4Info generation. The result is cached in the IrP4Info.
 bool ExpensiveIsElementUnsupported(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations) {
+    const google::protobuf::RepeatedPtrField<std::string>& annotations) {
   return absl::c_any_of(annotations, [](absl::string_view annotation) {
     return annotation == "@unsupported";
   });
 }
 
-absl::Status InsertOutgoingReferenceInfo(const IrTableReference &reference,
-                                         IrP4Info &info) {
-  const IrTable &source = reference.source_table();
+absl::Status InsertOutgoingReferenceInfo(const IrTableReference& reference,
+                                         IrP4Info& info) {
+  const IrTable& source = reference.source_table();
   switch (source.table_case()) {
     case IrTable::kP4Table: {
       auto it_name =
@@ -1365,9 +1365,9 @@ absl::Status InsertOutgoingReferenceInfo(const IrTableReference &reference,
   }
 }
 
-absl::Status InsertIncomingReferenceInfo(const IrTableReference &reference,
-                                         IrP4Info &info) {
-  const IrTable &destination = reference.destination_table();
+absl::Status InsertIncomingReferenceInfo(const IrTableReference& reference,
+                                         IrP4Info& info) {
+  const IrTable& destination = reference.destination_table();
   switch (destination.table_case()) {
     case IrTable::kP4Table: {
       auto it_name = info.mutable_tables_by_name()->find(
@@ -1407,7 +1407,7 @@ absl::Status InsertIncomingReferenceInfo(const IrTableReference &reference,
 }
 
 absl::StatusOr<int> SetAndReturnTableDependencyRank(
-    absl::string_view table_name, IrP4Info &info) {
+    absl::string_view table_name, IrP4Info& info) {
   auto rank_by_table_name = info.mutable_dependency_rank_by_table_name();
   // Check whether the table has been processed yet.
   if (auto iter = rank_by_table_name->find(table_name);
@@ -1427,22 +1427,22 @@ absl::StatusOr<int> SetAndReturnTableDependencyRank(
   (*rank_by_table_name)[table_name] = 1;
 
   // Get outgoing references.
-  const google::protobuf::RepeatedPtrField<IrTableReference>
-      *outgoing_references;
+  const google::protobuf::RepeatedPtrField<IrTableReference>*
+      outgoing_references;
   if (IsBuiltInTable(table_name)) {
     ASSIGN_OR_RETURN(
-        const IrBuiltInTableDefinition *table_def,
+        const IrBuiltInTableDefinition* table_def,
         gutil::FindPtrOrStatus(info.built_in_tables(), table_name));
     outgoing_references = &table_def->outgoing_references();
   } else {
-    ASSIGN_OR_RETURN(const IrTableDefinition *table_def,
+    ASSIGN_OR_RETURN(const IrTableDefinition* table_def,
                      gutil::FindPtrOrStatus(info.tables_by_name(), table_name));
     outgoing_references = &table_def->outgoing_references();
   }
 
   // Determine the rank of our table based on what it refers to.
   int rank = 0;
-  for (const IrTableReference &reference : *outgoing_references) {
+  for (const IrTableReference& reference : *outgoing_references) {
     ASSIGN_OR_RETURN(std::string referenced_table_name,
                      GetNameOfTable(reference.destination_table()));
     ASSIGN_OR_RETURN(int child_rank, SetAndReturnTableDependencyRank(
@@ -1457,11 +1457,11 @@ absl::StatusOr<int> SetAndReturnTableDependencyRank(
 // Uses topological sort modified to allow multiple unrelated nodes to be sorted
 // at the same value.
 // Returns INVALID_ARGUMENT_ERROR if the dependencies form a cycle.
-absl::Status ConstructDependencyRankByTableName(IrP4Info &info) {
-  for (const auto &[table_name, table] : info.tables_by_name()) {
+absl::Status ConstructDependencyRankByTableName(IrP4Info& info) {
+  for (const auto& [table_name, table] : info.tables_by_name()) {
     RETURN_IF_ERROR(SetAndReturnTableDependencyRank(table_name, info).status());
   }
-  for (const auto &[table_name, table] : info.built_in_tables()) {
+  for (const auto& [table_name, table] : info.built_in_tables()) {
     RETURN_IF_ERROR(SetAndReturnTableDependencyRank(table_name, info).status());
   }
 
@@ -1470,16 +1470,16 @@ absl::Status ConstructDependencyRankByTableName(IrP4Info &info) {
 
 }  // namespace
 
-StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
+StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info& p4_info) {
   IrP4Info info;
   *info.mutable_pkg_info() = p4_info.pkg_info();
-  const P4TypeInfo &type_info = p4_info.type_info();
+  const P4TypeInfo& type_info = p4_info.type_info();
 
   // Translate all action definitions to IR.
-  for (const auto &action : p4_info.actions()) {
+  for (const auto& action : p4_info.actions()) {
     IrActionDefinition ir_action;
     *ir_action.mutable_preamble() = action.preamble();
-    for (const auto &param : action.params()) {
+    for (const auto& param : action.params()) {
       IrActionDefinition::IrActionParamDefinition ir_param;
       *ir_param.mutable_param() = param;
       ASSIGN_OR_RETURN(const auto format,
@@ -1488,13 +1488,13 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
       ASSIGN_OR_RETURN(
           const std::vector<IrMatchFieldReference> references,
           GetRefersToAnnotations(p4_info, ir_param.param().annotations()));
-      for (const IrMatchFieldReference &reference : references) {
+      for (const IrMatchFieldReference& reference : references) {
         *ir_param.add_references() = reference;
         // If an identical reference already exists, don't add it to the global
         // list of references.
         if (!absl::c_any_of(
                 info.references(),
-                [&reference](const IrMatchFieldReference &existing_reference) {
+                [&reference](const IrMatchFieldReference& existing_reference) {
                   return google::protobuf::util::MessageDifferencer::Equals(
                       reference, existing_reference);
                 })) {
@@ -1524,7 +1524,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   }
 
   // Translate all action profiles to IR.
-  for (const auto &action_profile : p4_info.action_profiles()) {
+  for (const auto& action_profile : p4_info.action_profiles()) {
     IrActionProfileDefinition ir_action_profile;
     *ir_action_profile.mutable_action_profile() = action_profile;
     RETURN_IF_ERROR(gutil::InsertIfUnique(
@@ -1540,27 +1540,27 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   }
 
   // Translate all table definitions to IR.
-  for (const auto &table : p4_info.tables()) {
+  for (const auto& table : p4_info.tables()) {
     IrTableDefinition ir_table_definition;
     uint32_t table_id = table.preamble().id();
     *ir_table_definition.mutable_preamble() = table.preamble();
-    for (const auto &match_field : table.match_fields()) {
+    for (const auto& match_field : table.match_fields()) {
       IrMatchFieldDefinition ir_match_definition;
       *ir_match_definition.mutable_match_field() = match_field;
-      ASSIGN_OR_RETURN(const auto &format,
+      ASSIGN_OR_RETURN(const auto& format,
                        GetFormatForP4InfoElement(match_field, type_info));
       ir_match_definition.set_format(format);
       RETURN_IF_ERROR(ValidateMatchFieldDefinition(ir_match_definition))
           << "Table " << table.preamble().alias() << " has invalid match field";
 
       ASSIGN_OR_RETURN(
-          const auto &references,
+          const auto& references,
           GetRefersToAnnotations(p4_info, match_field.annotations()));
-      for (const auto &reference : references) {
+      for (const auto& reference : references) {
         *ir_match_definition.add_references() = reference;
         if (!absl::c_any_of(
                 info.references(),
-                [&reference](const IrMatchFieldReference &existing_reference) {
+                [&reference](const IrMatchFieldReference& existing_reference) {
                   return google::protobuf::util::MessageDifferencer::Equals(
                       reference, existing_reference);
                 })) {
@@ -1599,7 +1599,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
     const bool is_wcmp = table.implementation_id() != 0;
     const bool has_oneshot = absl::c_any_of(
         table.preamble().annotations(),
-        [](const std::string &annotation) { return annotation == "@oneshot"; });
+        [](const std::string& annotation) { return annotation == "@oneshot"; });
     if (is_wcmp != has_oneshot) {
       return UnimplementedErrorBuilder()
              << "A WCMP table must have a @oneshot annotation, but \""
@@ -1613,7 +1613,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
     }
 
     p4::config::v1::ActionRef default_action_ref;
-    for (const auto &action_ref : table.action_refs()) {
+    for (const auto& action_ref : table.action_refs()) {
       IrActionReference ir_action_reference;
       *ir_action_reference.mutable_ref() = action_ref;
       // Make sure the action is defined
@@ -1640,14 +1640,14 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
       IrActionReference const_default_action_reference;
 
       // The const_default_action should always point to a table action.
-      for (const auto &action : ir_table_definition.default_only_actions()) {
+      for (const auto& action : ir_table_definition.default_only_actions()) {
         if (action.ref().id() == const_default_action_id) {
           const_default_action_reference = action;
           break;
         }
       }
       if (const_default_action_reference.ref().id() == 0) {
-        for (const auto &action : ir_table_definition.entry_actions()) {
+        for (const auto& action : ir_table_definition.entry_actions()) {
           if (action.ref().id() == const_default_action_id) {
             const_default_action_reference = action;
             break;
@@ -1689,8 +1689,8 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   }
 
   // Validate and translate the packet-io metadata
-  for (const auto &metadata : p4_info.controller_packet_metadata()) {
-    const std::string &kind = metadata.preamble().name();
+  for (const auto& metadata : p4_info.controller_packet_metadata()) {
+    const std::string& kind = metadata.preamble().name();
     if (kind == "packet_out") {
       RETURN_IF_ERROR(ProcessPacketIoMetadataDefinition(
           metadata, info.mutable_packet_out_metadata_by_id(),
@@ -1707,7 +1707,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   }
 
   // Counters.
-  for (const auto &counter : p4_info.direct_counters()) {
+  for (const auto& counter : p4_info.direct_counters()) {
     const auto table_id = counter.direct_table_id();
     RETURN_IF_ERROR(
         gutil::FindPtrOrStatus(info.tables_by_id(), table_id).status())
@@ -1717,14 +1717,14 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
     ir_counter.set_unit(counter.spec().unit());
 
     // Add to tables_by_id and tables_by_name.
-    auto &table1 = (*info.mutable_tables_by_id())[table_id];
-    auto &table2 = (*info.mutable_tables_by_name())[table1.preamble().alias()];
+    auto& table1 = (*info.mutable_tables_by_id())[table_id];
+    auto& table2 = (*info.mutable_tables_by_name())[table1.preamble().alias()];
     *table1.mutable_counter() = ir_counter;
     *table2.mutable_counter() = ir_counter;
   }
 
   // Meters.
-  for (const auto &meter : p4_info.direct_meters()) {
+  for (const auto& meter : p4_info.direct_meters()) {
     const auto table_id = meter.direct_table_id();
     RETURN_IF_ERROR(
         gutil::FindPtrOrStatus(info.tables_by_id(), table_id).status())
@@ -1734,20 +1734,20 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
     ir_meter.set_unit(meter.spec().unit());
 
     // Add to tables_by_id and tables_by_name.
-    auto &table1 = (*info.mutable_tables_by_id())[table_id];
-    auto &table2 = (*info.mutable_tables_by_name())[table1.preamble().alias()];
+    auto& table1 = (*info.mutable_tables_by_id())[table_id];
+    auto& table2 = (*info.mutable_tables_by_name())[table1.preamble().alias()];
     *table1.mutable_meter() = ir_meter;
     *table2.mutable_meter() = ir_meter;
   }
 
   // Validate references.
-  for (const auto &reference : info.references()) {
+  for (const auto& reference : info.references()) {
     ASSIGN_OR_RETURN(
-        const auto *ir_table,
+        const auto* ir_table,
         gutil::FindPtrOrStatus(info.tables_by_name(), reference.table()),
         _ << "Table '" << reference.table()
           << "' referenced in @refers_to does not exist.");
-    ASSIGN_OR_RETURN(const auto *ir_match_field,
+    ASSIGN_OR_RETURN(const auto* ir_match_field,
                      gutil::FindPtrOrStatus(ir_table->match_fields_by_name(),
                                             reference.match_field()),
                      _ << "Match field '" << reference.match_field()
@@ -1763,16 +1763,16 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
 
   // Validate that tables which designate an action profile implementation are
   // designated as valid tables in that action profile.
-  for (const auto &[table_id, table] : info.tables_by_id()) {
+  for (const auto& [table_id, table] : info.tables_by_id()) {
     if (table.implementation_id_case() == IrTableDefinition::kActionProfileId) {
-      ASSIGN_OR_RETURN(const auto &ir_action_profile,
+      ASSIGN_OR_RETURN(const auto& ir_action_profile,
                        gutil::FindOrStatus(info.action_profiles_by_id(),
                                            table.action_profile_id()),
                        _ << "Implementation id '" << table.action_profile_id()
                          << "' referenced in table '"
                          << table.preamble().alias()
                          << "' is not an action profile.");
-      const auto &profile = ir_action_profile.action_profile();
+      const auto& profile = ir_action_profile.action_profile();
       if (!absl::c_linear_search(profile.table_ids(), table_id)) {
         return gutil::InvalidArgumentErrorBuilder()
                << "The action profile '" << profile.preamble().alias()
@@ -1787,12 +1787,12 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
 
   // Validate that action profiles which designate table_ids are implemented by
   // those tables.
-  for (const auto &[action_profile_id, ir_action_profile] :
+  for (const auto& [action_profile_id, ir_action_profile] :
        info.action_profiles_by_id()) {
-    const auto &profile = ir_action_profile.action_profile();
+    const auto& profile = ir_action_profile.action_profile();
     for (uint32_t table_id : profile.table_ids()) {
       ASSIGN_OR_RETURN(
-          const auto &table, gutil::FindOrStatus(info.tables_by_id(), table_id),
+          const auto& table, gutil::FindOrStatus(info.tables_by_id(), table_id),
           _ << "Table id '" << table_id << "' referenced in action profile '"
             << profile.preamble().alias() << "' is not a table.");
       if (!(table.implementation_id_case() ==
@@ -1809,7 +1809,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   }
 
   // Pre-construct all built-in tables.
-  for (const auto &built_in_table_enum :
+  for (const auto& built_in_table_enum :
        {IrBuiltInTable::BUILT_IN_TABLE_MULTICAST_GROUP_TABLE,
         IrBuiltInTable::BUILT_IN_TABLE_CLONE_SESSION_TABLE}) {
     IrBuiltInTableDefinition built_in_table;
@@ -1824,7 +1824,7 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   // Add references.
   ASSIGN_OR_RETURN(std::vector<IrTableReference> references,
                    ParseIrTableReferences(info));
-  for (const auto &reference : references) {
+  for (const auto& reference : references) {
     RETURN_IF_ERROR(InsertOutgoingReferenceInfo(reference, info));
     RETURN_IF_ERROR(InsertIncomingReferenceInfo(reference, info));
   }
@@ -1835,17 +1835,17 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info &p4_info) {
   return info;
 }
 
-StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info &info,
-                                        const p4::v1::TableEntry &pi,
-                                        const TranslationOptions &options) {
+StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info& info,
+                                        const p4::v1::TableEntry& pi,
+                                        const TranslationOptions& options) {
   IrTableEntry ir;
-  const auto &status_or_table =
+  const auto& status_or_table =
       gutil::FindPtrOrStatus(info.tables_by_id(), pi.table_id());
   if (!status_or_table.ok()) {
     return absl::InvalidArgumentError(absl::StrCat(
         "Table ID ", pi.table_id(), " does not exist in the P4Info."));
   }
-  const auto *table = *status_or_table;
+  const auto* table = *status_or_table;
   ir.set_table_name(table->preamble().alias());
   absl::string_view table_name = ir.table_name();
   std::vector<std::string> invalid_reasons;
@@ -1858,8 +1858,8 @@ StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info &info,
   // Validate and translate the matches
   absl::flat_hash_set<uint32_t> used_field_ids(pi.match_size());
   absl::flat_hash_set<std::string> mandatory_matches(pi.match_size());
-  for (const auto &pi_match : pi.match()) {
-    const absl::Status &duplicate = gutil::InsertIfUnique(
+  for (const auto& pi_match : pi.match()) {
+    const absl::Status& duplicate = gutil::InsertIfUnique(
         used_field_ids, pi_match.field_id(),
         absl::StrCat("Duplicate match field found with ID ",
                      pi_match.field_id(), "."));
@@ -1876,8 +1876,8 @@ StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info &info,
                        " does not exist in table '", table_name, "'."));
       continue;
     }
-    const auto *match = *status_or_match;
-    const absl::StatusOr<IrMatch> &match_entry =
+    const auto* match = *status_or_match;
+    const absl::StatusOr<IrMatch>& match_entry =
         PiMatchFieldToIr(info, options, *match, pi_match);
     if (!match_entry.ok()) {
       invalid_reasons.push_back(
@@ -1891,7 +1891,7 @@ StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info &info,
     }
   }
 
-  const absl::Status &mandatory_match_status =
+  const absl::Status& mandatory_match_status =
       CheckMandatoryMatches(mandatory_matches, *table);
   if (!mandatory_match_status.ok()) {
     invalid_reasons.push_back(
@@ -2030,8 +2030,8 @@ StatusOr<IrTableEntry> PiTableEntryToIr(const IrP4Info &info,
   return ir;
 }
 
-StatusOr<IrReplica> PiReplicaToIr(const IrP4Info &info,
-                                  const p4::v1::Replica &pi) {
+StatusOr<IrReplica> PiReplicaToIr(const IrP4Info& info,
+                                  const p4::v1::Replica& pi) {
   IrReplica ir;
   if (pi.port_kind_case() != p4::v1::Replica::kPort) {
     return gutil::InvalidArgumentErrorBuilder()
@@ -2040,8 +2040,8 @@ StatusOr<IrReplica> PiReplicaToIr(const IrP4Info &info,
   }
   ir.set_port(pi.port());
   ir.set_instance(pi.instance());
-  for (const auto &backup_replica : pi.backup_replicas()) {
-    pdpi::IrBackupReplica *ir_backup_replica = ir.add_backup_replicas();
+  for (const auto& backup_replica : pi.backup_replicas()) {
+    pdpi::IrBackupReplica* ir_backup_replica = ir.add_backup_replicas();
     ir_backup_replica->set_port(backup_replica.port());
     ir_backup_replica->set_instance(backup_replica.instance());
   }
@@ -2049,8 +2049,8 @@ StatusOr<IrReplica> PiReplicaToIr(const IrP4Info &info,
 }
 
 StatusOr<IrMulticastGroupEntry> PiMulticastGroupEntryToIr(
-    const IrP4Info &info, const p4::v1::MulticastGroupEntry &pi,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::MulticastGroupEntry& pi,
+    const TranslationOptions& options) {
   IrMulticastGroupEntry ir;
   ir.set_multicast_group_id(pi.multicast_group_id());
   ir.set_metadata(pi.metadata());
@@ -2062,7 +2062,7 @@ StatusOr<IrMulticastGroupEntry> PiMulticastGroupEntryToIr(
   absl::flat_hash_map<std::string, absl::flat_hash_set<uint32_t>>
       instances_by_port;
   std::vector<std::string> invalid_reasons;
-  for (const auto &replica : pi.replicas()) {
+  for (const auto& replica : pi.replicas()) {
     absl::StatusOr<IrReplica> ir_replica = PiReplicaToIr(info, replica);
     if (!ir_replica.ok()) {
       invalid_reasons.push_back(
@@ -2083,7 +2083,7 @@ StatusOr<IrMulticastGroupEntry> PiMulticastGroupEntryToIr(
 
     // A replica cannot have the same port as any other backup replica.
     absl::flat_hash_set<std::string> all_replica_ports = {replica.port()};
-    for (const auto &backup_replica : replica.backup_replicas()) {
+    for (const auto& backup_replica : replica.backup_replicas()) {
       if (!all_replica_ports.insert(backup_replica.port()).second) {
         invalid_reasons.push_back(absl::StrCat(
             kNewBullet,
@@ -2094,7 +2094,7 @@ StatusOr<IrMulticastGroupEntry> PiMulticastGroupEntryToIr(
     }
 
     // Check that {port, instance} pair is unique for backup replicas.
-    for (const auto &backup_replica : replica.backup_replicas()) {
+    for (const auto& backup_replica : replica.backup_replicas()) {
       if (!instances_by_port[backup_replica.port()]
                .insert(backup_replica.instance())
                .second) {
@@ -2117,8 +2117,8 @@ StatusOr<IrMulticastGroupEntry> PiMulticastGroupEntryToIr(
 }
 
 StatusOr<IrCloneSessionEntry> PiCloneSessionEntryToIr(
-    const IrP4Info &info, const p4::v1::CloneSessionEntry &pi,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::CloneSessionEntry& pi,
+    const TranslationOptions& options) {
   IrCloneSessionEntry ir;
   ir.set_session_id(pi.session_id());
 
@@ -2129,7 +2129,7 @@ StatusOr<IrCloneSessionEntry> PiCloneSessionEntryToIr(
   ir.set_packet_length_bytes(pi.packet_length_bytes());
 
   std::vector<std::string> invalid_reasons;
-  for (const auto &replica : pi.replicas()) {
+  for (const auto& replica : pi.replicas()) {
     absl::StatusOr<IrReplica> ir_replica = PiReplicaToIr(info, replica);
     if (!ir_replica.ok()) {
       invalid_reasons.push_back(
@@ -2149,8 +2149,8 @@ StatusOr<IrCloneSessionEntry> PiCloneSessionEntryToIr(
 }
 
 StatusOr<IrPacketReplicationEngineEntry> PiPacketReplicationEngineEntryToIr(
-    const IrP4Info &info, const p4::v1::PacketReplicationEngineEntry &pi,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::PacketReplicationEngineEntry& pi,
+    const TranslationOptions& options) {
   IrPacketReplicationEngineEntry ir;
   switch (pi.type_case()) {
     case p4::v1::PacketReplicationEngineEntry::kMulticastGroupEntry: {
@@ -2173,22 +2173,22 @@ StatusOr<IrPacketReplicationEngineEntry> PiPacketReplicationEngineEntryToIr(
   return ir;
 }
 
-StatusOr<IrPacketIn> PiPacketInToIr(const IrP4Info &info,
-                                    const p4::v1::PacketIn &packet,
-                                    const TranslationOptions &options) {
+StatusOr<IrPacketIn> PiPacketInToIr(const IrP4Info& info,
+                                    const p4::v1::PacketIn& packet,
+                                    const TranslationOptions& options) {
   return PiPacketIoToIr<p4::v1::PacketIn, IrPacketIn>(info, "packet-in", packet,
                                                       options);
 }
-StatusOr<IrPacketOut> PiPacketOutToIr(const IrP4Info &info,
-                                      const p4::v1::PacketOut &packet,
-                                      const TranslationOptions &options) {
+StatusOr<IrPacketOut> PiPacketOutToIr(const IrP4Info& info,
+                                      const p4::v1::PacketOut& packet,
+                                      const TranslationOptions& options) {
   return PiPacketIoToIr<p4::v1::PacketOut, IrPacketOut>(info, "packet-out",
                                                         packet, options);
 }
 
 StatusOr<IrReadRequest> PiReadRequestToIr(
-    const IrP4Info &info, const p4::v1::ReadRequest &read_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::ReadRequest& read_request,
+    const TranslationOptions& options) {
   IrReadRequest result;
   std::vector<std::string> invalid_reasons;
   if (read_request.device_id() == 0) {
@@ -2238,8 +2238,8 @@ StatusOr<IrReadRequest> PiReadRequestToIr(
   return result;
 }
 
-StatusOr<IrEntity> PiEntityToIr(const IrP4Info &info, const p4::v1::Entity &pi,
-                                const TranslationOptions &options) {
+StatusOr<IrEntity> PiEntityToIr(const IrP4Info& info, const p4::v1::Entity& pi,
+                                const TranslationOptions& options) {
   IrEntity ir_entity;
   switch (pi.entity_case()) {
     case p4::v1::Entity::kTableEntry: {
@@ -2268,11 +2268,11 @@ StatusOr<IrEntity> PiEntityToIr(const IrP4Info &info, const p4::v1::Entity &pi,
   return ir_entity;
 }
 
-StatusOr<IrEntities> PiEntitiesToIr(const IrP4Info &info,
+StatusOr<IrEntities> PiEntitiesToIr(const IrP4Info& info,
                                     const absl::Span<const p4::v1::Entity> pi,
-                                    const TranslationOptions &options) {
+                                    const TranslationOptions& options) {
   IrEntities ir_entities;
-  for (auto &entity : pi) {
+  for (auto& entity : pi) {
     ASSIGN_OR_RETURN(*ir_entities.add_entities(),
                      PiEntityToIr(info, entity, options));
   }
@@ -2280,11 +2280,11 @@ StatusOr<IrEntities> PiEntitiesToIr(const IrP4Info &info,
 }
 
 StatusOr<IrReadResponse> PiReadResponseToIr(
-    const IrP4Info &info, const p4::v1::ReadResponse &read_response,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::ReadResponse& read_response,
+    const TranslationOptions& options) {
   IrReadResponse result;
   std::vector<std::string> invalid_reasons;
-  for (const auto &entity : read_response.entities()) {
+  for (const auto& entity : read_response.entities()) {
     absl::StatusOr<pdpi::IrEntity> ir_entity =
         PiEntityToIr(info, entity, options);
     if (!ir_entity.ok()) {
@@ -2302,9 +2302,9 @@ StatusOr<IrReadResponse> PiReadResponseToIr(
   return result;
 }
 
-StatusOr<IrUpdate> PiUpdateToIr(const IrP4Info &info,
-                                const p4::v1::Update &update,
-                                const TranslationOptions &options) {
+StatusOr<IrUpdate> PiUpdateToIr(const IrP4Info& info,
+                                const p4::v1::Update& update,
+                                const TranslationOptions& options) {
   IrUpdate ir_update;
   if (update.type() == p4::v1::Update_Type_UNSPECIFIED) {
     return absl::InvalidArgumentError(
@@ -2317,8 +2317,8 @@ StatusOr<IrUpdate> PiUpdateToIr(const IrP4Info &info,
 }
 
 StatusOr<IrWriteRequest> PiWriteRequestToIr(
-    const IrP4Info &info, const p4::v1::WriteRequest &write_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const p4::v1::WriteRequest& write_request,
+    const TranslationOptions& options) {
   IrWriteRequest ir_write_request;
 
   std::vector<std::string> invalid_reasons;
@@ -2347,8 +2347,8 @@ StatusOr<IrWriteRequest> PiWriteRequestToIr(
   }
 
   for (int idx = 0; idx < write_request.updates_size(); ++idx) {
-    const auto &update = write_request.updates(idx);
-    const absl::StatusOr<IrUpdate> &ir_update =
+    const auto& update = write_request.updates(idx);
+    const absl::StatusOr<IrUpdate>& ir_update =
         PiUpdateToIr(info, update, options);
     if (!ir_update.ok()) {
       invalid_update_reasons.push_back(GenerateFormattedError(
@@ -2366,9 +2366,9 @@ StatusOr<IrWriteRequest> PiWriteRequestToIr(
 }
 
 StatusOr<IrStreamMessageRequest> PiStreamMessageRequestToIr(
-    const IrP4Info &info,
-    const p4::v1::StreamMessageRequest &stream_message_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info,
+    const p4::v1::StreamMessageRequest& stream_message_request,
+    const TranslationOptions& options) {
   IrStreamMessageRequest ir_stream_message_request;
 
   switch (stream_message_request.update_case()) {
@@ -2396,9 +2396,9 @@ StatusOr<IrStreamMessageRequest> PiStreamMessageRequestToIr(
 }
 
 StatusOr<IrStreamMessageResponse> PiStreamMessageResponseToIr(
-    const IrP4Info &info,
-    const p4::v1::StreamMessageResponse &stream_message_response,
-    const TranslationOptions &options) {
+    const IrP4Info& info,
+    const p4::v1::StreamMessageResponse& stream_message_response,
+    const TranslationOptions& options) {
   IrStreamMessageResponse ir_stream_message_response;
 
   switch (stream_message_response.update_case()) {
@@ -2415,8 +2415,8 @@ StatusOr<IrStreamMessageResponse> PiStreamMessageResponseToIr(
     }
     case p4::v1::StreamMessageResponse::kError: {
       auto pi_error = stream_message_response.error();
-      auto *ir_error = ir_stream_message_response.mutable_error();
-      auto *ir_status = ir_error->mutable_status();
+      auto* ir_error = ir_stream_message_response.mutable_error();
+      auto* ir_status = ir_error->mutable_status();
       ir_status->set_code(pi_error.canonical_code());
       ir_status->set_message(pi_error.message());
       switch (pi_error.details_case()) {
@@ -2451,22 +2451,22 @@ StatusOr<IrStreamMessageResponse> PiStreamMessageResponseToIr(
 }
 
 absl::StatusOr<std::vector<p4::v1::TableEntry>> IrTableEntriesToPi(
-    const IrP4Info &info, const IrTableEntries &ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrTableEntries& ir,
+    const TranslationOptions& options) {
   std::vector<p4::v1::TableEntry> pi;
   pi.reserve(ir.entries_size());
-  for (const IrTableEntry &ir_entry : ir.entries()) {
+  for (const IrTableEntry& ir_entry : ir.entries()) {
     ASSIGN_OR_RETURN(pi.emplace_back(),
                      IrTableEntryToPi(info, ir_entry, options));
   }
   return pi;
 }
 absl::StatusOr<std::vector<p4::v1::TableEntry>> IrTableEntriesToPi(
-    const IrP4Info &info, absl::Span<const IrTableEntry> ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, absl::Span<const IrTableEntry> ir,
+    const TranslationOptions& options) {
   std::vector<p4::v1::TableEntry> pi;
   pi.reserve(ir.size());
-  for (const IrTableEntry &ir_entry : ir) {
+  for (const IrTableEntry& ir_entry : ir) {
     ASSIGN_OR_RETURN(pi.emplace_back(),
                      IrTableEntryToPi(info, ir_entry, options));
   }
@@ -2474,11 +2474,11 @@ absl::StatusOr<std::vector<p4::v1::TableEntry>> IrTableEntriesToPi(
 }
 
 absl::StatusOr<IrTableEntries> PiTableEntriesToIr(
-    const IrP4Info &info, absl::Span<const p4::v1::TableEntry> pi,
-    const TranslationOptions &options) {
+    const IrP4Info& info, absl::Span<const p4::v1::TableEntry> pi,
+    const TranslationOptions& options) {
   IrTableEntries ir;
   ir.mutable_entries()->Reserve(pi.size());
-  for (const auto &pi_entry : pi) {
+  for (const auto& pi_entry : pi) {
     ASSIGN_OR_RETURN(*ir.add_entries(),
                      PiTableEntryToIr(info, pi_entry, options));
   }
@@ -2486,17 +2486,17 @@ absl::StatusOr<IrTableEntries> PiTableEntriesToIr(
 }
 
 StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
-    const IrP4Info &info, const IrTableEntry &ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrTableEntry& ir,
+    const TranslationOptions& options) {
   p4::v1::TableEntry pi;
   absl::string_view table_name = ir.table_name();
-  const auto &status_or_table =
+  const auto& status_or_table =
       gutil::FindPtrOrStatus(info.tables_by_name(), ir.table_name());
   if (!status_or_table.ok()) {
     return absl::InvalidArgumentError(
         absl::StrCat(TableName(table_name), " does not exist in the P4Info."));
   }
-  const auto *table = *status_or_table;
+  const auto* table = *status_or_table;
   pi.set_table_id(table->preamble().id());
 
   std::vector<std::string> invalid_reasons;
@@ -2509,8 +2509,8 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
   // Validate and translate the matches
   absl::flat_hash_set<std::string> used_field_names(ir.matches_size()),
       mandatory_matches(ir.matches_size());
-  for (const auto &ir_match : ir.matches()) {
-    const absl::Status &duplicate = gutil::InsertIfUnique(
+  for (const auto& ir_match : ir.matches()) {
+    const absl::Status& duplicate = gutil::InsertIfUnique(
         used_field_names, ir_match.name(),
         absl::StrCat("Duplicate match field found with name '", ir_match.name(),
                      "'."));
@@ -2519,7 +2519,7 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
       continue;
     }
 
-    const auto &status_or_match =
+    const auto& status_or_match =
         gutil::FindPtrOrStatus(table->match_fields_by_name(), ir_match.name());
     if (!status_or_match.ok()) {
       invalid_reasons.push_back(absl::StrCat(kNewBullet, "Match Field '",
@@ -2527,7 +2527,7 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
                                              "' does not exist in table."));
       continue;
     }
-    const auto *match = *status_or_match;
+    const auto* match = *status_or_match;
     absl::Status match_entry_status =
         IrMatchFieldToPi(info, options, *match, ir_match, *pi.add_match());
     if (!match_entry_status.ok()) {
@@ -2541,7 +2541,7 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
     }
   }
 
-  const absl::Status &mandatory_match_status =
+  const absl::Status& mandatory_match_status =
       CheckMandatoryMatches(mandatory_matches, *table);
   if (!mandatory_match_status.ok()) {
     invalid_reasons.push_back(
@@ -2677,13 +2677,13 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
   return pi;
 }
 
-StatusOr<p4::v1::Replica> IrReplicaToPi(const IrP4Info &info,
-                                        const IrReplica &ir) {
+StatusOr<p4::v1::Replica> IrReplicaToPi(const IrP4Info& info,
+                                        const IrReplica& ir) {
   p4::v1::Replica pi;
   pi.set_port(ir.port());
   pi.set_instance(ir.instance());
-  for (const auto &ir_backup_replica : ir.backup_replicas()) {
-    p4::v1::BackupReplica *pi_backup_replica = pi.add_backup_replicas();
+  for (const auto& ir_backup_replica : ir.backup_replicas()) {
+    p4::v1::BackupReplica* pi_backup_replica = pi.add_backup_replicas();
     pi_backup_replica->set_port(ir_backup_replica.port());
     pi_backup_replica->set_instance(ir_backup_replica.instance());
   }
@@ -2691,8 +2691,8 @@ StatusOr<p4::v1::Replica> IrReplicaToPi(const IrP4Info &info,
 }
 
 StatusOr<p4::v1::MulticastGroupEntry> IrMulticastGroupEntryToPi(
-    const IrP4Info &info, const IrMulticastGroupEntry &ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrMulticastGroupEntry& ir,
+    const TranslationOptions& options) {
   p4::v1::MulticastGroupEntry pi;
   pi.set_multicast_group_id(ir.multicast_group_id());
 
@@ -2703,7 +2703,7 @@ StatusOr<p4::v1::MulticastGroupEntry> IrMulticastGroupEntryToPi(
   absl::flat_hash_map<std::string, absl::flat_hash_set<uint32_t>>
       instances_by_port;
   std::vector<std::string> invalid_reasons;
-  for (const auto &replica : ir.replicas()) {
+  for (const auto& replica : ir.replicas()) {
     absl::StatusOr<p4::v1::Replica> pi_replica = IrReplicaToPi(info, replica);
     if (!pi_replica.ok()) {
       invalid_reasons.push_back(
@@ -2724,7 +2724,7 @@ StatusOr<p4::v1::MulticastGroupEntry> IrMulticastGroupEntryToPi(
 
     // A replica cannot have the same port as any other backup replica.
     absl::flat_hash_set<std::string> all_replica_ports = {replica.port()};
-    for (const auto &backup_replica : replica.backup_replicas()) {
+    for (const auto& backup_replica : replica.backup_replicas()) {
       if (!all_replica_ports.insert(backup_replica.port()).second) {
         invalid_reasons.push_back(absl::StrCat(
             kNewBullet,
@@ -2735,7 +2735,7 @@ StatusOr<p4::v1::MulticastGroupEntry> IrMulticastGroupEntryToPi(
     }
 
     // Check that {port, instance} pair is unique for backup replicas.
-    for (const auto &backup : replica.backup_replicas()) {
+    for (const auto& backup : replica.backup_replicas()) {
       if (!instances_by_port[backup.port()].insert(backup.instance()).second) {
         invalid_reasons.push_back(absl::StrCat(
             kNewBullet,
@@ -2756,8 +2756,8 @@ StatusOr<p4::v1::MulticastGroupEntry> IrMulticastGroupEntryToPi(
 }
 
 StatusOr<p4::v1::CloneSessionEntry> IrCloneSessionEntryToPi(
-    const IrP4Info &info, const IrCloneSessionEntry &ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrCloneSessionEntry& ir,
+    const TranslationOptions& options) {
   p4::v1::CloneSessionEntry pi;
   pi.set_session_id(ir.session_id());
 
@@ -2768,7 +2768,7 @@ StatusOr<p4::v1::CloneSessionEntry> IrCloneSessionEntryToPi(
   pi.set_packet_length_bytes(ir.packet_length_bytes());
 
   std::vector<std::string> invalid_reasons;
-  for (const auto &replica : ir.replicas()) {
+  for (const auto& replica : ir.replicas()) {
     absl::StatusOr<p4::v1::Replica> pi_replica = IrReplicaToPi(info, replica);
     if (!pi_replica.ok()) {
       invalid_reasons.push_back(
@@ -2787,9 +2787,9 @@ StatusOr<p4::v1::CloneSessionEntry> IrCloneSessionEntryToPi(
 }
 
 StatusOr<p4::v1::PacketReplicationEngineEntry>
-IrPacketReplicationEngineEntryToPi(const IrP4Info &info,
-                                   const IrPacketReplicationEngineEntry &ir,
-                                   const TranslationOptions &options) {
+IrPacketReplicationEngineEntryToPi(const IrP4Info& info,
+                                   const IrPacketReplicationEngineEntry& ir,
+                                   const TranslationOptions& options) {
   p4::v1::PacketReplicationEngineEntry pi;
   switch (ir.type_case()) {
     case IrPacketReplicationEngineEntry::kMulticastGroupEntry: {
@@ -2811,28 +2811,28 @@ IrPacketReplicationEngineEntryToPi(const IrP4Info &info,
   return pi;
 }
 
-StatusOr<p4::v1::PacketIn> IrPacketInToPi(const IrP4Info &info,
-                                          const IrPacketIn &packet,
-                                          const TranslationOptions &options) {
+StatusOr<p4::v1::PacketIn> IrPacketInToPi(const IrP4Info& info,
+                                          const IrPacketIn& packet,
+                                          const TranslationOptions& options) {
   return IrPacketIoToPi<p4::v1::PacketIn, IrPacketIn>(info, "packet-in", packet,
                                                       options);
 }
-StatusOr<p4::v1::PacketOut> IrPacketOutToPi(const IrP4Info &info,
-                                            const IrPacketOut &packet,
-                                            const TranslationOptions &options) {
+StatusOr<p4::v1::PacketOut> IrPacketOutToPi(const IrP4Info& info,
+                                            const IrPacketOut& packet,
+                                            const TranslationOptions& options) {
   return IrPacketIoToPi<p4::v1::PacketOut, IrPacketOut>(info, "packet-out",
                                                         packet, options);
 }
 
 StatusOr<p4::v1::ReadRequest> IrReadRequestToPi(
-    const IrP4Info &info, const IrReadRequest &read_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrReadRequest& read_request,
+    const TranslationOptions& options) {
   p4::v1::ReadRequest result;
   if (read_request.device_id() == 0) {
     return UnimplementedErrorBuilder() << "Device ID missing.";
   }
   result.set_device_id(read_request.device_id());
-  p4::v1::TableEntry *entry = result.add_entities()->mutable_table_entry();
+  p4::v1::TableEntry* entry = result.add_entities()->mutable_table_entry();
   if (read_request.read_counter_data()) {
     entry->mutable_counter_data();
   }
@@ -2844,8 +2844,8 @@ StatusOr<p4::v1::ReadRequest> IrReadRequestToPi(
 
 // -- Conversions from IR to PI ------------------------------------------------
 
-StatusOr<p4::v1::Entity> IrEntityToPi(const IrP4Info &info, const IrEntity &ir,
-                                      const TranslationOptions &options) {
+StatusOr<p4::v1::Entity> IrEntityToPi(const IrP4Info& info, const IrEntity& ir,
+                                      const TranslationOptions& options) {
   p4::v1::Entity pi_entity;
   switch (ir.entity_case()) {
     case IrEntity::kTableEntry: {
@@ -2875,11 +2875,11 @@ StatusOr<p4::v1::Entity> IrEntityToPi(const IrP4Info &info, const IrEntity &ir,
 }
 
 absl::StatusOr<std::vector<p4::v1::Entity>> IrEntitiesToPi(
-    const IrP4Info &info, const IrEntities &ir,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrEntities& ir,
+    const TranslationOptions& options) {
   std::vector<p4::v1::Entity> pi_entities;
   pi_entities.reserve(ir.entities_size());
-  for (auto &entity : ir.entities()) {
+  for (auto& entity : ir.entities()) {
     ASSIGN_OR_RETURN(pi_entities.emplace_back(),
                      IrEntityToPi(info, entity, options));
   }
@@ -2887,11 +2887,11 @@ absl::StatusOr<std::vector<p4::v1::Entity>> IrEntitiesToPi(
 }
 
 StatusOr<p4::v1::ReadResponse> IrReadResponseToPi(
-    const IrP4Info &info, const IrReadResponse &read_response,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrReadResponse& read_response,
+    const TranslationOptions& options) {
   p4::v1::ReadResponse result;
   std::vector<std::string> invalid_reasons;
-  for (const auto &entity : read_response.entities()) {
+  for (const auto& entity : read_response.entities()) {
     absl::StatusOr<p4::v1::Entity> pi_entity =
         IrEntityToPi(info, entity, options);
     if (!pi_entity.ok()) {
@@ -2909,9 +2909,9 @@ StatusOr<p4::v1::ReadResponse> IrReadResponseToPi(
   return result;
 }
 
-StatusOr<p4::v1::Update> IrUpdateToPi(const IrP4Info &info,
-                                      const IrUpdate &update,
-                                      const TranslationOptions &options) {
+StatusOr<p4::v1::Update> IrUpdateToPi(const IrP4Info& info,
+                                      const IrUpdate& update,
+                                      const TranslationOptions& options) {
   p4::v1::Update pi_update;
 
   std::vector<std::string> invalid_reasons;
@@ -2936,8 +2936,8 @@ StatusOr<p4::v1::Update> IrUpdateToPi(const IrP4Info &info,
 }
 
 StatusOr<p4::v1::WriteRequest> IrWriteRequestToPi(
-    const IrP4Info &info, const IrWriteRequest &ir_write_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info, const IrWriteRequest& ir_write_request,
+    const TranslationOptions& options) {
   p4::v1::WriteRequest pi_write_request;
 
   pi_write_request.set_role_id(0);
@@ -2951,8 +2951,8 @@ StatusOr<p4::v1::WriteRequest> IrWriteRequestToPi(
 
   std::vector<std::string> invalid_reasons;
   for (int idx = 0; idx < ir_write_request.updates_size(); ++idx) {
-    const auto &update = ir_write_request.updates(idx);
-    const absl::StatusOr<p4::v1::Update> &pi_update =
+    const auto& update = ir_write_request.updates(idx);
+    const absl::StatusOr<p4::v1::Update>& pi_update =
         IrUpdateToPi(info, update, options);
     if (!pi_update.ok()) {
       invalid_reasons.push_back(GenerateFormattedError(
@@ -2969,9 +2969,9 @@ StatusOr<p4::v1::WriteRequest> IrWriteRequestToPi(
 }
 
 StatusOr<p4::v1::StreamMessageRequest> IrStreamMessageRequestToPi(
-    const IrP4Info &info,
-    const IrStreamMessageRequest &ir_stream_message_request,
-    const TranslationOptions &options) {
+    const IrP4Info& info,
+    const IrStreamMessageRequest& ir_stream_message_request,
+    const TranslationOptions& options) {
   p4::v1::StreamMessageRequest pi_stream_message_request;
 
   switch (ir_stream_message_request.update_case()) {
@@ -2999,9 +2999,9 @@ StatusOr<p4::v1::StreamMessageRequest> IrStreamMessageRequestToPi(
 }
 
 StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
-    const IrP4Info &info,
-    const IrStreamMessageResponse &ir_stream_message_response,
-    const TranslationOptions &options) {
+    const IrP4Info& info,
+    const IrStreamMessageResponse& ir_stream_message_response,
+    const TranslationOptions& options) {
   p4::v1::StreamMessageResponse pi_stream_message_response;
 
   switch (ir_stream_message_response.update_case()) {
@@ -3017,7 +3017,7 @@ StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
       break;
     }
     case IrStreamMessageResponse::kError: {
-      auto *pi_error = pi_stream_message_response.mutable_error();
+      auto* pi_error = pi_stream_message_response.mutable_error();
       auto ir_error = ir_stream_message_response.error();
 
       pi_error->set_canonical_code(ir_error.status().code());
@@ -3040,7 +3040,7 @@ StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
 }
 
 // Formats a grpc status about write request into a readible string.
-std::string WriteRequestGrpcStatusToString(const grpc::Status &status) {
+std::string WriteRequestGrpcStatusToString(const grpc::Status& status) {
   std::string readable_status = absl::StrCat(
       "gRPC_error_code: ", status.error_code(), "\n",
       "gRPC_error_message: ", "\"", status.error_message(), "\"", "\n");
@@ -3056,7 +3056,7 @@ std::string WriteRequestGrpcStatusToString(const grpc::Status &status) {
                       inner_status.message(), "\"\n",
                       "inner_status.details:\n");
       p4::v1::Error p4_error;
-      for (const auto &inner_status_detail : inner_status.details()) {
+      for (const auto& inner_status_detail : inner_status.details()) {
         absl::StrAppend(&readable_status, "  ");
         if (inner_status_detail.UnpackTo(&p4_error)) {
           absl::StrAppend(
@@ -3078,7 +3078,7 @@ std::string WriteRequestGrpcStatusToString(const grpc::Status &status) {
 }
 
 absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
-    const grpc::Status &grpc_status, int number_of_updates_in_write_request) {
+    const grpc::Status& grpc_status, int number_of_updates_in_write_request) {
   IrWriteRpcStatus ir_write_status;
   if (grpc_status.ok()) {
     // If all batch updates succeeded, `status` is ok and neither
@@ -3122,7 +3122,7 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
                 "with status code in grpc_status";
     }
 
-    auto *ir_rpc_response = ir_write_status.mutable_rpc_response();
+    auto* ir_rpc_response = ir_write_status.mutable_rpc_response();
     p4::v1::Error p4_error;
     bool all_p4_errors_ok = true;
     if (inner_rpc_status.details_size() != number_of_updates_in_write_request) {
@@ -3133,7 +3133,7 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
              << " number_of_updates_in_write_request: "
              << number_of_updates_in_write_request;
     }
-    for (const auto &inner_rpc_status_detail : inner_rpc_status.details()) {
+    for (const auto& inner_rpc_status_detail : inner_rpc_status.details()) {
       if (!inner_rpc_status_detail.UnpackTo(&p4_error)) {
         return gutil::InvalidArgumentErrorBuilder()
                << "Can not parse google::rpc::Status contained in grpc_status: "
@@ -3147,7 +3147,7 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
           static_cast<int>(google::rpc::Code::OK)) {
         all_p4_errors_ok = false;
       }
-      IrUpdateStatus *ir_update_status = ir_rpc_response->add_statuses();
+      IrUpdateStatus* ir_update_status = ir_rpc_response->add_statuses();
       ir_update_status->set_code(
           static_cast<google::rpc::Code>(p4_error.canonical_code()));
       ir_update_status->set_message(p4_error.message());
@@ -3167,10 +3167,10 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
 }
 
 static absl::StatusOr<grpc::Status> IrWriteResponseToGrpcStatus(
-    const IrWriteResponse &ir_write_response) {
+    const IrWriteResponse& ir_write_response) {
   p4::v1::Error p4_error;
   google::rpc::Status inner_rpc_status;
-  for (const IrUpdateStatus &ir_update_status : ir_write_response.statuses()) {
+  for (const IrUpdateStatus& ir_update_status : ir_write_response.statuses()) {
     RETURN_IF_ERROR(ValidateGenericUpdateStatus(ir_update_status.code(),
                                                 ir_update_status.message()));
     RETURN_IF_ERROR(IsGoogleRpcCode(ir_update_status.code()));
@@ -3186,17 +3186,17 @@ static absl::StatusOr<grpc::Status> IrWriteResponseToGrpcStatus(
 }
 
 absl::StatusOr<grpc::Status> IrWriteRpcStatusToGrpcStatus(
-    const IrWriteRpcStatus &ir_write_status) {
+    const IrWriteRpcStatus& ir_write_status) {
   switch (ir_write_status.status_case()) {
     case IrWriteRpcStatus::kRpcResponse: {
       bool all_ir_update_status_ok =
           absl::c_all_of(ir_write_status.rpc_response().statuses(),
-                         [](const IrUpdateStatus &ir_update_status) {
+                         [](const IrUpdateStatus& ir_update_status) {
                            return ir_update_status.code() == google::rpc::OK;
                          });
       bool ir_update_status_has_no_error_message =
           absl::c_all_of(ir_write_status.rpc_response().statuses(),
-                         [](const IrUpdateStatus &ir_update_status) {
+                         [](const IrUpdateStatus& ir_update_status) {
                            return ir_update_status.message().empty();
                          });
       if (all_ir_update_status_ok && ir_update_status_has_no_error_message) {
@@ -3228,7 +3228,7 @@ absl::StatusOr<grpc::Status> IrWriteRpcStatusToGrpcStatus(
 }
 
 absl::Status WriteRpcGrpcStatusToAbslStatus(
-    const grpc::Status &grpc_status, int number_of_updates_in_write_request) {
+    const grpc::Status& grpc_status, int number_of_updates_in_write_request) {
   ASSIGN_OR_RETURN(IrWriteRpcStatus write_rpc_status,
                    GrpcStatusToIrWriteRpcStatus(
                        grpc_status, number_of_updates_in_write_request),
@@ -3242,11 +3242,11 @@ absl::Status WriteRpcGrpcStatusToAbslStatus(
                           write_rpc_status.rpc_wide_error().message());
     }
     case IrWriteRpcStatus::kRpcResponse: {
-      const IrWriteResponse &ir_write_response =
+      const IrWriteResponse& ir_write_response =
           write_rpc_status.rpc_response();
       bool all_ir_update_status_ok =
           absl::c_all_of(ir_write_response.statuses(),
-                         [](const IrUpdateStatus &ir_update_status) {
+                         [](const IrUpdateStatus& ir_update_status) {
                            return ir_update_status.code() == google::rpc::OK;
                          });
       return (all_ir_update_status_ok)
@@ -3265,9 +3265,9 @@ absl::Status WriteRpcGrpcStatusToAbslStatus(
 // -- Conversions from IR to IR ------------------------------------------------
 
 absl::StatusOr<pdpi::IrTableEntries> IrEntitiesToTableEntries(
-    const pdpi::IrEntities &control_plane_entries) {
+    const pdpi::IrEntities& control_plane_entries) {
   pdpi::IrTableEntries ir_table_entries;
-  for (const auto &entry : control_plane_entries.entities()) {
+  for (const auto& entry : control_plane_entries.entities()) {
     if (!entry.has_table_entry()) {
       return gutil::InternalErrorBuilder()
              << "This conversion function only supports entities in the form "
@@ -3280,10 +3280,10 @@ absl::StatusOr<pdpi::IrTableEntries> IrEntitiesToTableEntries(
 }
 
 pdpi::IrEntities IrTableEntriesToEntities(
-    const pdpi::IrTableEntries &ir_table_entries) {
+    const pdpi::IrTableEntries& ir_table_entries) {
   pdpi::IrEntities ir_entities;
-  for (const auto &entry : ir_table_entries.entries()) {
-    pdpi::IrEntity *entity = ir_entities.add_entities();
+  for (const auto& entry : ir_table_entries.entries()) {
+    pdpi::IrEntity* entity = ir_entities.add_entities();
     *entity->mutable_table_entry() = entry;
   }
   return ir_entities;
