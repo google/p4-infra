@@ -19,6 +19,7 @@
 #include <optional>
 #include <queue>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -30,6 +31,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "boost/graph/adjacency_list.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
@@ -37,6 +39,7 @@
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/v1/p4runtime.pb.h"
+#include "p4_pdpi/entity_keys.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/names.h"
 #include "p4_pdpi/references.h"
@@ -373,6 +376,44 @@ absl::Status StableSortEntities(const IrP4Info& info,
         return *b_may_depend_on_a;
       });
 
+  return absl::OkStatus();
+}
+
+absl::Status SortEntities(const IrP4Info& info,
+                          std::vector<p4::v1::Entity>& entities) {
+  absl::c_sort(entities, [&](const p4::v1::Entity& a, const p4::v1::Entity& b) {
+    return a.DebugString() < b.DebugString();
+  });
+
+  struct EntityTuple {
+    p4::v1::Entity entity;
+    EntityKey key;
+    int order;
+  };
+
+  std::vector<EntityTuple> augmented_entities;
+  for (p4::v1::Entity& entity : entities) {
+    ASSIGN_OR_RETURN(EntityKey key, EntityKey::MakeEntityKey(entity));
+    ASSIGN_OR_RETURN(std::string table_name, EntityToTableName(info, entity));
+    ASSIGN_OR_RETURN(
+        int order,
+        gutil::FindOrStatus(info.dependency_rank_by_table_name(), table_name));
+
+    augmented_entities.push_back({std::move(entity), key, order});
+  }
+  absl::c_stable_sort(augmented_entities,
+                      [&](const EntityTuple& a, const EntityTuple& b) {
+                        return a.key < b.key;
+                      });
+
+  absl::c_stable_sort(augmented_entities,
+                      [&](const EntityTuple& a, const EntityTuple& b) {
+                        return a.order > b.order;
+                      });
+
+  for (int i = 0; i < entities.size(); ++i) {
+    entities[i] = std::move(augmented_entities[i].entity);
+  }
   return absl::OkStatus();
 }
 

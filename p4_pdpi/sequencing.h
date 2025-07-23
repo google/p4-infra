@@ -70,6 +70,15 @@ absl::StatusOr<std::vector<std::vector<int>>> SequencePiUpdatesInPlace(
 absl::Status StableSortEntities(const IrP4Info& info,
                                 std::vector<p4::v1::Entity>& entities);
 
+// Sorts the entities such that entities that may be depended on come first.
+// That is, two entities x and y where x could refer to y will be sorted
+// as [y, x]. This is done based on the dependency ranks given in the IrP4Info.
+// Any entities with the same dependency rank are sorted by their entity key
+// value.
+// Imposes a total ordering on entities.
+absl::Status SortEntities(const IrP4Info& info,
+                          std::vector<p4::v1::Entity>& entities);
+
 // Same as StableSortEntities but sorts the repeated `Update` message.
 absl::Status StableSortUpdates(
     const IrP4Info& info,
