@@ -14,6 +14,13 @@
 
 """Rule for invoking the PD generator."""
 
+def clean_dep(dep):
+    """Returns an absolute Bazel path to 'dep'.
+
+    This is necessary when calling these functions from another workspace.
+    """
+    return str(Label(dep))
+
 def p4_pd_proto(name, src, out, package, roles = [""], format = True, visibility = None):
     """Generates PD proto from p4info file.
 
@@ -26,7 +33,7 @@ def p4_pd_proto(name, src, out, package, roles = [""], format = True, visibility
         format: whether to format output file.
         visibility: genrule visibility.
     """
-    pdgen = "//p4_pdpi:pdgen"
+    pdgen = clean_dep("//p4_pdpi:pdgen")
     p4info = ":" + src
     tools = [pdgen]
     cmd = """
