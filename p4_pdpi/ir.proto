@@ -447,10 +447,29 @@ message IrActionSetInvocation {
   string watch_port = 3;
 }
 
+// Describes the bucket selection mode of an action set.
+enum BucketSelectionMode {
+  UNKNOWN_BUCKET_SELECTION_MODE = 0;  // Do not use.
+  DETERMINED_BY_ACTION_SELECTOR_MODE = 1;
+  HASH_MODE = 2;
+  RANDOM_MODE = 3;
+}
+
+// Describes the size semantics of an action set.
+enum SizeSemantics {
+  UNKNOWN_SIZE_SEMANTICS = 0;  // Do not use.
+  DETERMINED_BY_ACTION_SELECTOR_SEMANTICS = 1;
+  SUM_OF_WEIGHTS_SEMANTICS = 2;
+  SUM_OF_MEMBERS_SEMANTICS = 3;
+}
+
 // Describes an action profile action set (for WCMP tables).
 message IrActionSet {
   // Required. The set of actions.
   repeated IrActionSetInvocation actions = 1;
+
+  BucketSelectionMode bucket_selection_mode = 2;
+  SizeSemantics size_semantics = 3;
 }
 
 // Describes a table entry (matches, priority and action, plus some metadata).
