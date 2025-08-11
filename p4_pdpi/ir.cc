@@ -771,6 +771,10 @@ absl::Status PiActionSetToIr(
       ir_action->set_watch_port(pi_profile_action.watch_port());
     }
   }
+  ir_action_set.set_load_balance_type(
+      static_cast<BucketSelectionMode>(pi_action_set.bucket_selection_mode()));
+  ir_action_set.set_resource_accounting_type(
+      static_cast<ResourceAllocationMode>(pi_action_set.size_semantics()));
   if (!invalid_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
         "Action Set", absl::StrJoin(invalid_reasons, "\n")));
@@ -3039,7 +3043,7 @@ StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
   return pi_stream_message_response;
 }
 
-// Formats a grpc status about write request into a readible string.
+// Formats a grpc status about write request into a readable string.
 std::string WriteRequestGrpcStatusToString(const grpc::Status &status) {
   std::string readable_status = absl::StrCat(
       "gRPC_error_code: ", status.error_code(), "\n",
