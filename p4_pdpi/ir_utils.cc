@@ -66,7 +66,7 @@ using ::pdpi::Format;
 using ::pdpi::IrValue;
 
 absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
-    const std::string &bytes, int expected_bitwidth) {
+    const std::string& bytes, int expected_bitwidth) {
   // If the bytestring length is zero, the server always rejects the string.
   // https://p4.org/p4-spec/p4runtime/main/P4Runtime-Spec.html#sec-bytestrings
   if (bytes.empty()) {
@@ -87,7 +87,7 @@ absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
                       canonical_string);
 }
 
-absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string &bytes,
+absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string& bytes,
                                                    int bitwidth) {
   if (bitwidth > 64) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
@@ -95,7 +95,7 @@ absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string &bytes,
                                      "bitwidth ",
                                      bitwidth, " to uint."));
   }
-  ASSIGN_OR_RETURN(const auto &stripped_value,
+  ASSIGN_OR_RETURN(const auto& stripped_value,
                    ArbitraryToNormalizedByteString(bytes, bitwidth));
   uint64_t nb_value;  // network byte order
   char value[sizeof(nb_value)];
@@ -121,19 +121,19 @@ absl::StatusOr<std::string> UintToNormalizedByteString(uint64_t value,
   std::string bytes = "";
   if (bitwidth <= 8) {
     uint8_t tmp = static_cast<uint8_t>(value);
-    bytes.assign(reinterpret_cast<char *>(&tmp), sizeof(uint8_t));
+    bytes.assign(reinterpret_cast<char*>(&tmp), sizeof(uint8_t));
   } else if (bitwidth <= 16) {
     uint16_t tmp = htons(static_cast<uint16_t>(value));
-    bytes.assign(reinterpret_cast<char *>(&tmp), sizeof(uint16_t));
+    bytes.assign(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
   } else if (bitwidth <= 32) {
     uint32_t tmp = htonl(static_cast<uint32_t>(value));
-    bytes.assign(reinterpret_cast<char *>(&tmp), sizeof(uint32_t));
+    bytes.assign(reinterpret_cast<char*>(&tmp), sizeof(uint32_t));
   } else {
     uint64_t tmp =
         (htonl(1) == 1)
             ? value
             : (static_cast<uint64_t>(htonl(value)) << 32) | htonl(value >> 32);
-    bytes.assign(reinterpret_cast<char *>(&tmp), sizeof(uint64_t));
+    bytes.assign(reinterpret_cast<char*>(&tmp), sizeof(uint64_t));
   }
 
   ASSIGN_OR_RETURN(auto normalized_str,
@@ -148,13 +148,13 @@ std::string ArbitraryToCanonicalByteString(std::string bytes) {
   return bytes;
 }
 
-absl::StatusOr<Format> GetFormat(const std::vector<std::string> &annotations,
+absl::StatusOr<Format> GetFormat(const std::vector<std::string>& annotations,
                                  const int bitwidth, bool is_sdn_string) {
   Format format = Format::HEX_STRING;
   if (is_sdn_string) {
     format = Format::STRING;
   }
-  for (const std::string &annotation : annotations) {
+  for (const std::string& annotation : annotations) {
     if (absl::StartsWith(annotation, "@format(")) {
       if (format != Format::HEX_STRING) {
         return gutil::InvalidArgumentErrorBuilder()
@@ -189,7 +189,7 @@ absl::StatusOr<Format> GetFormat(const std::vector<std::string> &annotations,
 
 absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
                                                      const int bitwidth,
-                                                     const std::string &bytes) {
+                                                     const std::string& bytes) {
   // If the bytestring length is zero, the server always rejects the string.
   // https://p4.org/p4-spec/p4runtime/main/P4Runtime-Spec.html#sec-bytestrings
   if (bytes.empty()) {
@@ -247,9 +247,9 @@ absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
   }
 }
 
-absl::Status ValidateIrValueFormat(const IrValue &ir_value, Format format,
-                                   const TranslationOptions &options) {
-  const auto &format_case = ir_value.format_case();
+absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
+                                   const TranslationOptions& options) {
+  const auto& format_case = ir_value.format_case();
   ASSIGN_OR_RETURN(const std::string format_case_name,
                    gutil::GetOneOfFieldName(ir_value, std::string("format")));
   switch (format) {
@@ -307,7 +307,7 @@ absl::Status ValidateIrValueFormat(const IrValue &ir_value, Format format,
 }
 
 absl::StatusOr<std::string> IrValueToNormalizedByteString(
-    const IrValue &ir_value, const int bitwidth) {
+    const IrValue& ir_value, const int bitwidth) {
   switch (ir_value.format_case()) {
     case IrValue::kMac: {
       ASSIGN_OR_RETURN(MacAddress mac, MacAddress::OfString(ir_value.mac()));
@@ -341,7 +341,7 @@ absl::StatusOr<std::string> IrValueToNormalizedByteString(
       break;
     }
     case IrValue::kHexStr: {
-      const std::string &hex_str = ir_value.hex_str();
+      const std::string& hex_str = ir_value.hex_str();
       const int expected_num_hex_chars =
           bitwidth / 4 + (bitwidth % 4 != 0 ? 1 : 0);
       if (!absl::StartsWith(hex_str, "0x")) {
@@ -377,7 +377,7 @@ absl::StatusOr<std::string> IrValueToNormalizedByteString(
          << "Uninitialized value: " << ir_value.DebugString();
 }
 
-absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string &value,
+absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string& value,
                                                  Format format) {
   IrValue result;
   switch (format) {
@@ -403,7 +403,7 @@ absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string &value,
   return result;
 }
 
-std::string IrValueString(const IrValue &value) {
+std::string IrValueString(const IrValue& value) {
   switch (value.format_case()) {
     case IrValue::FormatCase::kMac:
       return value.mac();
@@ -421,9 +421,9 @@ std::string IrValueString(const IrValue &value) {
   return "";
 }
 
-bool IsAllZeros(const std::string &s) {
+bool IsAllZeros(const std::string& s) {
   bool has_non_zero_value = false;
-  for (const auto &c : s) {
+  for (const auto& c : s) {
     if (c != '\x00') {
       has_non_zero_value = true;
       break;
@@ -433,8 +433,8 @@ bool IsAllZeros(const std::string &s) {
   return has_non_zero_value == false;
 }
 
-absl::StatusOr<std::string> Intersection(const std::string &left,
-                                         const std::string &right) {
+absl::StatusOr<std::string> Intersection(const std::string& left,
+                                         const std::string& right) {
   if (left.size() != right.size()) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Cannot find intersection. '" << absl::CEscape(left) << "'("
@@ -488,7 +488,7 @@ absl::Status IsGoogleRpcCode(int rpc_code) {
 }
 
 absl::Status ValidateGenericUpdateStatus(google::rpc::Code code,
-                                         const std::string &message) {
+                                         const std::string& message) {
   if (code == google::rpc::OK && !message.empty()) {
     return absl::InvalidArgumentError(
         "OK status should not contain error message.");
@@ -497,11 +497,11 @@ absl::Status ValidateGenericUpdateStatus(google::rpc::Code code,
 }
 
 std::string IrWriteResponseToReadableMessage(
-    const IrWriteResponse &ir_write_response) {
+    const IrWriteResponse& ir_write_response) {
   std::string readable_message;
   absl::StrAppend(&readable_message, "Batch failed, individual results:\n");
   int i = 1;
-  for (const auto &ir_update_status : ir_write_response.statuses()) {
+  for (const auto& ir_update_status : ir_write_response.statuses()) {
     absl::StrAppend(&readable_message, "#", i, ": ",
                     absl::StatusCodeToString(static_cast<absl::StatusCode>(
                         ir_update_status.code())));
@@ -559,7 +559,7 @@ std::string MetadataName(absl::string_view metadata_name) {
 }
 
 bool IsElementDeprecated(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations) {
+    const google::protobuf::RepeatedPtrField<std::string>& annotations) {
   return absl::c_any_of(annotations, [](absl::string_view annotation) {
     return absl::StartsWith(annotation, "@deprecated");
   });
@@ -568,7 +568,7 @@ bool IsElementDeprecated(
 namespace {
 // Compress and return a match field into a unique, descriptive short-form
 // string.
-std::string MatchFieldShortDescription(const IrMatch &match) {
+std::string MatchFieldShortDescription(const IrMatch& match) {
   switch (match.match_value_case()) {
     case IrMatch::MatchValueCase::kExact:
       return absl::Substitute("$0=$1", match.name(),
@@ -592,10 +592,10 @@ std::string MatchFieldShortDescription(const IrMatch &match) {
 
 // Compress and return an action invocation into a unique, descriptive
 // short-form string.
-std::string ActionInvocationShortDescription(const IrActionInvocation &action) {
+std::string ActionInvocationShortDescription(const IrActionInvocation& action) {
   if (action.params().empty()) return action.name();
   absl::btree_set<std::string> action_params;
-  for (const IrActionInvocation::IrActionParam &param : action.params()) {
+  for (const IrActionInvocation::IrActionParam& param : action.params()) {
     action_params.insert(
         absl::Substitute("$0=$1", param.name(), IrValueString(param.value())));
   }
@@ -605,9 +605,9 @@ std::string ActionInvocationShortDescription(const IrActionInvocation &action) {
 
 // Compress and return an action set into a unique, descriptive short-form
 // string.
-std::string ActionSetShortDescription(const IrActionSet &action_set) {
+std::string ActionSetShortDescription(const IrActionSet& action_set) {
   absl::btree_set<std::string> actions;
-  for (const IrActionSetInvocation &invocation : action_set.actions()) {
+  for (const IrActionSetInvocation& invocation : action_set.actions()) {
     actions.insert(absl::Substitute(
         "$0$1[$2]",
         invocation.watch_port().empty()
@@ -620,9 +620,9 @@ std::string ActionSetShortDescription(const IrActionSet &action_set) {
 }
 }  // namespace
 
-std::string ShortDescription(const IrTableEntry &entry) {
+std::string ShortDescription(const IrTableEntry& entry) {
   absl::btree_set<std::string> match_fields;
-  for (const IrMatch &match : entry.matches()) {
+  for (const IrMatch& match : entry.matches()) {
     match_fields.insert(MatchFieldShortDescription(match));
   }
 
