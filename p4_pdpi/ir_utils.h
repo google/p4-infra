@@ -62,33 +62,33 @@ constexpr absl::string_view kIndent = "  ";
 
 // Returns the format for value, given the annotations on it, it's bitwidth
 // and named type (if any).
-absl::StatusOr<Format> GetFormat(const std::vector<std::string> &annotations,
+absl::StatusOr<Format> GetFormat(const std::vector<std::string>& annotations,
                                  const int bitwidth, bool is_sdn_string);
 
 // Checks if the IrValue in the IR table entry is in the same format as
 // specified in the P4Info. If "allow_arbitrary_format" in the translation
 // options is true, any format is accepted.
-absl::Status ValidateIrValueFormat(const IrValue &ir_value, Format format,
-                                   const TranslationOptions &options);
+absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
+                                   const TranslationOptions& options);
 
 // Converts the IR value to a PI byte string and returns it.
 absl::StatusOr<std::string> IrValueToNormalizedByteString(
-    const IrValue &ir_value, const int bitwidth);
+    const IrValue& ir_value, const int bitwidth);
 
 // Converts the PI value to an IR value and returns it.
 absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
                                                      const int bitwidth,
-                                                     const std::string &bytes);
+                                                     const std::string& bytes);
 
 // Returns an IrValue based on a string value and a format. The value is
 // expected to already be formatted correctly, and is just copied to the correct
 // oneof field.
-absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string &value,
+absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string& value,
                                                  Format format);
 
 // Returns the string contents of an IrValue for the populated format (or "" if
 // there is no data).
-std::string IrValueString(const IrValue &value);
+std::string IrValueString(const IrValue& value);
 
 // Return a short-form representation of an IrTableEntry.
 // This is useful for creating a unique, short description of the table entry
@@ -97,18 +97,18 @@ std::string IrValueString(const IrValue &value);
 // names.
 //
 // Does not include metadata, meter, and counters.
-std::string ShortDescription(const IrTableEntry &entry);
+std::string ShortDescription(const IrTableEntry& entry);
 
 // Returns a string of length ceil(expected_bitwidth/8).
 absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
-    const std::string &bytes, int expected_bitwidth);
+    const std::string& bytes, int expected_bitwidth);
 
 // Convert an arbitrary byte string to its canonical form.
 // TODO: smolkaj - Move to byte_string.h and rename appropriately.
 std::string ArbitraryToCanonicalByteString(std::string bytes);
 
 // Convert the given byte string into a uint value.
-absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string &bytes,
+absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string& bytes,
                                                    int bitwidth);
 
 // Convert the given uint to byte string.
@@ -116,11 +116,11 @@ absl::StatusOr<std::string> UintToNormalizedByteString(uint64_t value,
                                                        int bitwidth);
 
 // Returns if a (normalized) byte string is all zeros.
-bool IsAllZeros(const std::string &s);
+bool IsAllZeros(const std::string& s);
 
 // Returns the intersection of two (normalized) byte strings.
-absl::StatusOr<std::string> Intersection(const std::string &left,
-                                         const std::string &right);
+absl::StatusOr<std::string> Intersection(const std::string& left,
+                                         const std::string& right);
 
 // Returns the (normalized) mask for a given prefix length.
 absl::StatusOr<std::string> PrefixLenToMask(int prefix_len, int bitwidth);
@@ -130,10 +130,10 @@ absl::Status IsGoogleRpcCode(int rpc_code);
 // 1: If `code` is ok, `message` should be empty.
 // 2: If `code` is not ok, `message` should not be empty.
 absl::Status ValidateGenericUpdateStatus(google::rpc::Code code,
-                                         const std::string &message);
+                                         const std::string& message);
 // Parses IrUpdateStatus inside of `ir_write_response`` into string.
 std::string IrWriteResponseToReadableMessage(
-    const IrWriteResponse &ir_write_response);
+    const IrWriteResponse& ir_write_response);
 
 // Returns a formatted error message that can be inserted directly into a
 // status.
@@ -161,7 +161,7 @@ std::string MetadataName(absl::string_view metadata_name);
 
 // Checks for an "@deprecated" annotation in the argument.
 bool IsElementDeprecated(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations);
+    const google::protobuf::RepeatedPtrField<std::string>& annotations);
 
 }  // namespace pdpi
 

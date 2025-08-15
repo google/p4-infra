@@ -33,7 +33,7 @@ namespace pdpi {
 // - Tables, which will have their match fields, action refs,
 //   direct resource ids and preambles unioned.
 absl::StatusOr<::p4::config::v1::P4Info> UnionP4info(
-    const std::vector<::p4::config::v1::P4Info> &infos);
+    const std::vector<::p4::config::v1::P4Info>& infos);
 
 }  // namespace pdpi
 

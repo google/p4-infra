@@ -68,8 +68,8 @@ absl::StatusOr<ParsedReferencedByAnnotation> ParseAsReferencedByAnnotation(
 // definition of `table_name`. Returns error if `table_name` does not exist in
 // `info`.
 absl::StatusOr<IrTable> CreateIrP4Table(absl::string_view table_name,
-                                        const IrP4Info &info) {
-  ASSIGN_OR_RETURN(const IrTableDefinition *table,
+                                        const IrP4Info& info) {
+  ASSIGN_OR_RETURN(const IrTableDefinition* table,
                    gutil::FindPtrOrStatus(info.tables_by_name(), table_name));
   IrTable ir_table;
   ir_table.mutable_p4_table()->set_table_name(table_name);
@@ -88,11 +88,11 @@ absl::StatusOr<IrTable> CreateIrBuiltInTable(absl::string_view table_name) {
 
 absl::StatusOr<IrMatchField> CreateIrP4MatchField(absl::string_view table_name,
                                                   absl::string_view field_name,
-                                                  const IrP4Info &info) {
-  ASSIGN_OR_RETURN(const IrTableDefinition *table,
+                                                  const IrP4Info& info) {
+  ASSIGN_OR_RETURN(const IrTableDefinition* table,
                    gutil::FindPtrOrStatus(info.tables_by_name(), table_name));
   ASSIGN_OR_RETURN(
-      const IrMatchFieldDefinition *match_field,
+      const IrMatchFieldDefinition* match_field,
       gutil::FindPtrOrStatus(table->match_fields_by_name(), field_name));
 
   IrMatchField ir_match_field;
@@ -137,11 +137,11 @@ absl::StatusOr<IrMatchField> CreateIrBuiltInMatchField(
 
 absl::StatusOr<IrActionField> CreateIrP4ActionField(
     absl::string_view action_name, absl::string_view param_name,
-    const IrP4Info &info) {
-  ASSIGN_OR_RETURN(const IrActionDefinition *action,
+    const IrP4Info& info) {
+  ASSIGN_OR_RETURN(const IrActionDefinition* action,
                    gutil::FindPtrOrStatus(info.actions_by_name(), action_name));
   ASSIGN_OR_RETURN(
-      const IrActionDefinition::IrActionParamDefinition *param,
+      const IrActionDefinition::IrActionParamDefinition* param,
       gutil::FindPtrOrStatus(action->params_by_name(), param_name));
 
   IrActionField ir_action_field;
@@ -173,18 +173,18 @@ absl::StatusOr<IrActionField> CreateIrBuiltInActionField(
 
 }  // namespace
 
-bool FieldIsOptional(const IrP4MatchField &p4_match_field) {
+bool FieldIsOptional(const IrP4MatchField& p4_match_field) {
   return p4_match_field.is_optional();
 }
-bool FieldIsOptional(const IrMatchField &match_field) {
+bool FieldIsOptional(const IrMatchField& match_field) {
   return FieldIsOptional(match_field.p4_match_field());
 }
-bool FieldIsOptional(const IrField &field) {
+bool FieldIsOptional(const IrField& field) {
   return FieldIsOptional(field.match_field());
 }
 
 absl::StatusOr<IrTable> CreateIrTable(absl::string_view table_name,
-                                      const IrP4Info &info) {
+                                      const IrP4Info& info) {
   if (IsBuiltInTable(table_name)) {
     return CreateIrBuiltInTable(table_name);
   } else {
@@ -194,7 +194,7 @@ absl::StatusOr<IrTable> CreateIrTable(absl::string_view table_name,
 
 absl::StatusOr<IrMatchField> CreateIrMatchField(absl::string_view table_name,
                                                 absl::string_view field_name,
-                                                const IrP4Info &info) {
+                                                const IrP4Info& info) {
   if (IsBuiltInTable(table_name)) {
     return CreateIrBuiltInMatchField(table_name, field_name);
   } else {
@@ -204,7 +204,7 @@ absl::StatusOr<IrMatchField> CreateIrMatchField(absl::string_view table_name,
 
 absl::StatusOr<IrActionField> CreateIrActionField(absl::string_view action_name,
                                                   absl::string_view param_name,
-                                                  const IrP4Info &info) {
+                                                  const IrP4Info& info) {
   if (IsBuiltInAction(action_name)) {
     return CreateIrBuiltInActionField(action_name, param_name);
   } else {
@@ -212,7 +212,7 @@ absl::StatusOr<IrActionField> CreateIrActionField(absl::string_view action_name,
   }
 }
 
-absl::StatusOr<std::string> GetNameOfTable(const IrTable &table) {
+absl::StatusOr<std::string> GetNameOfTable(const IrTable& table) {
   switch (table.table_case()) {
     case IrTable::kP4Table: {
       return table.p4_table().table_name();
@@ -227,7 +227,7 @@ absl::StatusOr<std::string> GetNameOfTable(const IrTable &table) {
   }
 }
 
-absl::StatusOr<std::string> GetNameOfField(const IrField &field) {
+absl::StatusOr<std::string> GetNameOfField(const IrField& field) {
   switch (field.field_case()) {
     case IrField::kMatchField: {
       switch (field.match_field().match_field_case()) {
@@ -270,7 +270,7 @@ absl::StatusOr<std::string> GetNameOfField(const IrField &field) {
   }
 }
 
-absl::StatusOr<std::string> GetNameOfAction(const IrActionField &field) {
+absl::StatusOr<std::string> GetNameOfAction(const IrActionField& field) {
   switch (field.action_field_case()) {
     case IrActionField::kP4ActionField: {
       return field.p4_action_field().action_name();
@@ -286,20 +286,20 @@ absl::StatusOr<std::string> GetNameOfAction(const IrActionField &field) {
 }
 
 absl::StatusOr<std::vector<ParsedRefersToAnnotation>>
-ParseAllRefersToAnnotations(const RepeatedPtrField<std::string> &annotations) {
+ParseAllRefersToAnnotations(const RepeatedPtrField<std::string>& annotations) {
   return GetAllParsedAnnotations<ParsedRefersToAnnotation>(
       "refers_to", annotations, ParseAsRefersToAnnotation);
 }
 
 absl::StatusOr<std::vector<ParsedReferencedByAnnotation>>
 ParseAllReferencedByAnnotations(
-    const RepeatedPtrField<std::string> &annotations) {
+    const RepeatedPtrField<std::string>& annotations) {
   return GetAllParsedAnnotations<ParsedReferencedByAnnotation>(
       "referenced_by", annotations, ParseAsReferencedByAnnotation);
 }
 
 absl::StatusOr<IrField> CreateIrFieldFromRefersTo(
-    const ParsedRefersToAnnotation &annotation, const IrP4Info &info) {
+    const ParsedRefersToAnnotation& annotation, const IrP4Info& info) {
   if (info.actions_by_name().contains(annotation.table) ||
       (IsBuiltInTable(annotation.table) &&
        StringToIrBuiltInParameter(annotation.field).ok())) {
@@ -318,7 +318,7 @@ absl::StatusOr<IrField> CreateIrFieldFromRefersTo(
 }
 
 absl::StatusOr<IrField> CreateIrFieldFromReferencedBy(
-    const ParsedReferencedByAnnotation &annotation, const IrP4Info &info) {
+    const ParsedReferencedByAnnotation& annotation, const IrP4Info& info) {
   absl::StatusOr<IrBuiltInTable> built_in_table =
       StringToIrBuiltInTable(annotation.table);
   std::string error_string = "Failed to create IrField from @referenced_by: ";
@@ -366,7 +366,7 @@ absl::StatusOr<IrField> CreateIrFieldFromReferencedBy(
 }
 
 absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
-    const IrP4Info &info) {
+    const IrP4Info& info) {
   // References coming from actions are inherited by the tables that can use
   // those actions. This map stores the list of references from an action to a
   // destination table, keyed by the source action and destination table name.
@@ -378,14 +378,14 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
       field_references_by_dst_table_by_src_action;
 
   // Parse reference annotations on action parameters.
-  for (const auto &[action_name, action_def] : info.actions_by_name()) {
-    for (const auto &[param_name, param_def] :
+  for (const auto& [action_name, action_def] : info.actions_by_name()) {
+    for (const auto& [param_name, param_def] :
          gutil::AsOrderedView(action_def.params_by_name())) {
       // Parse @refers_by annotations on parameter.
       ASSIGN_OR_RETURN(
           const std::vector<ParsedRefersToAnnotation> refers_to_annotations,
           ParseAllRefersToAnnotations(param_def.param().annotations()));
-      for (const ParsedRefersToAnnotation &annotation : refers_to_annotations) {
+      for (const ParsedRefersToAnnotation& annotation : refers_to_annotations) {
         IrTableReference::FieldReference field_reference;
         ASSIGN_OR_RETURN(*field_reference.mutable_destination(),
                          CreateIrFieldFromRefersTo(annotation, info));
@@ -431,20 +431,20 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
       table_references_by_dst_table_by_src_table;
 
   // Parse all annotations on table match fields.
-  for (const auto &[table_name, table_def] :
+  for (const auto& [table_name, table_def] :
        gutil::AsOrderedView(info.tables_by_name())) {
-    for (const auto &[match_field_name, match_field_def] :
+    for (const auto& [match_field_name, match_field_def] :
          gutil::AsOrderedView(table_def.match_fields_by_name())) {
       // Parse all @refers_to annotations on table match field.
       ASSIGN_OR_RETURN(
           const std::vector<ParsedRefersToAnnotation> refers_to_annotations,
           ParseAllRefersToAnnotations(
               match_field_def.match_field().annotations()));
-      for (const ParsedRefersToAnnotation &annotation : refers_to_annotations) {
-        IrTableReference &table_reference =
+      for (const ParsedRefersToAnnotation& annotation : refers_to_annotations) {
+        IrTableReference& table_reference =
             table_references_by_dst_table_by_src_table[table_name]
                                                       [annotation.table];
-        IrTableReference::FieldReference *field_reference =
+        IrTableReference::FieldReference* field_reference =
             table_reference.add_field_references();
         ASSIGN_OR_RETURN(*field_reference->mutable_destination(),
                          CreateIrFieldFromRefersTo(annotation, info));
@@ -467,12 +467,12 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
                            referenced_by_annotations,
                        ParseAllReferencedByAnnotations(
                            match_field_def.match_field().annotations()));
-      for (const ParsedReferencedByAnnotation &annotation :
+      for (const ParsedReferencedByAnnotation& annotation :
            referenced_by_annotations) {
-        IrTableReference &table_reference =
+        IrTableReference& table_reference =
             table_references_by_dst_table_by_src_table[annotation.table]
                                                       [table_name];
-        IrTableReference::FieldReference *field_reference =
+        IrTableReference::FieldReference* field_reference =
             table_reference.add_field_references();
 
         ASSIGN_OR_RETURN(*field_reference->mutable_source(),
@@ -493,13 +493,13 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
     }
 
     // Inherit field references of table's actions.
-    for (const auto &action_ref : table_def.entry_actions()) {
-      const IrActionDefinition &action_def = action_ref.action();
+    for (const auto& action_ref : table_def.entry_actions()) {
+      const IrActionDefinition& action_def = action_ref.action();
       if (!field_references_by_dst_table_by_src_action.contains(
               action_def.preamble().alias())) {
         continue;
       }
-      for (const auto &[dst_table, field_references] :
+      for (const auto& [dst_table, field_references] :
            field_references_by_dst_table_by_src_action[action_def.preamble()
                                                            .alias()]) {
         table_references_by_dst_table_by_src_table[table_name][dst_table]
@@ -509,8 +509,8 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
     }
 
     // Ensure that default actions do not contain references.
-    for (const auto &action_ref : table_def.default_only_actions()) {
-      const IrActionDefinition &action_def = action_ref.action();
+    for (const auto& action_ref : table_def.default_only_actions()) {
+      const IrActionDefinition& action_def = action_ref.action();
       if (field_references_by_dst_table_by_src_action.contains(
               action_def.preamble().alias())) {
         return gutil::UnimplementedErrorBuilder()
@@ -524,9 +524,9 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
 
   // Assemble final result.
   std::vector<IrTableReference> result;
-  for (auto &[src_table, table_references_by_dst_table] :
+  for (auto& [src_table, table_references_by_dst_table] :
        table_references_by_dst_table_by_src_table) {
-    for (auto &[dst_table, table_references] : table_references_by_dst_table) {
+    for (auto& [dst_table, table_references] : table_references_by_dst_table) {
       if (table_references.field_references().empty()) {
         return gutil::InternalErrorBuilder()
                << "Empty table references should not be created. "

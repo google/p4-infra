@@ -47,7 +47,7 @@ struct ParsedReferencedByAnnotation {
 //   - there is a reference to an action
 //   - there is a reference involving a match field whose type is not `EXACT`
 absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
-    const IrP4Info &info);
+    const IrP4Info& info);
 
 // Returns a list of `RefersToAnnotation` parsed from the `annotations`.
 // Returns empty list if no annotation contained the label `@refers_to`.
@@ -55,7 +55,7 @@ absl::StatusOr<std::vector<IrTableReference>> ParseIrTableReferences(
 // contain exactly 2 arguments.
 absl::StatusOr<std::vector<ParsedRefersToAnnotation>>
 ParseAllRefersToAnnotations(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations);
+    const google::protobuf::RepeatedPtrField<std::string>& annotations);
 
 // Returns a list of `ReferencedByAnnotation`s parsed from the `annotations`.
 // Returns empty list if no annotation contained the label `@referenced_by`.
@@ -63,43 +63,43 @@ ParseAllRefersToAnnotations(
 // not contain exactly 2 arguments.
 absl::StatusOr<std::vector<ParsedReferencedByAnnotation>>
 ParseAllReferencedByAnnotations(
-    const google::protobuf::RepeatedPtrField<std::string> &annotations);
+    const google::protobuf::RepeatedPtrField<std::string>& annotations);
 
 // Returns an `IrField` created from an @refers_to annotation. Returns error
 // if annotation has invalid information or is a reference to an action.
 absl::StatusOr<IrField> CreateIrFieldFromRefersTo(
-    const ParsedRefersToAnnotation &annotation, const IrP4Info &info);
+    const ParsedRefersToAnnotation& annotation, const IrP4Info& info);
 
 // Returns an `IrField` created from an @referenced_by annotation. Returns
 // error if annotation has invalid information or if the information can be
 // captured by an @refers_to annotation (this is an opinionated choice we make
 // to steer users towards using @refers_to over @referenced_by when possible).
 absl::StatusOr<IrField> CreateIrFieldFromReferencedBy(
-    const ParsedReferencedByAnnotation &annotation, const IrP4Info &info);
+    const ParsedReferencedByAnnotation& annotation, const IrP4Info& info);
 
 // Returns an `IrTable` corresponding to `table_name`. `table_name` can be a
 // user-defined or built-in table. Return error if `table_name` does not exist.
 absl::StatusOr<IrTable> CreateIrTable(absl::string_view table_name,
-                                      const IrP4Info &info);
+                                      const IrP4Info& info);
 
 // Returns an `IrMatchField` corresponding to `field_name` in `table_name`.
 // `table_name` and `field_name` can be user-defined or built-in. Returns error
 // if `table_name` or `field_name` does not exist.
 absl::StatusOr<IrMatchField> CreateIrMatchField(absl::string_view table_name,
                                                 absl::string_view field_name,
-                                                const IrP4Info &info);
+                                                const IrP4Info& info);
 
 // Returns an `IrActionField` corresponding to `param_name` in `action_name`.
 // `action_name` and `param_name` can be user-defined or built-in. Returns error
 // if `action_name` or `param_name` does not exist.
 absl::StatusOr<IrActionField> CreateIrActionField(absl::string_view action_name,
                                                   absl::string_view param_name,
-                                                  const IrP4Info &info);
+                                                  const IrP4Info& info);
 
 // Returns string representation of `IrTable`. String uniquely identifies table
 // within the scope of a p4 program.
 // Returns error if an unknown `IrBuiltInTable` is provided.
-absl::StatusOr<std::string> GetNameOfTable(const IrTable &table);
+absl::StatusOr<std::string> GetNameOfTable(const IrTable& table);
 
 // Returns string representation of `IrField`. String uniquely identifies field
 // within the scope of a table entry. The string representation differs based on
@@ -107,18 +107,18 @@ absl::StatusOr<std::string> GetNameOfTable(const IrTable &table);
 //   `IrMatchField`: { field_name: "m" } -> "m"
 //   `IrActionField`: { action_name: "a" parameter_name: "p" } -> "a.p"
 // Returns error if an unknown `IrBuiltInField` is provided.
-absl::StatusOr<std::string> GetNameOfField(const IrField &field);
+absl::StatusOr<std::string> GetNameOfField(const IrField& field);
 
 // Returns string representation of action `IrField` belongs to. String
 // uniquely identifies the action within the scope of a table entry.
 // Returns error if an unknown or invalid `IrBuiltInActionField` is provided.
-absl::StatusOr<std::string> GetNameOfAction(const IrActionField &field);
+absl::StatusOr<std::string> GetNameOfAction(const IrActionField& field);
 
 // Returns true if `field` is optional. Only IrP4MatchFields can be optional.
 // All other fields (including unset fields) will return false.
-bool FieldIsOptional(const IrField &field);
-bool FieldIsOptional(const IrMatchField &match_field);
-bool FieldIsOptional(const IrP4MatchField &p4_match_field);
+bool FieldIsOptional(const IrField& field);
+bool FieldIsOptional(const IrMatchField& match_field);
+bool FieldIsOptional(const IrP4MatchField& p4_match_field);
 
 }  // namespace pdpi
 
