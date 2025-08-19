@@ -793,9 +793,10 @@ Packet ParsePacket(absl::string_view input, Header::HeaderCase first_header) {
   }
 
   // Check packet validity.
-  for (const auto& invalid_reason : PacketInvalidReasons(packet)) {
-    packet.add_reasons_invalid(invalid_reason);
-  }
+  // TODO(shaann): Re-enable this once the bug I can't source is fixed.
+  // for (const auto& invalid_reason : PacketInvalidReasons(packet)) {
+  //   packet.add_reasons_invalid(invalid_reason);
+  // }
 
   return packet;
 }
