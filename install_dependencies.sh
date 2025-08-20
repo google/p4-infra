@@ -18,13 +18,13 @@
 # System dependencies are disallowed by default, and the bar for exceptions is
 # high.
 #
-# pins-infra strives for a hermetic build, i.e. one that is insensitive to the
+# p4-infra strives for a hermetic build, i.e. one that is insensitive to the
 # libraries and other software installed on your machine, other than Bazel and
 # the compilers. This ensure the build is reproducible and portable.
 #
 # Before adding a new system dependency, consider the following:
 #
-# 1. Please read the note on dependencies in pins_infra_deps.bzl.
+# 1. Please read the note on dependencies in p4_infra_deps.bzl.
 #
 # 2. Can the dependency be avoided altogether? Consider that there is a
 #    non-trival cost to maintaining dependencies over time.

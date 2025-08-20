@@ -166,4 +166,4 @@ Ternary(T, U) -> Ternary<T>;
 
 }  // namespace pdpi
 
-#endif  // P4_PDPI_TERNARY_H
+#endif  // P4_INFRA_P4_PDPI_TERNARY_H_

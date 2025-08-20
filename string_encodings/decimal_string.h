@@ -44,6 +44,7 @@ absl::StatusOr<std::string> IntToDecimalString(int value);
 absl::StatusOr<std::string> IntToDecimalString(int64_t value);
 absl::StatusOr<std::string> IntToDecimalString(uint32_t value);
 absl::StatusOr<std::string> IntToDecimalString(uint64_t value);
+
 }  // namespace string_encodings
 
 #endif  // P4_INFRA_STRING_ENCODINGS_DECIMAL_STRING_H_

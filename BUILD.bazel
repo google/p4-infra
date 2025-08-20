@@ -1,7 +1,5 @@
-# load("//tools/build_defs/license:license.bzl", "license")
-
-# licenses(["notice"])
-
-# exports_files(["LICENSE"])
-
 package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])

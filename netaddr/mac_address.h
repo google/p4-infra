@@ -15,6 +15,7 @@
 #ifndef P4_INFRA_NETADDR_MAC_ADDRESS_H_
 #define P4_INFRA_NETADDR_MAC_ADDRESS_H_
 
+#include <bitset>
 #include <cstdint>
 #include <string>
 

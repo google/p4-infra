@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_PINS_INFRA_P4_PDPI_P4INFO_UNION_LIB_H_
-#define THIRD_PARTY_PINS_INFRA_P4_PDPI_P4INFO_UNION_LIB_H_
+#ifndef P4_INFRA_PDPI_P4INFO_UNION_LIB_H_
+#define P4_INFRA_PDPI_P4INFO_UNION_LIB_H_
 
-#include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "p4/config/v1/p4info.pb.h"
@@ -33,8 +33,8 @@ namespace pdpi {
 // - Tables, which will have their match fields, action refs,
 //   direct resource ids and preambles unioned.
 absl::StatusOr<::p4::config::v1::P4Info> UnionP4info(
-    const std::vector<::p4::config::v1::P4Info> &infos);
+    const std::vector<::p4::config::v1::P4Info>& infos);
 
 }  // namespace pdpi
 
-#endif  // THIRD_PARTY_PINS_INFRA_P4_PDPI_P4INFO_UNION_LIB_H_
+#endif  // P4_INFRA_PDPI_P4INFO_UNION_LIB_H_

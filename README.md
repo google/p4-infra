@@ -1,4 +1,4 @@
-![build](https://github.com/pins/pins-infra/workflows/build/badge.svg)
+![build](https://github.com/google/p4-infra/workflows/build/badge.svg)
 
 # P4 Infrastructure
 

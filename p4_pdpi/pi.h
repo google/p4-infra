@@ -13,8 +13,8 @@
 // limitations under the License.
 
 // Auxiliary functions for working with PI (p4::v1::*) protobufs.
-#ifndef THIRD_PARTY_PINS_INFRA_P4_PDPI_PI_H_
-#define THIRD_PARTY_PINS_INFRA_P4_PDPI_PI_H_
+#ifndef P4_INFRA_P4_PDPI_PI_H_
+#define P4_INFRA_P4_PDPI_PI_H_
 
 #include "absl/status/status.h"
 #include "p4/v1/p4runtime.pb.h"
@@ -31,4 +31,4 @@ absl::Status ZeroPadPiTableEntry(const IrP4Info& info,
 
 }  // namespace pdpi
 
-#endif  // THIRD_PARTY_PINS_INFRA_P4_PDPI_PI_H_
+#endif  // P4_INFRA_P4_PDPI_PI_H_
