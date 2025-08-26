@@ -13,6 +13,11 @@ The downside of this is that the representation is hard to read by humans. In
 contrast, a program-dependent (or PD) representation uses names and is generally
 more friendly to humans.
 
+The PacketLib library provides functionality to parse a raw byte string
+representation of a network packet and represent it as a collection of C++
+header objects. Conversely, it can serialize the packetlib representation back
+into a raw byte string.
+
 This is a work in progress.
 
 This is not an officially supported Google product.
