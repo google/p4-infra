@@ -5068,6 +5068,178 @@ table_entry {
 
 
 =========================================================================
+valid wcmp table
+pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
+=========================================================================
+
+--- PD (Input):
+wcmp_table_entry {
+  match {
+    ipv4 {
+      value: "0.0.255.0"
+      prefix_length: 24
+    }
+  }
+  wcmp_actions {
+    action {
+      do_thing_1 {
+        arg2: "0x01234567"
+        arg1: "0x01234568"
+      }
+    }
+    weight: 1
+  }
+  wcmp_actions {
+    action {
+      do_thing_1 {
+        arg2: "0x01234569"
+        arg1: "0x01234560"
+      }
+    }
+    weight: 2
+  }
+  size_semantics: SUM_OF_WEIGHTS
+  action_selection_mode: HASH
+}
+
+--- IR:
+table_entry {
+  table_name: "wcmp_table"
+  matches {
+    name: "ipv4"
+    lpm {
+      value {
+        ipv4: "0.0.255.0"
+      }
+      prefix_length: 24
+    }
+  }
+  action_set {
+    actions {
+      action {
+        name: "do_thing_1"
+        params {
+          name: "arg2"
+          value {
+            hex_str: "0x01234567"
+          }
+        }
+        params {
+          name: "arg1"
+          value {
+            hex_str: "0x01234568"
+          }
+        }
+      }
+      weight: 1
+    }
+    actions {
+      action {
+        name: "do_thing_1"
+        params {
+          name: "arg2"
+          value {
+            hex_str: "0x01234569"
+          }
+        }
+        params {
+          name: "arg1"
+          value {
+            hex_str: "0x01234560"
+          }
+        }
+      }
+      weight: 2
+    }
+    size_semantics: SUM_OF_WEIGHTS
+    action_selection_mode: HASH
+  }
+}
+
+--- PI:
+table_entry {
+  table_id: 33554438
+  match {
+    field_id: 1
+    lpm {
+      value: "\377\000"
+      prefix_len: 24
+    }
+  }
+  action {
+    action_profile_action_set {
+      action_profile_actions {
+        action {
+          action_id: 16777217
+          params {
+            param_id: 1
+            value: "\001#Eg"
+          }
+          params {
+            param_id: 2
+            value: "\001#Eh"
+          }
+        }
+        weight: 1
+      }
+      action_profile_actions {
+        action {
+          action_id: 16777217
+          params {
+            param_id: 1
+            value: "\001#Ei"
+          }
+          params {
+            param_id: 2
+            value: "\001#E`"
+          }
+        }
+        weight: 2
+      }
+      action_selection_mode: HASH
+      size_semantics: SUM_OF_WEIGHTS
+    }
+  }
+}
+
+
+=========================================================================
+invalid wcmp table
+pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
+=========================================================================
+
+--- PD (Input):
+wcmp_table_entry {
+  match {
+    ipv4 {
+      value: "0.0.255.0"
+      prefix_length: 24
+    }
+  }
+  wcmp_actions {
+    action {
+      do_thing_1 {
+        arg2: "0x01234567"
+        arg1: "0x01234568"
+      }
+    }
+    weight: 1
+  }
+  wcmp_actions {
+    action {
+      do_thing_1 {
+        arg2: "0x01234569"
+        arg1: "0x01234560"
+      }
+    }
+    weight: 2
+  }
+  size_semantics: 101
+}
+
+--- PD is invalid/unsupported:
+INVALID_ARGUMENT: Table entry for 'wcmp_table' is invalid: Enum value within size_semantics is : 101
+=========================================================================
 exact matches of all formats
 pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
 =========================================================================

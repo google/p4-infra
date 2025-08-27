@@ -2756,6 +2756,41 @@ static void RunPdTests(const pdpi::IrP4Info info) {
       )pb"),
       INPUT_IS_VALID);
 
+  RunPdTableEntryTest(
+      info, "valid wcmp table", gutil::ParseProtoOrDie<pdpi::TableEntry>(R"pb(
+        wcmp_table_entry {
+          match { ipv4 { value: "0.0.255.0" prefix_length: 24 } }
+          wcmp_actions {
+            action { do_thing_1 { arg2: "0x01234567" arg1: "0x01234568" } }
+            weight: 1
+          }
+          wcmp_actions {
+            action { do_thing_1 { arg2: "0x01234569" arg1: "0x01234560" } }
+            weight: 2
+          }
+          size_semantics: SUM_OF_WEIGHTS
+          action_selection_mode: HASH
+        }
+      )pb"),
+      INPUT_IS_VALID);
+
+  RunPdTableEntryTest(
+      info, "invalid wcmp table", gutil::ParseProtoOrDie<pdpi::TableEntry>(R"pb(
+        wcmp_table_entry {
+          match { ipv4 { value: "0.0.255.0" prefix_length: 24 } }
+          wcmp_actions {
+            action { do_thing_1 { arg2: "0x01234567" arg1: "0x01234568" } }
+            weight: 1
+          }
+          wcmp_actions {
+            action { do_thing_1 { arg2: "0x01234569" arg1: "0x01234560" } }
+            weight: 2
+          }
+          size_semantics: 101
+        }
+      )pb"),
+      INPUT_IS_INVALID);
+
   RunPdTableEntryTest(info, "exact matches of all formats",
                       gutil::ParseProtoOrDie<pdpi::TableEntry>(R"pb(
                         exact_table_entry {
@@ -3007,7 +3042,7 @@ static void RunPdTests(const pdpi::IrP4Info info) {
 
   RunPdMeterCounterTableEntryTests(info);
   RunPdMulticastTest(info);
-}
+}  // NOLINT(readability/fn_size)
 
 static void RunPdTestsOnlyKey(const pdpi::IrP4Info info) {
   RunPdTableEntryTest(info, "missing matches with key_only=true",

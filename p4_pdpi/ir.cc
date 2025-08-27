@@ -770,6 +770,9 @@ absl::Status PiActionSetToIr(
     if (!pi_profile_action.watch_port().empty()) {
       ir_action->set_watch_port(pi_profile_action.watch_port());
     }
+    ir_action_set.set_action_selection_mode(
+        pi_action_set.action_selection_mode());
+    ir_action_set.set_size_semantics(pi_action_set.size_semantics());
   }
   if (!invalid_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
@@ -1200,6 +1203,9 @@ absl::Status IrActionSetToPi(
       pi_action->set_watch_port(ir_action.watch_port());
     }
   }
+
+  pi.set_size_semantics(ir_action_set.size_semantics());
+  pi.set_action_selection_mode(ir_action_set.action_selection_mode());
 
   if (!invalid_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(

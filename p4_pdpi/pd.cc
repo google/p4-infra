@@ -1038,15 +1038,27 @@ static absl::Status IrActionSetToPd(const IrP4Info& ir_p4info,
                                     const TranslationOptions& options,
                                     const IrTableEntry& ir_table_entry,
                                     google::protobuf::Message* pd_table) {
+  std::vector<std::string> invalid_reasons;
+  absl::Status status =
+      SetEnumField(pd_table, "action_selection_mode",
+                   ir_table_entry.action_set().action_selection_mode());
+  if (!status.ok()) {
+    invalid_reasons.push_back(absl::StrCat(kNewBullet, status.message()));
+  }
+  status = SetEnumField(pd_table, "size_semantics",
+                        ir_table_entry.action_set().size_semantics());
+  if (!status.ok()) {
+    invalid_reasons.push_back(absl::StrCat(kNewBullet, status.message()));
+  }
+
   const auto& pd_wcmp_action_set_descriptor =
       GetFieldDescriptor(*pd_table, "wcmp_actions");
   if (!pd_wcmp_action_set_descriptor.ok()) {
+    invalid_reasons.push_back(absl::StrCat(
+        kNewBullet, pd_wcmp_action_set_descriptor.status().message()));
     return absl::InvalidArgumentError(GenerateFormattedError(
-        "ActionSet",
-        absl::StrCat(kNewBullet,
-                     pd_wcmp_action_set_descriptor.status().message())));
+        "ActionSet", absl::StrJoin(invalid_reasons, "\n")));
   }
-  std::vector<std::string> invalid_reasons;
   for (const auto& ir_action_set_invocation :
        ir_table_entry.action_set().actions()) {
     auto* pd_wcmp_action_set = pd_table->GetReflection()->AddMessage(
@@ -2253,6 +2265,26 @@ absl::StatusOr<IrTableEntry> PartialPdTableEntryToIrTableEntry(
             absl::StrCat(kNewBullet, pd_action_set.status().message()));
       } else {
         auto* action_set = ir.mutable_action_set();
+        absl::StatusOr<int> action_selection_mode =
+            GetEnumField(*pd_table, "action_selection_mode");
+        if (!action_selection_mode.ok()) {
+          invalid_reasons.push_back(absl::StrCat(
+              kNewBullet, action_selection_mode.status().message()));
+        } else {
+          action_set->set_action_selection_mode(
+              static_cast<p4::v1::ActionProfileActionSet::ActionSelectionMode>(
+                  *action_selection_mode));
+        }
+        absl::StatusOr<int> size_semantics =
+            GetEnumField(*pd_table, "size_semantics");
+        if (!size_semantics.ok()) {
+          invalid_reasons.push_back(
+              absl::StrCat(kNewBullet, size_semantics.status().message()));
+        } else {
+          action_set->set_size_semantics(
+              static_cast<p4::v1::ActionProfileActionSet::SizeSemantics>(
+                  *size_semantics));
+        }
         for (auto i = 0; i < pd_table->GetReflection()->FieldSize(
                                  *pd_table, *pd_action_set);
              ++i) {

@@ -243,6 +243,12 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   absl::StrAppend(&result, action_message);
   if (table.uses_oneshot()) {
     absl::StrAppend(&result, "  repeated WcmpAction wcmp_actions = 2;\n");
+    absl::StrAppend(
+        &result,
+        "  p4.v1.ActionProfileActionSet.SizeSemantics size_semantics = 10;\n");
+    absl::StrAppend(&result,
+                    "  p4.v1.ActionProfileActionSet.ActionSelectionMode "
+                    "action_selection_mode = 11;\n");
   } else {
     absl::StrAppend(&result, "  Action action = 2;\n");
   }

@@ -451,6 +451,12 @@ message IrActionSetInvocation {
 message IrActionSet {
   // Required. The set of actions.
   repeated IrActionSetInvocation actions = 1;
+
+  // Determines the resource allocation mode for a group.
+  p4.v1.ActionProfileActionSet.SizeSemantics size_semantics = 2;
+
+  // Determines how the group selects a per-packet action.
+  p4.v1.ActionProfileActionSet.ActionSelectionMode action_selection_mode = 3;
 }
 
 // Describes a table entry (matches, priority and action, plus some metadata).

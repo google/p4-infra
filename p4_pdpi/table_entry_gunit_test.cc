@@ -56,6 +56,36 @@ absl::StatusOr<TableEntries> ValidPdTableEntries() {
           action { do_thing_1 { arg2: "0x01234569" arg1: "0x01234560" } }
           weight: 2
         }
+        action_selection_mode: RANDOM
+        size_semantics: SUM_OF_MEMBERS
+      }
+    }
+    entries {
+      wcmp_table_entry {
+        match { ipv4 { value: "0.0.255.0" prefix_length: 24 } }
+        wcmp_actions {
+          action { do_thing_1 { arg2: "0x01234567" arg1: "0x01234568" } }
+          weight: 1
+        }
+        wcmp_actions {
+          action { do_thing_1 { arg2: "0x01234569" arg1: "0x01234560" } }
+          weight: 2
+        }
+        size_semantics: SUM_OF_WEIGHTS
+      }
+    }
+    entries {
+      wcmp_table_entry {
+        match { ipv4 { value: "0.0.255.0" prefix_length: 24 } }
+        wcmp_actions {
+          action { do_thing_1 { arg2: "0x01234567" arg1: "0x01234568" } }
+          weight: 1
+        }
+        wcmp_actions {
+          action { do_thing_1 { arg2: "0x01234569" arg1: "0x01234560" } }
+          weight: 2
+        }
+        action_selection_mode: HASH
       }
     }
     entries {
