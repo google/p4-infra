@@ -75,6 +75,11 @@ struct Ternary<std::bitset<N>> {
     *this = value.has_value() ? Ternary(*value) : Ternary();
   }
 
+  // Default equality operator (C++17 compatible).
+  bool operator==(const Ternary& other) const {
+    return value == other.value && mask == other.mask;
+  }
+
   // Binary constructor: arbitrary ternary match.
   Ternary(std::bitset<N> value, std::bitset<N> mask)
       : value{value}, mask{mask} {}
