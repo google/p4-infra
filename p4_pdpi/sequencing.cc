@@ -19,6 +19,7 @@
 #include <optional>
 #include <queue>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -30,6 +31,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "boost/graph/adjacency_list.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
@@ -37,10 +39,10 @@
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/v1/p4runtime.pb.h"
+#include "p4_pdpi/entity_keys.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/names.h"
 #include "p4_pdpi/references.h"
-#include "p4_pdpi/sequencing_util.h"
 
 namespace pdpi {
 namespace {
@@ -360,6 +362,34 @@ absl::StatusOr<bool> GreaterThanInDependencyOrder(
 
 absl::Status StableSortEntities(const IrP4Info& info,
                                 std::vector<p4::v1::Entity>& entities) {
+  absl::c_stable_sort(
+      entities, [&](const p4::v1::Entity& a, const p4::v1::Entity& b) {
+        auto b_may_depend_on_a = GreaterThanInDependencyOrder(info, a, b);
+        if (!b_may_depend_on_a.ok()) {
+          LOG(ERROR) << "Failed to compare entities with error: "
+                     << b_may_depend_on_a.status() << "\nEntities were:\n"
+                     << a.DebugString() << "\n\n   and   \n\n"
+                     << b.DebugString();
+          return false;
+        }
+        return *b_may_depend_on_a;
+      });
+
+  return absl::OkStatus();
+}
+
+absl::Status SortEntities(const IrP4Info& info,
+                          std::vector<p4::v1::Entity>& entities) {
+  absl::Status status;
+  absl::c_sort(entities,
+               [&](const p4::v1::Entity& e1, const p4::v1::Entity& e2) {
+                 absl::StatusOr<EntityKey> k1 = EntityKey::MakeEntityKey(e1);
+                 absl::StatusOr<EntityKey> k2 = EntityKey::MakeEntityKey(e2);
+                 status.Update(k1.status());
+                 status.Update(k2.status());
+                 return status.ok() ? *k1 < *k2 : true;
+               });
+  RETURN_IF_ERROR(status);
   absl::c_stable_sort(
       entities, [&](const p4::v1::Entity& a, const p4::v1::Entity& b) {
         auto b_may_depend_on_a = GreaterThanInDependencyOrder(info, a, b);

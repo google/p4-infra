@@ -153,10 +153,10 @@ cc_library(
     # Disable default arguments internally. Using them in PDPI itself is very likely a bug.
     local_defines = ["PDPI_DISABLE_TRANSLATION_OPTIONS_DEFAULT"],
     deps = [
+        ":entity_keys",
         ":ir_cc_proto",
         ":names",
         ":references",
-        ":sequencing_util",
         "@boost//:bimap",
         "@boost//:graph",
         "@com_github_grpc_grpc//:grpc++",
@@ -171,6 +171,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_gutil//gutil:collections",
         "@com_google_gutil//gutil:status",
