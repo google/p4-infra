@@ -1,4 +1,4 @@
-![build](https://github.com/google/p4-infra/workflows/build/badge.svg)
+[![build](https://github.com/google/p4-infra/actions/workflows/ci.yml/badge.svg)](https://github.com/google/p4-infra/actions/workflows/ci.yml)
 
 # P4 Infrastructure
 
