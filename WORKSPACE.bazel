@@ -18,6 +18,12 @@ load("p4_infra_deps.bzl", "p4_infra_deps")
 
 p4_infra_deps()
 
+# -- Load Rules CC -------------------------------------------------------------
+# See https://github.com/bazelbuild/rules_cc.
+load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies")
+
+rules_cc_dependencies()
+
 # -- Load Rules Foreign CC -----------------------------------------------------
 
 load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
