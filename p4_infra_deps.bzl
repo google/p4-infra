@@ -68,9 +68,9 @@ def p4_infra_deps():
     if not native.existing_rule("com_google_protobuf"):
         http_archive(
             name = "com_google_protobuf",
-            url = "https://github.com/protocolbuffers/protobuf/archive/refs/tags/v25.2.zip",
-            strip_prefix = "protobuf-25.2",
-            sha256 = "ddd0f5271f31b549efc74eb39061e142132653d5d043071fcec265bd571e73c4",
+            url = "https://github.com/protocolbuffers/protobuf/releases/download/v29.1/protobuf-29.1.tar.gz",
+            strip_prefix = "protobuf-29.1",
+            sha256 = "3d32940e975c4ad9b8ba69640e78f5527075bae33ca2890275bf26b853c0962c",
         )
     if not native.existing_rule("com_google_googleapis"):
         http_archive(
@@ -136,9 +136,10 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
         http_archive(
             name = "com_github_p4lang_p4_constraints",
-            urls = ["https://github.com/p4lang/p4-constraints/archive/5712d1e53c897692d155e0546edfad0baf78eca1.zip"],
-            strip_prefix = "p4-constraints-5712d1e53c897692d155e0546edfad0baf78eca1",
-            sha256 = "e77bc52271b8d6b740c6141eb53c1882d81839f5d050d7ad71f63abf2efdc1c4",
+            # Newest commit on master as of 2025-09-10.
+            urls = ["https://github.com/p4lang/p4-constraints/archive/3c2a2fb289fa033914c657eef971515ba8a4b2d3.zip"],
+            strip_prefix = "p4-constraints-3c2a2fb289fa033914c657eef971515ba8a4b2d3",
+            sha256 = "d46a5c95aac64c6aabece7ef8fe9c14d6a0e5fd55b0c36453e922e721424aae2",
         )
     if not native.existing_rule("com_jsoncpp"):
         http_archive(
@@ -158,6 +159,13 @@ def p4_infra_deps():
             strip_prefix = "gmp-6.2.1",
             sha256 = "fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2",
             build_file = "@//:bazel/BUILD.gmp.bazel",
+        )
+    if not native.existing_rule("rules_cc"):
+        http_archive(
+            name = "rules_cc",
+            url = "https://github.com/bazelbuild/rules_cc/releases/download/0.0.16/rules_cc-0.0.16.tar.gz",
+            sha256 = "bbf1ae2f83305b7053b11e4467d317a7ba3517a12cef608543c1b1c5bf48a4df",
+            strip_prefix = "rules_cc-0.0.16",
         )
     if not native.existing_rule("rules_foreign_cc"):
         http_archive(
@@ -179,10 +187,10 @@ def p4_infra_deps():
         http_archive(
             name = "rules_pkg",
             urls = [
-                "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
-                "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
+                "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/1.0.1/rules_pkg-1.0.1.tar.gz",
+                "https://github.com/bazelbuild/rules_pkg/releases/download/1.0.1/rules_pkg-1.0.1.tar.gz",
             ],
-            sha256 = "a89e203d3cf264e564fcb96b6e06dd70bc0557356eb48400ce4b5d97c2c3720d",
+            sha256 = "d20c951960ed77cb7b341c2a59488534e494d5ad1d30c4818c736d57772a9fef",
         )
     if not native.existing_rule("com_google_ydf"):
         http_archive(
