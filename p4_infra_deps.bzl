@@ -136,9 +136,10 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
         http_archive(
             name = "com_github_p4lang_p4_constraints",
-            urls = ["https://github.com/p4lang/p4-constraints/archive/5712d1e53c897692d155e0546edfad0baf78eca1.zip"],
-            strip_prefix = "p4-constraints-5712d1e53c897692d155e0546edfad0baf78eca1",
-            sha256 = "e77bc52271b8d6b740c6141eb53c1882d81839f5d050d7ad71f63abf2efdc1c4",
+            # Newest commit on master as of 2025-09-10.
+            urls = ["https://github.com/p4lang/p4-constraints/archive/3c2a2fb289fa033914c657eef971515ba8a4b2d3.zip"],
+            strip_prefix = "p4-constraints-3c2a2fb289fa033914c657eef971515ba8a4b2d3",
+            sha256 = "d46a5c95aac64c6aabece7ef8fe9c14d6a0e5fd55b0c36453e922e721424aae2",
         )
     if not native.existing_rule("com_jsoncpp"):
         http_archive(
@@ -158,6 +159,13 @@ def p4_infra_deps():
             strip_prefix = "gmp-6.2.1",
             sha256 = "fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2",
             build_file = "@//:bazel/BUILD.gmp.bazel",
+        )
+    if not native.existing_rule("rules_cc"):
+        http_archive(
+            name = "rules_cc",
+            url = "https://github.com/bazelbuild/rules_cc/releases/download/0.0.4/rules_cc-0.0.4.tar.gz",
+            sha256 = "af6cc82d87db94585bceeda2561cb8a9d55ad435318ccb4ddfee18a43580fb5d",
+            strip_prefix = "rules_cc-0.0.4",
         )
     if not native.existing_rule("rules_foreign_cc"):
         http_archive(
