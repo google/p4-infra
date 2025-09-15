@@ -136,9 +136,9 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
         http_archive(
             name = "com_github_p4lang_p4_constraints",
-            urls = ["https://github.com/p4lang/p4-constraints/archive/5712d1e53c897692d155e0546edfad0baf78eca1.zip"],
-            strip_prefix = "p4-constraints-5712d1e53c897692d155e0546edfad0baf78eca1",
-            sha256 = "e77bc52271b8d6b740c6141eb53c1882d81839f5d050d7ad71f63abf2efdc1c4",
+            urls = ["https://github.com/p4lang/p4-constraints/archive/e0b49f7c2709b4a0207b93f60359af445a05e99e.zip"],
+            strip_prefix = "p4-constraints-e0b49f7c2709b4a0207b93f60359af445a05e99e",
+            sha256 = "b6f55a5dc69930b8a14d690cc1bbdabf3fc6571fc2699bbc14eca7e0d40e6684",
         )
     if not native.existing_rule("com_jsoncpp"):
         http_archive(
