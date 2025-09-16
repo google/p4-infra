@@ -47,9 +47,10 @@ def p4_infra_deps():
     if not native.existing_rule("com_google_absl"):
         http_archive(
             name = "com_google_absl",
-            url = "https://github.com/abseil/abseil-cpp/archive/20240116.2.tar.gz",
-            strip_prefix = "abseil-cpp-20240116.2",
-            sha256 = "733726b8c3a6d39a4120d7e45ea8b41a434cdacde401cba500f14236c49b39dc",
+            # Newest commit on main as of 2025-08-14.
+            url = "https://github.com/abseil/abseil-cpp/archive/refs/tags/20250814.0.zip",
+            strip_prefix = "abseil-cpp-20250814.0",
+            sha256 = "b2bdcf6682d8cb53df365bcc5d6c318a22e55821d9978a10fdb61404c026daff",
         )
     if not native.existing_rule("com_google_googletest"):
         http_archive(
