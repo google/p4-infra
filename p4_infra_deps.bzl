@@ -134,11 +134,12 @@ def p4_infra_deps():
             sha256 = "8b71b8a9e59c3ee7d99653e394afc44a0bfc6437dec14df619d5e1f766f129c6",
         )
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
+        # This commit is from https://github.com/p4lang/p4-constraints/pull/177.
+        # TODO: b/445173612 - Remove Bazel build hacks and depend on a proper upstream branch.
         http_archive(
             name = "com_github_p4lang_p4_constraints",
-            urls = ["https://github.com/p4lang/p4-constraints/archive/5712d1e53c897692d155e0546edfad0baf78eca1.zip"],
-            strip_prefix = "p4-constraints-5712d1e53c897692d155e0546edfad0baf78eca1",
-            sha256 = "e77bc52271b8d6b740c6141eb53c1882d81839f5d050d7ad71f63abf2efdc1c4",
+            urls = ["https://github.com/p4lang/p4-constraints/archive/5b6ec72c61c9f69b1d62b58e170eb414c6748059.zip"],
+            strip_prefix = "p4-constraints-5b6ec72c61c9f69b1d62b58e170eb414c6748059",
         )
     if not native.existing_rule("com_jsoncpp"):
         http_archive(
