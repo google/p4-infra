@@ -132,6 +132,8 @@ void SortTest(const pdpi::IrP4Info& info, const std::string& test_name,
     std::cout << PrintTextProto(entry) << std::endl;
   }
 
+  std::vector<p4::v1::Entity> entities_to_sort = pi_entities;
+
   // Run sorting.
   absl::Status status = pdpi::StableSortEntities(info, pi_entities);
   if (!status.ok()) {
@@ -144,6 +146,30 @@ void SortTest(const pdpi::IrP4Info& info, const std::string& test_name,
   std::cout << "--- Sorted entities (output):" << std::endl;
   if (pi_entities.empty()) std::cout << "<empty>" << std::endl << std::endl;
   for (const auto& entry : pi_entities) {
+    pdpi::TableEntry pd_entry;
+    if (absl::Status status =
+            pdpi::PiEntityToPdTableEntry(info, entry, &pd_entry);
+        !status.ok()) {
+      std::cerr << "Unable to convert PI Entity to PD TableEntry." << status
+                << std::endl;
+      return;
+    }
+    std::cout << PrintTextProto(pd_entry) << std::endl;
+  }
+
+  // Run non-stable sorting.
+  status = pdpi::SortEntities(info, entities_to_sort);
+  if (!status.ok()) {
+    std::cout << "--- Sorting failed (output):" << std::endl;
+    std::cout << status << std::endl;
+    return;
+  }
+
+  // Output results.
+  std::cout << "--- Non-stable sorted entities (output):" << std::endl;
+  if (entities_to_sort.empty())
+    std::cout << "<empty>" << std::endl << std::endl;
+  for (const auto& entry : entities_to_sort) {
     pdpi::TableEntry pd_entry;
     if (absl::Status status =
             pdpi::PiEntityToPdTableEntry(info, entry, &pd_entry);
@@ -1053,6 +1079,30 @@ void RunSortTests(const pdpi::IrP4Info& info) {
                  two_match_fields_table_entry {
                    match { id_1: "key-c", id_2: "0x004" }
                    action { do_thing_4 {} }
+                 }
+               )pb",
+           });
+
+  SortTest(info,
+           "lpm2_table_entry and two_match_fields_table_entry have the same "
+           "dependency rank of 0",
+           {
+               R"pb(
+                 lpm2_table_entry {
+                   match { ipv6 { value: "ffff::abcd:0:0" prefix_length: 96 } }
+                   action { NoAction {} }
+                 }
+               )pb",
+               R"pb(
+                 two_match_fields_table_entry {
+                   match { id_1: "key-c", id_2: "0x003" }
+                   action { do_thing_4 {} }
+                 }
+               )pb",
+               R"pb(
+                 lpm2_table_entry {
+                   match { ipv6 { value: "ffff::abcd:0:0" prefix_length: 96 } }
+                   action { NoAction {} }
                  }
                )pb",
            });

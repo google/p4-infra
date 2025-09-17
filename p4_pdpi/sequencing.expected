@@ -1212,6 +1212,9 @@ SortTest: Empty input
 --- Sorted entities (output):
 <empty>
 
+--- Non-stable sorted entities (output):
+<empty>
+
 =========================================================================
 SortTest: EntryWithOneKey{key-a} -> EntryThatRefersTo{key-a}
 =========================================================================
@@ -1239,6 +1242,28 @@ one_match_field_table_entry {
 }
 
 --- Sorted entities (output):
+one_match_field_table_entry {
+  match {
+    id: "key-a"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_one_match_field_action {
+      referring_id_1: "key-a"
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
 one_match_field_table_entry {
   match {
     id: "key-a"
@@ -1288,6 +1313,29 @@ one_match_field_table_entry {
 }
 
 --- Sorted entities (output):
+one_match_field_table_entry {
+  match {
+    id: "key-a"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_two_match_fields_action {
+      referring_id_1: "key-a"
+      referring_id_2: "0x002"
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
 one_match_field_table_entry {
   match {
     id: "key-a"
@@ -1362,6 +1410,30 @@ referring_by_action_table_entry {
   }
 }
 
+--- Non-stable sorted entities (output):
+two_match_fields_table_entry {
+  match {
+    id_1: "key-a"
+    id_2: "0x002"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_two_match_fields_action {
+      referring_id_1: "key-a"
+      referring_id_2: "0x002"
+    }
+  }
+}
+
 =========================================================================
 SortTest: EntryThatRefersTo{key-a, 0x002} -> EntryWithTwoKeys{key-c, 0x004}
 =========================================================================
@@ -1391,6 +1463,30 @@ two_match_fields_table_entry {
 }
 
 --- Sorted entities (output):
+two_match_fields_table_entry {
+  match {
+    id_1: "key-c"
+    id_2: "0x004"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_two_match_fields_action {
+      referring_id_1: "key-a"
+      referring_id_2: "0x002"
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
 two_match_fields_table_entry {
   match {
     id_1: "key-c"
@@ -1470,6 +1566,32 @@ referring_by_action_table_entry {
   }
 }
 
+--- Non-stable sorted entities (output):
+packet_count_and_meter_table_entry {
+  match {
+    ipv4 {
+      value: "16.36.50.0"
+      prefix_length: 24
+    }
+  }
+  action {
+    packet_count_and_meter {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_two_match_fields_action {
+      referring_id_1: "key-a"
+      referring_id_2: "0x002"
+    }
+  }
+}
+
 =========================================================================
 SortTest: EntryWithOneKey{key-a} -> EntryThatRefersTo{key-a} , another entry
 =========================================================================
@@ -1510,6 +1632,41 @@ one_match_field_table_entry {
 }
 
 --- Sorted entities (output):
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+one_match_field_table_entry {
+  match {
+    id: "key-a"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_one_match_field_action {
+      referring_id_1: "key-a"
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
 lpm2_table_entry {
   match {
     ipv6 {
@@ -1638,6 +1795,169 @@ referring_by_action_table_entry {
   }
 }
 
+--- Non-stable sorted entities (output):
+two_match_fields_table_entry {
+  match {
+    id_1: "key-c"
+    id_2: "0x004"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+one_match_field_table_entry {
+  match {
+    id: "key-a"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_two_match_fields_action {
+      referring_id_1: "key-a"
+      referring_id_2: "0x002"
+    }
+  }
+}
+
+referring_by_action_table_entry {
+  match {
+    val: "0x001"
+  }
+  action {
+    referring_to_one_match_field_action {
+      referring_id_1: "key-a"
+    }
+  }
+}
+
+=========================================================================
+SortTest: lpm2_table_entry and two_match_fields_table_entry have the same dependency rank of 0
+=========================================================================
+
+--- PD entries (input):
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+two_match_fields_table_entry {
+  match {
+    id_1: "key-c"
+    id_2: "0x003"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+--- Sorted entities (output):
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+two_match_fields_table_entry {
+  match {
+    id_1: "key-c"
+    id_2: "0x003"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+lpm2_table_entry {
+  match {
+    ipv6 {
+      value: "ffff::abcd:0:0"
+      prefix_length: 96
+    }
+  }
+  action {
+    NoAction {
+    }
+  }
+}
+
+two_match_fields_table_entry {
+  match {
+    id_1: "key-c"
+    id_2: "0x003"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
 =========================================================================
 SortTest: two_match_fields_table_entry -> referring_by_match_field_table_entry
 =========================================================================
@@ -1666,6 +1986,29 @@ two_match_fields_table_entry {
 }
 
 --- Sorted entities (output):
+two_match_fields_table_entry {
+  match {
+    id_1: "key-a"
+    id_2: "0x001"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+referring_by_match_field_table_entry {
+  match {
+    referring_id_1: "key-a"
+    referring_id_2: "0x001"
+  }
+  action {
+    do_thing_4 {
+    }
+  }
+}
+
+--- Non-stable sorted entities (output):
 two_match_fields_table_entry {
   match {
     id_1: "key-a"
