@@ -42,22 +42,17 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_grpc_grpc"):
         http_archive(
             name = "com_github_grpc_grpc",
-            url = "https://github.com/grpc/grpc/archive/v1.63.0.zip",
-            strip_prefix = "grpc-1.63.0",
-            sha256 = "daa1b06a19b5f7e4603e1f8980eeab43cf69b6e89bee3b2547f275fa5af7f480",
-            patch_args = ["-p1"],
-            # TODO(b/411119415): This patch will be removed once we switch over to bzlmod and
-            # upgrade the grpc version.
-            patches = [
-                "@com_google_gutil//:bazel/patches/grpc-003-fix_go_gazelle_register_toolchain.patch",
-            ],
+            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.66.2.zip",
+            strip_prefix = "grpc-1.66.2",
+            sha256 = "f59cdac6bc92d9b34dcf2209f3845197bc9688442ac86c0d735eb6053049725c",
         )
     if not native.existing_rule("com_google_absl"):
         http_archive(
             name = "com_google_absl",
-            url = "https://github.com/abseil/abseil-cpp/archive/20240116.2.tar.gz",
-            strip_prefix = "abseil-cpp-20240116.2",
-            sha256 = "733726b8c3a6d39a4120d7e45ea8b41a434cdacde401cba500f14236c49b39dc",
+            # Newest commit on main as of 2025-08-14.
+            url = "https://github.com/abseil/abseil-cpp/archive/refs/tags/20250814.0.zip",
+            strip_prefix = "abseil-cpp-20250814.0",
+            sha256 = "b2bdcf6682d8cb53df365bcc5d6c318a22e55821d9978a10fdb61404c026daff",
         )
     if not native.existing_rule("com_google_googletest"):
         http_archive(
@@ -184,21 +179,29 @@ def p4_infra_deps():
             strip_prefix = "rules_proto-5.3.0-21.7",
             sha256 = "dc3fb206a2cb3441b485eb1e423165b231235a1ea9b031b4433cf7bc1fa460dd",
         )
-    if not native.existing_rule("rules_pkg"):
+    if not native.existing_rule("rules_cc"):
         http_archive(
-            name = "rules_pkg",
-            urls = [
-                "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
-                "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
-            ],
-            sha256 = "a89e203d3cf264e564fcb96b6e06dd70bc0557356eb48400ce4b5d97c2c3720d",
+            name = "rules_cc",
+            sha256 = "b8b918a85f9144c01f6cfe0f45e4f2838c7413961a8ff23bc0c6cdf8bb07a3b6",
+            strip_prefix = "rules_cc-0.1.5",
+            url = "https://github.com/bazelbuild/rules_cc/releases/download/0.1.5/rules_cc-0.1.5.tar.gz",
         )
-    if not native.existing_rule("com_google_ydf"):
-        http_archive(
-            name = "com_google_ydf",
-            urls = [
-                "https://github.com/google/yggdrasil-decision-forests/archive/50e3ef7d8e106f0021cab5fb94b230214f17ff94.zip",
-            ],
-            strip_prefix = "yggdrasil-decision-forests-50e3ef7d8e106f0021cab5fb94b230214f17ff94",
-            sha256 = "c5c0cd9924064a1c70356c2074e30e9fb7daaec6267d33fc58a1d0f4a99bc501",
-        )
+
+    # if not native.existing_rule("rules_pkg"):
+    #     http_archive(
+    #         name = "rules_pkg",
+    #         urls = [
+    #             "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
+    #             "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.1/rules_pkg-0.5.1.tar.gz",
+    #         ],
+    #         sha256 = "a89e203d3cf264e564fcb96b6e06dd70bc0557356eb48400ce4b5d97c2c3720d",
+    #     )
+    # if not native.existing_rule("com_google_ydf"):
+    #     http_archive(
+    #         name = "com_google_ydf",
+    #         urls = [
+    #             "https://github.com/google/yggdrasil-decision-forests/archive/50e3ef7d8e106f0021cab5fb94b230214f17ff94.zip",
+    #         ],
+    #         strip_prefix = "yggdrasil-decision-forests-50e3ef7d8e106f0021cab5fb94b230214f17ff94",
+    #         sha256 = "c5c0cd9924064a1c70356c2074e30e9fb7daaec6267d33fc58a1d0f4a99bc501",
+    #     )
