@@ -156,6 +156,7 @@ cc_library(
     # Disable default arguments internally. Using them in PDPI itself is very likely a bug.
     local_defines = ["PDPI_DISABLE_TRANSLATION_OPTIONS_DEFAULT"],
     deps = [
+        ":entity_keys",
         ":ir_cc_proto",
         ":names",
         ":references",
@@ -174,6 +175,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_gutil//gutil:collections",
         "@com_google_gutil//gutil:status",
@@ -748,7 +750,7 @@ cc_test(
 cmd_diff_test(
     name = "sequencing_diff_test",
     actual_cmd = "$(execpath :sequencing_test_runner) $(location :main-p4info.pb.txt)",
-    expected = "//p4_pdpi:sequencing.expected",
+    expected = ":sequencing.expected",
     tools = [
         "main-p4info.pb.txt",
         ":sequencing_test_runner",
