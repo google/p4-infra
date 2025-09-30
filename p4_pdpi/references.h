@@ -120,6 +120,10 @@ UnsatisfiedOutgoingReferences(const std::vector<::p4::v1::Entity>& pi_entities,
 // `entity`. Returns error if `entity` is unsupported or unknown.
 absl::StatusOr<google::protobuf::RepeatedPtrField<IrTableReference>>
 GetOutgoingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity);
+// Returns incoming table references from `info` that are associated with
+// `entity`. Returns error if `entity` is unsupported or unknown.
+absl::StatusOr<google::protobuf::RepeatedPtrField<IrTableReference>>
+GetIncomingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity);
 
 // Reference Field operators.
 bool operator==(const ConcreteFieldReference& lhs,
