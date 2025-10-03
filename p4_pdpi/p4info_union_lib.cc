@@ -394,6 +394,7 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   RETURN_IF_ERROR(
       AssertIdsAreEqualForUnioning(action_profile, unioned_action_profile));
 
+  // LOG(INFO) << "hello world";
   // Selector size semantic relationships:
   // NOT_SET == kSumOfWeights (P4RT Spec makes these equivalent)
   // kSumOfWeights is generally less permissive than kSumOfMembers (in terms of
@@ -401,19 +402,31 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   // difference.
   if (unioned_action_profile.selector_size_semantics_case() !=
       action_profile.selector_size_semantics_case()) {
+    // LOG(INFO) << "These are not equal";
     unioned_action_profile.mutable_sum_of_weights();
   }
 
   // For all sizes, use the max size of any action profile.
   unioned_action_profile.set_size(
       std::max(unioned_action_profile.size(), action_profile.size()));
+  // LOG(INFO) << "union action profile size: " <<
+  // unioned_action_profile.size(); LOG(INFO) << "action profile size: " <<
+  // action_profile.size();
   unioned_action_profile.set_max_group_size(
       std::max(unioned_action_profile.max_group_size(),
                action_profile.max_group_size()));
+  // LOG(INFO) << "union action profile max group size: "
+  //           << unioned_action_profile.max_group_size();
+  // LOG(INFO) << "action profile max group size: "
+  //           << action_profile.max_group_size();
   if (unioned_action_profile.has_sum_of_members()) {
     unioned_action_profile.mutable_sum_of_members()->set_max_member_weight(
         std::max(unioned_action_profile.sum_of_members().max_member_weight(),
                  action_profile.sum_of_members().max_member_weight()));
+    // LOG(INFO) << "union action profile sum of members weight: "
+    //           << unioned_action_profile.sum_of_members().max_member_weight();
+    // LOG(INFO) << "action profile sum of members weight: "
+    //           << action_profile.sum_of_members().max_member_weight();
   }
 
   if (auto diff_result = DiffMessages(
@@ -421,6 +434,12 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
           /*ignored_fields=*/
           {"size", "max_group_size", "sum_of_weights", "sum_of_members"});
       diff_result.has_value()) {
+    // for (auto& table_id : action_profile.table_ids()) {
+    //   LOG(INFO) << "action profile table id: " << table_id;
+    // }
+    // for (auto& table_id : unioned_action_profile.table_ids()) {
+    //   LOG(INFO) << "union action profile table id: " << table_id;
+    // }
     return absl::InvalidArgumentError(absl::Substitute(
         "action profiles with identical id '$0' were incompatible. "
         "Relevant differences: $1",
