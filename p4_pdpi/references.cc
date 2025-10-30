@@ -524,6 +524,8 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
   return result;
 }
 
+// Returns incoming table references from `info` that are associated with
+// `entity`. Returns error if `entity` is unsupported or unknown.
 absl::StatusOr<google::protobuf::RepeatedPtrField<IrTableReference>>
 GetIncomingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity) {
   if (entity.has_table_entry()) {
