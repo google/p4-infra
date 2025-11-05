@@ -95,7 +95,6 @@ cc_library(
     deps = [
         ":safe",
         "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_gutil//gutil:status",
@@ -126,7 +125,6 @@ cc_library(
     srcs = ["decimal_string.cc"],
     hdrs = ["decimal_string.h"],
     deps = [
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_gutil//gutil:status",
