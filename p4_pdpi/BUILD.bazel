@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@com_github_p4lang_p4c//:bazel/p4_library.bzl", "p4_library")
 load("@com_google_googleapis_imports//:imports.bzl", "cc_proto_library")
 load("@com_google_gutil//gutil:diff_test.bzl", "cmd_diff_test", "diff_test")
@@ -989,4 +990,10 @@ cc_test(
         "@com_google_gutil//gutil:status",
         "@com_google_gutil//gutil:status_matchers",
     ],
+)
+
+bzl_library(
+    name = "pdgen_bzl",
+    srcs = ["pdgen.bzl"],
+    parse_tests = False,
 )
