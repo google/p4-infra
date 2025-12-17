@@ -24,6 +24,8 @@
 namespace pdpi {
 namespace {
 
+using ::testing::EndsWith;
+
 TEST(IrBuitInTable, AllTablesSupportedAndRoundTrip) {
   for (int i = IrBuiltInTable_MIN; i <= IrBuiltInTable_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
@@ -84,6 +86,19 @@ TEST(IrBuiltInParameter, AllParametersHaveAnAction) {
     if (!IrBuiltInParameter_IsValid(i) || i == 0) continue;
     EXPECT_OK(GetBuiltInActionFromBuiltInParameter(
         static_cast<IrBuiltInParameter>(i)));
+  }
+}
+
+TEST(IrBuiltInParameter, AllParametersHaveConsistentSuffix) {
+  for (int i = IrBuiltInParameter_MIN; i <= IrBuiltInParameter_MAX; ++i) {
+    // Skip unknown and default value of UNSPECIFIED.
+    if (!IrBuiltInParameter_IsValid(i) || i == 0) continue;
+    IrBuiltInParameter built_in_parameter = static_cast<IrBuiltInParameter>(i);
+    ASSERT_OK_AND_ASSIGN(std::string built_in_string,
+                         IrBuiltInParameterToString(built_in_parameter));
+    ASSERT_OK_AND_ASSIGN(std::string built_in_suffix_string,
+                         IrBuiltInParameterToSuffixString(built_in_parameter));
+    EXPECT_THAT(built_in_string, EndsWith(built_in_suffix_string));
   }
 }
 
