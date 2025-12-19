@@ -285,6 +285,23 @@ absl::StatusOr<std::string> GetNameOfAction(const IrActionField& field) {
   }
 }
 
+absl::StatusOr<std::string> GetNameOfActionParameter(
+    const IrActionField& field) {
+  switch (field.action_field_case()) {
+    case IrActionField::kP4ActionField: {
+      return field.p4_action_field().parameter_name();
+    }
+    case IrActionField::kBuiltInActionField: {
+      return IrBuiltInParameterToSuffixString(
+          field.built_in_action_field().parameter());
+    }
+    case IrField::FIELD_NOT_SET: {
+      return gutil::InvalidArgumentErrorBuilder()
+             << "IrActionField field oneof not set.";
+    }
+  }
+}
+
 absl::StatusOr<std::vector<ParsedRefersToAnnotation>>
 ParseAllRefersToAnnotations(const RepeatedPtrField<std::string>& annotations) {
   return GetAllParsedAnnotations<ParsedRefersToAnnotation>(

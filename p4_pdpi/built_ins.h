@@ -80,6 +80,13 @@ absl::StatusOr<std::string> IrBuiltInActionToString(IrBuiltInAction action);
 absl::StatusOr<std::string> IrBuiltInParameterToString(
     IrBuiltInParameter parameter);
 
+// Returns suffix string (`param` part of `action.param`) of built-in
+// `parameter`.
+// Returns InvalidArgumentError if built-in `parameter` holds invalid/unknown
+// enum.
+absl::StatusOr<std::string> IrBuiltInParameterToSuffixString(
+    IrBuiltInParameter parameter);
+
 // Returns enum `IrBuiltInTable` whose string representation is `table_name`.
 // Returns InvalidArgumentError if no `IrBuiltInTable` has string representation
 // `table_name` (i.e. if `IsBuiltInTable(table_name)` is false).

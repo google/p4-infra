@@ -34,7 +34,9 @@ constexpr absl::string_view kMulticastGroupTableString =
 constexpr absl::string_view kMulticastGroupIdString = "multicast_group_id";
 constexpr absl::string_view kReplicaString = "replica";
 constexpr absl::string_view kReplicaPortString = "replica.port";
+constexpr absl::string_view kReplicaPortSuffixString = "port";
 constexpr absl::string_view kReplicaInstanceString = "replica.instance";
+constexpr absl::string_view kReplicaInstanceSuffixString = "instance";
 
 // Clone session table-related string constants.
 constexpr absl::string_view kCloneSessionTableString = "clone_session_table";
@@ -161,6 +163,23 @@ absl::StatusOr<std::string> IrBuiltInParameterToString(
     }
     case BUILT_IN_PARAMETER_REPLICA_INSTANCE: {
       return std::string(kReplicaInstanceString);
+    }
+    default: {
+      return gutil::InvalidArgumentErrorBuilder()
+             << "Unknown built-in parameter: "
+             << IrBuiltInParameter_Name(parameter);
+    }
+  }
+}
+
+absl::StatusOr<std::string> IrBuiltInParameterToSuffixString(
+    IrBuiltInParameter parameter) {
+  switch (parameter) {
+    case BUILT_IN_PARAMETER_REPLICA_PORT: {
+      return std::string(kReplicaPortSuffixString);
+    }
+    case BUILT_IN_PARAMETER_REPLICA_INSTANCE: {
+      return std::string(kReplicaInstanceSuffixString);
     }
     default: {
       return gutil::InvalidArgumentErrorBuilder()
