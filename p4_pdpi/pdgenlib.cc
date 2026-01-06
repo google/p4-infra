@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -30,6 +31,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/strings/substitute.h"
+#include "absl/types/optional.h"
 #include "gutil/collections.h"
 #include "gutil/ordered_map.h"
 #include "gutil/status.h"
@@ -144,11 +146,17 @@ StatusOr<std::string> GetTableMatchMessage(const IrTableDefinition& table) {
   return result;
 }
 
+bool IsGroupOnlyAction(const IrActionReference& action) {
+  return absl::c_any_of(action.ref().annotations(),
+                        [](absl::string_view annotation) {
+                          return annotation == "@pergrouponly";
+                        });
+}
+
 // Returns the nested Action message for a given table.
 StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
   std::string result;
 
-  absl::StrAppend(&result, "  message Action {\n");
   std::vector<IrActionReference> entry_actions;
   for (const auto& action : table.entry_actions()) {
     entry_actions.push_back(action);
@@ -157,11 +165,61 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
             [](const IrActionReference& a, const IrActionReference& b) -> bool {
               return a.action().preamble().id() < b.action().preamble().id();
             });
-  if (entry_actions.size() > 1) {
+
+  // Actions that are @pergrouponly can only be used as a group action and
+  // cannot be used as a non-group action. See the P4Runtime spec for more
+  // details: https://screenshot.googleplex.com/Ah4bnNNgo9UHtc8).
+  std::vector<IrActionReference> group_only_actions;
+  std::vector<IrActionReference> non_group_actions;
+  for (const auto& action : entry_actions) {
+    if (IsGroupOnlyAction(action)) {
+      group_only_actions.push_back(action);
+    } else {
+      non_group_actions.push_back(action);
+    }
+  }
+
+  // At the P4 level (PI P4info generation), these IDs have to be unique within
+  // the combined scope of group and non-group actions.
+  absl::flat_hash_set<uint32_t> proto_ids;
+  if (!group_only_actions.empty()) {
+    absl::StrAppend(&result, "  message GroupAction {\n");
+    if (group_only_actions.size() > 1) {
+      absl::StrAppend(&result, "  oneof action {\n");
+    }
+    for (const auto& action : group_only_actions) {
+      const auto& name = action.action().preamble().alias();
+      RETURN_IF_ERROR(gutil::InsertIfUnique(
+          proto_ids, action.proto_id(),
+          absl::StrCat("Proto IDs for entry actions must be unique, but table ",
+                       name, " has duplicate ID ", action.proto_id())));
+      ASSIGN_OR_RETURN(const std::string action_message_name,
+                       P4NameToProtobufMessageName(name, kP4Action));
+      ASSIGN_OR_RETURN(const std::string action_field_name,
+                       P4NameToProtobufFieldName(name, kP4Action));
+      if (action.action().is_unsupported()) {
+        absl::StrAppend(&result, "    ", GetUnsupportedWarning("action"));
+      }
+      if (action.is_unsupported_by_table()) {
+        absl::StrAppend(&result, "    ",
+                        "// CAUTION: This action is not (yet) supported for "
+                        "this table.\n");
+      }
+      absl::StrAppend(&result, "    ", action_message_name, " ",
+                      action_field_name, " = ", action.proto_id(), ";\n");
+    }
+    if (group_only_actions.size() > 1) {
+      absl::StrAppend(&result, "  }\n");
+    }
+    absl::StrAppend(&result, "  }\n");
+    absl::StrAppend(&result, "  GroupAction group_action = 12;\n");
+  }
+
+  absl::StrAppend(&result, "  message Action {\n");
+  if (non_group_actions.size() > 1) {
     absl::StrAppend(&result, "  oneof action {\n");
   }
-  absl::flat_hash_set<uint32_t> proto_ids;
-  for (const auto& action : entry_actions) {
+  for (const auto& action : non_group_actions) {
     const auto& name = action.action().preamble().alias();
     RETURN_IF_ERROR(gutil::InsertIfUnique(
         proto_ids, action.proto_id(),
@@ -182,7 +240,7 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
     absl::StrAppend(&result, "    ", action_message_name, " ",
                     action_field_name, " = ", action.proto_id(), ";\n");
   }
-  if (entry_actions.size() > 1) {
+  if (non_group_actions.size() > 1) {
     absl::StrAppend(&result, "  }\n");
   }
   absl::StrAppend(&result, "  }\n");
@@ -194,6 +252,15 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
     absl::StrAppend(&result, "    int32 weight = 2;\n");
     absl::StrAppend(&result, "    string watch_port = 3;  // Format::STRING\n");
     absl::StrAppend(&result, "  }\n");
+    absl::StrAppend(&result, "  repeated WcmpAction wcmp_actions = 2;\n");
+    absl::StrAppend(
+        &result,
+        "  p4.v1.ActionProfileActionSet.SizeSemantics size_semantics = 10;\n");
+    absl::StrAppend(&result,
+                    "  p4.v1.ActionProfileActionSet.ActionSelectionMode "
+                    "action_selection_mode = 11;\n");
+  } else {
+    absl::StrAppend(&result, "  Action action = 2;\n");
   }
   return result;
 }
@@ -246,17 +313,6 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   // Action message.
   ASSIGN_OR_RETURN(const auto& action_message, GetTableActionMessage(table));
   absl::StrAppend(&result, action_message);
-  if (table.uses_oneshot()) {
-    absl::StrAppend(&result, "  repeated WcmpAction wcmp_actions = 2;\n");
-    absl::StrAppend(
-        &result,
-        "  p4.v1.ActionProfileActionSet.SizeSemantics size_semantics = 10;\n");
-    absl::StrAppend(&result,
-                    "  p4.v1.ActionProfileActionSet.ActionSelectionMode "
-                    "action_selection_mode = 11;\n");
-  } else {
-    absl::StrAppend(&result, "  Action action = 2;\n");
-  }
 
   // Priority (if applicable).
   bool has_priority = false;

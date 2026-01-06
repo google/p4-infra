@@ -753,6 +753,16 @@ absl::Status PiActionSetToIr(
     const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
     IrActionSet& ir_action_set, const std::string& table_name) {
   std::vector<std::string> invalid_reasons;
+  if (pi_action_set.has_group_action()) {
+    absl::Status group_action_status =
+        PiActionToIr(info, options, pi_action_set.group_action(), valid_actions,
+                     *ir_action_set.mutable_group_action());
+    if (!group_action_status.ok()) {
+      invalid_reasons.push_back(
+          absl::StrCat(kNewBullet, group_action_status.message()));
+    }
+  }
+
   for (const auto& pi_profile_action : pi_action_set.action_profile_actions()) {
     auto* ir_action = ir_action_set.add_actions();
     absl::Status action_status =
@@ -1203,6 +1213,16 @@ absl::Status IrActionSetToPi(
     const google::protobuf::RepeatedPtrField<IrActionReference>& valid_actions,
     p4::v1::ActionProfileActionSet& pi, const std::string& table_name) {
   std::vector<std::string> invalid_reasons;
+  if (ir_action_set.has_group_action()) {
+    absl::Status group_action_status =
+        IrActionInvocationToPi(info, options, ir_action_set.group_action(),
+                               valid_actions, *pi.mutable_group_action());
+    if (!group_action_status.ok()) {
+      invalid_reasons.push_back(
+          absl::StrCat(kNewBullet, group_action_status.message()));
+    }
+  }
+
   pi.mutable_action_profile_actions()->Reserve(ir_action_set.actions().size());
   for (const auto& ir_action : ir_action_set.actions()) {
     auto* pi_action = pi.add_action_profile_actions();

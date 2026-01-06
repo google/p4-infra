@@ -89,6 +89,14 @@ action do_thing_4() {
 action unsupported_action(@refers_to(exact_table, normal) @id(1) bit<10> normal)
 {}
 
+@id(100)
+action group_action_1(@id(1) bit<32> arg1)
+{}
+
+@id(200)
+action group_action_2() {
+}
+
 
 control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
 
@@ -585,6 +593,22 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     implementation = wcmp_group_selector;
   }
 
+  @id(25)
+  @oneshot()
+  @weight_proto_id(1)
+  table group_action_test_table {
+    key = {
+      meta.ipv6 : exact @id(1) @name("ipv6");
+      wcmp_selector_input : selector;
+    }
+    actions = {
+      @proto_id(1) do_thing_1;
+      @proto_id(2) @pergrouponly group_action_1;
+      @proto_id(3) @pergrouponly group_action_2;
+    }
+    implementation = wcmp_group_selector;
+  }
+
   apply {
     id_test_table.apply();
     exact_table.apply();
@@ -611,6 +635,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     referenced_by_multicast_replica_table.apply();
     golden_test_friendly_table.apply();
     golden_test_friendly_wcmp_table.apply();
+    group_action_test_table.apply();
   }
 }
 
