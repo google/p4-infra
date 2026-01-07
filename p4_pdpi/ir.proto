@@ -447,7 +447,7 @@ message IrActionSetInvocation {
   string watch_port = 3;
 }
 
-// Describes an action profile action set (for Group tables).
+// Describes an action profile action set (for WCMP tables).
 message IrActionSet {
   // Required. The set of actions.
   repeated IrActionSetInvocation actions = 1;
