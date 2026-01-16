@@ -94,6 +94,10 @@ absl::StatusOr<std::string> RawSerializePacket(const Packet& packet);
 // already present are not modified. Returns true iff any changes where made.
 // Fails if fields that are required for determining computed fields are missing
 // or invalid.
+//
+// "Computed fields" are fields that can be derived from other headers and
+// fields in the packet, including checksums, length fields, IP version fields,
+// etc.
 absl::StatusOr<bool> UpdateMissingComputedFields(Packet& packet);
 
 // Like `UpdateMissingComputedFields`, but also overwrites computed fields
@@ -162,7 +166,11 @@ absl::StatusOr<int> IcmpHeaderChecksum(Packet packet, int icmp_header_index);
 // possibly the GRE checksum field, which is ignored.
 absl::StatusOr<int> GreHeaderChecksum(Packet packet, int gre_header_index);
 
+// Returns the name of the given header case.
 std::string HeaderCaseName(Header::HeaderCase header_case);
+
+// Returns the name of the given header.
+std::string HeaderCaseName(const Header& header);
 
 // Returns the Ethernet trailer of the given packet as a raw byte string. If
 // there is no Ethernet trailer, returns the empty string. The Ethernet trailer

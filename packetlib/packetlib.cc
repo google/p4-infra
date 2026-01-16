@@ -1857,6 +1857,9 @@ std::string HeaderCaseName(Header::HeaderCase header_case) {
   LOG(DFATAL) << "unexpected HeaderCase: " << header_case;
   return "";
 }
+std::string HeaderCaseName(const Header& header) {
+  return HeaderCaseName(header.header_case());
+}
 
 absl::StatusOr<std::string> GetEthernetTrailer(const Packet& packet) {
   // Make sure that the start contains a ETH header.
@@ -1931,7 +1934,7 @@ absl::StatusOr<std::string> GetEthernetTrailer(const Packet& packet) {
 std::vector<std::string> PacketInvalidReasons(const Packet& packet) {
   std::vector<std::string> result;
 
-  if (packet.ByteSize() == 0) {
+  if (packet.ByteSizeLong() == 0) {
     result.push_back("Packet is empty.");
     return result;
   }
@@ -1950,8 +1953,8 @@ std::vector<std::string> PacketInvalidReasons(const Packet& packet) {
   int index = -1;
   for (const Header& header : packet.headers()) {
     index += 1;
-    const std::string error_prefix = absl::StrFormat(
-        "in %s headers[%d]: ", HeaderCaseName(header.header_case()), index);
+    const std::string error_prefix =
+        absl::StrFormat("in %s headers[%d]: ", HeaderCaseName(header), index);
 
     switch (header.header_case()) {
       case Header::kEthernetHeader:
@@ -2042,12 +2045,12 @@ std::vector<std::string> PacketInvalidReasons(const Packet& packet) {
           error_prefix,
           "expected no header (because the previous header demands either no "
           "header or an unsupported header), got ",
-          HeaderCaseName(header.header_case())));
+          HeaderCaseName(header)));
     } else if (header.header_case() != expected_header_case) {
       result.push_back(absl::StrCat(
           error_prefix, "expected ", HeaderCaseName(expected_header_case),
           " (because the previous header demands it), got ",
-          HeaderCaseName(header.header_case())));
+          HeaderCaseName(header)));
     }
 
     // Update `expected_header_case`.
@@ -2480,7 +2483,7 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
     Header& header = *packet.mutable_headers(header_index);
     std::string error_prefix =
         absl::StrFormat("%s: failed to compute packet.headers[%d].",
-                        HeaderCaseName(header.header_case()), header_index);
+                        HeaderCaseName(header), header_index);
     switch (header.header_case()) {
       case Header::kEthernetHeader: {
         EthernetHeader& ethernet_header = *header.mutable_ethernet_header();
@@ -3059,7 +3062,7 @@ absl::StatusOr<std::optional<int>> UdpHeaderChecksum(Packet packet,
     default:
       return absl::InvalidArgumentError(absl::StrFormat(
           "UDP header must be preceded by an IP or PSP header, but got %s",
-          HeaderCaseName(preceding_header.header_case())));
+          HeaderCaseName(preceding_header)));
   }
   RETURN_IF_ERROR(RawSerializePacket(packet, udp_header_index, data));
   return OnesComplementChecksum(std::move(data));
@@ -3117,7 +3120,7 @@ absl::StatusOr<int> IcmpHeaderChecksum(Packet packet, int icmp_header_index) {
     default:
       return invalid_argument << "expected packet.headers[udp_header_index - "
                                  "1] to be an IP header, got "
-                              << HeaderCaseName(preceding_header.header_case());
+                              << HeaderCaseName(preceding_header);
   }
   RETURN_IF_ERROR(RawSerializePacket(packet, icmp_header_index, data));
   return OnesComplementChecksum(std::move(data));

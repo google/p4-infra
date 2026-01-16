@@ -1062,5 +1062,17 @@ TEST(PacketLib, MldPacket) {
   EXPECT_OK(ValidatePacket(parsed_mld_packet));
 }
 
+TEST(HeaderCaseName, WorksForEthernetHeader) {
+  auto header = Header();
+  header.mutable_ethernet_header();
+  EXPECT_EQ(HeaderCaseName(header), "EthernetHeader");
+}
+
+TEST(HeaderCaseName, OverloadsAgree) {
+  auto header = Header();
+  header.mutable_ethernet_header();
+  EXPECT_EQ(HeaderCaseName(header), HeaderCaseName(header.header_case()));
+}
+
 }  // namespace
 }  // namespace packetlib
