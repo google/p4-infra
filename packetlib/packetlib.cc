@@ -31,6 +31,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "gutil/overload.h"
@@ -1533,18 +1534,10 @@ void SaiP4BMv2PacketInHeaderInvalidReasons(
           header.unused_pad(), absl::StrCat(field_prefix, "unused_pad"),
           output);
 
-  if (!unused_pad_invalid) {
-    absl::StatusOr<int> unused_pad =
-        string_encodings::HexStringToInt(header.unused_pad());
-    if (!unused_pad.ok()) {
-      LOG(DFATAL) << "SHOULD NEVER HAPPEN: unused_pad badly formatted: "
-                  << unused_pad.status();
-    }
-    if (*unused_pad != 0) {
-      output.push_back(absl::StrCat(field_prefix,
-                                    "unused_pad: Must be 0, but was ",
-                                    header.unused_pad(), " instead."));
-    }
+  if (!unused_pad_invalid && header.unused_pad() != "0x00") {
+    output.push_back(absl::StrCat(field_prefix,
+                                  "unused_pad: Must be '0x00', but was '",
+                                  header.unused_pad(), "' instead."));
   }
 }
 
@@ -2507,7 +2500,7 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
           } else if (*size > 1500) {
             return gutil::InvalidArgumentErrorBuilder()
                    << "payload size " << *size << " exceeds MTU";
-          } else {
+          } else if (ethertype != *size) {
             ethernet_header.set_ethertype(EtherType(*size));
             changes = true;
           }
@@ -2517,14 +2510,16 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
       case Header::kIpv4Header: {
         Ipv4Header& ipv4_header = *header.mutable_ipv4_header();
         if (ipv4_header.version().empty() || overwrite) {
-          ipv4_header.set_version("0x4");
-          changes = true;
+          if (ipv4_header.version() != "0x4") {
+            ipv4_header.set_version("0x4");
+            changes = true;
+          }
         }
         if (ipv4_header.ihl().empty() || overwrite) {
           absl::string_view options = ipv4_header.uninterpreted_options();
+          const std::string old_ihl = ipv4_header.ihl();
           if (options.empty()) {
             ipv4_header.set_ihl("0x5");
-            changes = true;
           } else if (absl::ConsumePrefix(&options, "0x") &&
                      (options.size() * 4) % 32 == 0) {
             // 4 bits per hex char.
@@ -2532,60 +2527,67 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
             ipv4_header.set_ihl(
                 string_encodings::BitsetToHexString<kIpIhlBitwidth>(
                     5 + num_32bit_words_in_options));
-            changes = true;
           } else {
             return gutil::InvalidArgumentErrorBuilder()
                    << error_prefix
                    << "ihl: uninterpreted_options field is invalid";
           }
+          changes = changes || (old_ihl != ipv4_header.ihl());
         }
         if (ipv4_header.total_length().empty() || overwrite) {
           ASSIGN_OR_RETURN(int size, PacketSizeInBytes(packet, header_index),
                            _.SetPrepend() << error_prefix << "total_length: ");
+          const std::string old_total_length =
+              std::move(*ipv4_header.mutable_total_length());
           ipv4_header.set_total_length(string_encodings::BitsetToHexString(
               std::bitset<kIpTotalLengthBitwidth>(size)));
-          changes = true;
+          changes = changes || (old_total_length != ipv4_header.total_length());
         }
         if (ipv4_header.checksum().empty() || overwrite) {
           ASSIGN_OR_RETURN(int checksum, Ipv4HeaderChecksum(ipv4_header),
                            _.SetPrepend() << error_prefix << "checksum: ");
+          const std::string old_checksum =
+              std::move(*ipv4_header.mutable_checksum());
           ipv4_header.set_checksum(string_encodings::BitsetToHexString(
               std::bitset<kIpChecksumBitwidth>(checksum)));
-          changes = true;
+          changes = changes || (old_checksum != ipv4_header.checksum());
         }
         break;
       }
       case Header::kIpv6Header: {
         Ipv6Header& ipv6_header = *header.mutable_ipv6_header();
         if (ipv6_header.version().empty() || overwrite) {
-          ipv6_header.set_version("0x6");
-          changes = true;
+          if (ipv6_header.version() != "0x6") {
+            ipv6_header.set_version("0x6");
+            changes = true;
+          }
         }
         if (ipv6_header.payload_length().empty() || overwrite) {
           // `+1` to skip the IPv6 header and previous headers in calculation.
           ASSIGN_OR_RETURN(
               int size, PacketSizeInBytes(packet, header_index + 1),
               _.SetPrepend() << error_prefix << "payload_length: ");
+          const std::string old_payload_length =
+              std::move(*ipv6_header.mutable_payload_length());
           ipv6_header.set_payload_length(string_encodings::BitsetToHexString(
               std::bitset<kIpTotalLengthBitwidth>(size)));
-          changes = true;
+          changes =
+              changes || (old_payload_length != ipv6_header.payload_length());
         }
         break;
       }
       case Header::kHopByHopOptionsHeader: {
-        if (header.hop_by_hop_options_header()
-                .header_extension_length()
-                .empty() ||
-            overwrite) {
-          *header.mutable_hop_by_hop_options_header()
-               ->mutable_header_extension_length() = "0x00";
+        HopByHopOptionsHeader& options_header =
+            *header.mutable_hop_by_hop_options_header();
+        if ((options_header.header_extension_length().empty() || overwrite) &&
+            options_header.header_extension_length() != "0x00") {
+          options_header.set_header_extension_length("0x00");
           changes = true;
         }
-        std::string* options_and_padding =
-            header.mutable_hop_by_hop_options_header()
-                ->mutable_options_and_padding();
-        if (options_and_padding->empty()) {
-          *options_and_padding = "0x010400000000";
+        std::string& options_and_padding =
+            *options_header.mutable_options_and_padding();
+        if (options_and_padding.empty()) {
+          options_and_padding = "0x010400000000";
           changes = true;
           break;
         }
@@ -2600,22 +2602,22 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
           // between the maximum number of bytes and the number of currently
           // used bytes by 2, since each byte of padding consists of 2 zeroes.
           int num_missing_padding = ((kHopByHopOptionsAndPaddingBitwidth / 4) -
-                                     (options_and_padding->size() - 2)) /
+                                     (options_and_padding.size() - 2)) /
                                     2;
           if (num_missing_padding >= 2) {
             // `num_missing_padding` will never exceed 4 so we do not
             // need to worry about bit overflow when performing string
             // concatenation.
-            *options_and_padding =
-                absl::StrCat(*options_and_padding, "010",
-                             std::to_string(num_missing_padding - 2));
+            absl::StrAppend(&options_and_padding, "010",
+                            std::to_string(num_missing_padding - 2));
             for (int i = 2; i < num_missing_padding; ++i) {
-              *options_and_padding = absl::StrCat(*options_and_padding, "00");
+              absl::StrAppend(&options_and_padding, "00");
             }
+            changes = true;
           } else if (num_missing_padding == 1) {
-            *options_and_padding = absl::StrCat(*options_and_padding, "00");
+            absl::StrAppend(&options_and_padding, "00");
+            changes = true;
           }
-          changes = true;
         }
         break;
       }
@@ -2624,9 +2626,11 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
         if (udp_header.length().empty() || overwrite) {
           ASSIGN_OR_RETURN(int size, PacketSizeInBytes(packet, header_index),
                            _.SetPrepend() << error_prefix << "length: ");
+          const std::string old_length =
+              std::move(*udp_header.mutable_length());
           udp_header.set_length(string_encodings::BitsetToHexString(
               std::bitset<kUdpLengthBitwidth>(size)));
-          changes = true;
+          changes = changes || (old_length != udp_header.length());
         }
         if (udp_header.checksum().empty() || overwrite) {
           ASSIGN_OR_RETURN(std::optional<int> checksum,
@@ -2639,13 +2643,11 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
           // header:
           //   * checksum was set then leave it as is.
           //   * checksum is empty then assign it 0.
-          if (checksum.has_value()) {
-            udp_header.set_checksum(string_encodings::BitsetToHexString(
-                std::bitset<kUdpChecksumBitwidth>(*checksum)));
-            changes = true;
-          } else if (udp_header.checksum().empty()) {
-            udp_header.set_checksum(UdpChecksum(0));
-            changes = true;
+          if (checksum.has_value() || udp_header.checksum().empty()) {
+            const std::string old_checksum =
+                std::move(*udp_header.mutable_checksum());
+            udp_header.set_checksum(UdpChecksum(checksum.value_or(0)));
+            changes = changes || (old_checksum != udp_header.checksum());
           }
         }
         break;
@@ -2653,20 +2655,32 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
       case Header::kArpHeader: {
         ArpHeader& arp_header = *header.mutable_arp_header();
         if (arp_header.hardware_type().empty() || overwrite) {
+          const std::string old_hardware_type =
+              std::move(*arp_header.mutable_hardware_type());
           arp_header.set_hardware_type("0x0001");
-          changes = true;
+          changes =
+              changes || (old_hardware_type != arp_header.hardware_type());
         }
         if (arp_header.protocol_type().empty() || overwrite) {
+          const std::string old_protocol_type =
+              std::move(*arp_header.mutable_protocol_type());
           arp_header.set_protocol_type("0x0800");
-          changes = true;
+          changes =
+              changes || (old_protocol_type != arp_header.protocol_type());
         }
         if (arp_header.hardware_length().empty() || overwrite) {
+          const std::string old_hardware_length =
+              std::move(*arp_header.mutable_hardware_length());
           arp_header.set_hardware_length("0x06");
-          changes = true;
+          changes =
+              changes || (old_hardware_length != arp_header.hardware_length());
         }
         if (arp_header.protocol_length().empty() || overwrite) {
+          const std::string old_protocol_length =
+              std::move(*arp_header.mutable_protocol_length());
           arp_header.set_protocol_length("0x04");
-          changes = true;
+          changes =
+              changes || (old_protocol_length != arp_header.protocol_length());
         }
         break;
       }
@@ -2675,9 +2689,10 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
         if (icmp_header.checksum().empty() || overwrite) {
           ASSIGN_OR_RETURN(int checksum,
                            IcmpHeaderChecksum(packet, header_index));
-          icmp_header.set_checksum(string_encodings::BitsetToHexString(
-              std::bitset<kIcmpChecksumBitwidth>(checksum)));
-          changes = true;
+          const std::string old_checksum =
+              std::move(*icmp_header.mutable_checksum());
+          icmp_header.set_checksum(IcmpChecksum(checksum));
+          changes = changes || (old_checksum != icmp_header.checksum());
         }
         break;
       }
@@ -2704,10 +2719,10 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
                    << " is outside of legal range [5, 15]; this indicates that "
                    << "uninterpreted_options is of invalid length";
           }
-          tcp_header.set_data_offset(
-              string_encodings::BitsetToHexString<kTcpDataOffsetBitwidth>(
-                  data_offset));
-          changes = true;
+          const std::string old_data_offset =
+              std::move(*tcp_header.mutable_data_offset());
+          tcp_header.set_data_offset(TcpDataOffset(data_offset));
+          changes = changes || (old_data_offset != tcp_header.data_offset());
         }
         break;
       }
@@ -2717,27 +2732,41 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
           if (gre_header.checksum().empty() || overwrite) {
             ASSIGN_OR_RETURN(int checksum,
                              GreHeaderChecksum(packet, header_index));
-            gre_header.set_checksum(string_encodings::BitsetToHexString(
-                std::bitset<kGreChecksumBitwidth>(checksum)));
-            changes = true;
+            const std::string old_checksum =
+                std::move(*gre_header.mutable_checksum());
+            gre_header.set_checksum(GreChecksum(checksum));
+            changes = changes || (old_checksum != gre_header.checksum());
           }
           if (gre_header.reserved1().empty() || overwrite) {
+            const std::string old_reserved1 =
+                std::move(*gre_header.mutable_reserved1());
             gre_header.set_reserved1("0x0000");
-            changes = true;
+            changes = changes || (old_reserved1 != gre_header.reserved1());
           }
         }
         break;
       }
-      case Header::kSaiP4Bmv2PacketInHeader:
+      case Header::kSaiP4Bmv2PacketInHeader: {
+        SaiP4BMv2PacketInHeader& packet_in_header =
+            *header.mutable_sai_p4_bmv2_packet_in_header();
+        if (packet_in_header.unused_pad().empty() || overwrite) {
+          const std::string old_unused_pad =
+              std::move(*packet_in_header.mutable_unused_pad());
+          packet_in_header.set_unused_pad("0x00");
+          changes =
+              changes || (old_unused_pad != packet_in_header.unused_pad());
+        }
         break;
+      }
       case Header::kIpfixHeader: {
         IpfixHeader& ipfix_header = *header.mutable_ipfix_header();
         if (ipfix_header.length().empty() || overwrite) {
           ASSIGN_OR_RETURN(int size, PacketSizeInBytes(packet, header_index),
                            _.SetPrepend() << error_prefix << "length: ");
-          ipfix_header.set_length(string_encodings::BitsetToHexString(
-              std::bitset<kIpfixLengthBitwidth>(size)));
-          changes = true;
+          const std::string old_length =
+              std::move(*ipfix_header.mutable_length());
+          ipfix_header.set_length(IpfixLength(size));
+          changes = changes || (old_length != ipfix_header.length());
         }
         break;
       }
@@ -2746,22 +2775,30 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
         if (psamp_header.length().empty() || overwrite) {
           ASSIGN_OR_RETURN(int size, PacketSizeInBytes(packet, header_index),
                            _.SetPrepend() << error_prefix << "length: ");
+          const std::string old_length =
+              std::move(*psamp_header.mutable_length());
           psamp_header.set_length(string_encodings::BitsetToHexString(
               std::bitset<kPsampLengthBitwidth>(size)));
-          changes = true;
+          changes = changes || (old_length != psamp_header.length());
         }
         if (psamp_header.variable_length().empty() || overwrite) {
+          const std::string old_variable_length =
+              std::move(*psamp_header.mutable_variable_length());
           psamp_header.set_variable_length("0xff");
-          changes = true;
+          changes = changes ||
+                    (old_variable_length != psamp_header.variable_length());
         }
         if (psamp_header.packet_sampled_length().empty() || overwrite) {
           ASSIGN_OR_RETURN(
               int size, PacketSizeInBytes(packet, header_index + 1),
               _.SetPrepend() << error_prefix << "packet_sampled_length: ");
+          const std::string old_packet_sampled_length =
+              std::move(*psamp_header.mutable_packet_sampled_length());
           psamp_header.set_packet_sampled_length(
               string_encodings::BitsetToHexString(
                   std::bitset<kPsampPacketSampledLengthBitwidth>(size)));
-          changes = true;
+          changes = changes || (old_packet_sampled_length !=
+                                psamp_header.packet_sampled_length());
         }
         break;
       }
@@ -2770,9 +2807,12 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
         if (ptp_header.message_length().empty() || overwrite) {
           ASSIGN_OR_RETURN(int size, PacketSizeInBytes(packet, header_index),
                            _.SetPrepend() << error_prefix << "length: ");
+          const std::string old_message_length =
+              std::move(*ptp_header.mutable_message_length());
           ptp_header.set_message_length(string_encodings::BitsetToHexString(
               std::bitset<kPtpMessageLengthBitwidth>(size)));
-          changes = true;
+          changes =
+              changes || (old_message_length != ptp_header.message_length());
         }
         break;
       }

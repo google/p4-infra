@@ -15,12 +15,18 @@
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <vector>
 
+#include "absl/algorithm/container.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "gutil/proto.h"
 #include "gutil/status.h"
@@ -81,7 +87,9 @@ void RunPacketParseTest(
 
   // Check roundtrip if parsing succeeded, or try to fix packet otherwise.
   if (packet.reasons_invalid().empty()) {
-    auto byte_string_after_roundtrip = SerializePacket(packet);
+    // The packet is valid. Check that it roundtrips correctly.
+    absl::StatusOr<std::string> byte_string_after_roundtrip =
+        SerializePacket(packet);
     if (!byte_string_after_roundtrip.ok()) {
       std::cout << kRoundtripHeader
                 << StatusToStableString(byte_string_after_roundtrip.status())
@@ -94,6 +102,62 @@ void RunPacketParseTest(
                 << "\nParsed and reserialized packet:\n"
                 << absl::BytesToHexString(*byte_string_after_roundtrip) << "\n";
     }
+
+    // The packet is valid. Check that padding is a no-op.
+    {
+      Packet padded_packet = packet;
+      absl::StatusOr<bool> padded_status = PadPacketToMinimumSize(packet);
+      if (!padded_status.ok()) {
+        std::cout << "BUG: PadPacketToMinimumSize(packet) must not fail on "
+                     "valid packets, but did: "
+                  << padded_status.status() << "\n";
+        return;
+      }
+      if (*padded_status) {
+        absl::StatusOr<std::string> diff =
+            gutil::ProtoDiff(padded_packet, packet);
+        CHECK(diff.ok()) << diff;  // Crash ok: test code.
+        std::cout
+            << "BUG: PadPacketToMinimumSize(packet) must return false and be a "
+               "no-op on valid packets, but returned true with packet diff: "
+            << (diff->empty() ? "<empty>" : *diff) << "\n";
+        return;
+      }
+    }
+
+    // The packet is valid. Check that updating computed fields is a no-op.
+    {
+      Packet updated_packet = packet;
+      absl::StatusOr<bool> updated_status = UpdateAllComputedFields(packet);
+      if (!updated_status.ok()) {
+        std::cout << "BUG: UpdateAllComputedFields(packet) must not fail on "
+                     "valid packets, but did: "
+                  << updated_status.status() << "\n";
+        return;
+      }
+      if (*updated_status) {
+        absl::StatusOr<std::string> diff =
+            gutil::ProtoDiff(updated_packet, packet);
+        CHECK(diff.ok()) << diff;  // Crash ok: test code.
+        // Exception: UDP checksums may be zero in a valid packet, but are
+        // nonetheless updated to a non-zero value. This is fine.
+        std::vector<std::string> diffs =
+            absl::StrSplit(absl::StripAsciiWhitespace(*diff), '\n');
+        bool is_udp_checksum_diff =
+            absl::c_all_of(diffs, [](absl::string_view diff) {
+              return absl::StrContains(diff,
+                                       "udp_header.checksum: \"0x0000\" ->");
+            });
+        if (!is_udp_checksum_diff) {
+          std::cout << "BUG: UpdateAllComputedFields(packet) must return false "
+                       "an be a no-op on valid packets, but returned true with "
+                       "packet diff: "
+                    << (diff->empty() ? "<empty>" : *diff) << "\n";
+          return;
+        }
+      }
+    }
+
   } else {
     // The packet is invalid. Try to fix it.
     auto padded = PadPacketToMinimumSize(packet);

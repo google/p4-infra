@@ -1636,12 +1636,11 @@ headers {
   }
 }
 payload: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
-reasons_invalid: "in SaiP4BMv2PacketInHeader headers[0]: unused_pad: Must be 0, but was 0x01 instead."
+reasons_invalid: "in SaiP4BMv2PacketInHeader headers[0]: unused_pad: Must be \'0x00\', but was \'0x01\' instead."
 
 PadPacketToMinimumSize(packet) = false
 UpdateAllComputedFields(packet) = true
-ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
-- in SaiP4BMv2PacketInHeader headers[0]: unused_pad: Must be 0, but was 0x01 instead.
+ValidatePacket(packet) = OK
 ================================================================================
 Parsing test: IPv6-in-IPv6 packet (valid)
 ================================================================================
@@ -2416,9 +2415,7 @@ reasons_invalid: "Packet is too short to parse a PTP header next. Only 264 bits 
 reasons_invalid: "headers[3]: header missing - expected PtpHeader"
 
 PadPacketToMinimumSize(packet) = false
-UpdateAllComputedFields(packet) = true
-ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
-- headers[3]: header missing - expected PtpHeader
+UpdateAllComputedFields(packet) = false
 ================================================================================
 Parsing test: Inner and outer UDP checksums can both be zero (valid)
 ================================================================================
