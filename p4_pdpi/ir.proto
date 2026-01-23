@@ -171,7 +171,7 @@ message IrTable {
 
 // Describles a reference from one table to another. References are
 // generated from @refers_to/@referenced_by annotations. There exists at most
-// one `IrTableReference` for a given ordered pair of tables.
+// one `IrTableReference` for any (`source_table`, `destination_table`) pair.
 //
 // Semantics: For each entry in the `source_table`, there must exist an entry in
 // the `destination_table` such that for each field reference, if the `source`
@@ -266,9 +266,9 @@ message IrTableDefinition {
   // See go/unblocking-sai-p4 for more details.
   /* copybara:strip_end */
   bool is_unsupported = 14;
-  // `IrTableReference` where this table is the `source_table`.
+  // Every `IrTableReference` where this table is the `source_table`.
   repeated IrTableReference outgoing_references = 15;
-  // `IrTableReference` where this table is the `destination_table`.
+  // Every `IrTableReference` where this table is the `destination_table`.
   repeated IrTableReference incoming_references = 16;
   // Next: 17
 }
@@ -336,9 +336,9 @@ message IrPacketIoMetadataDefinition {
 // Describes a built-in table.
 message IrBuiltInTableDefinition {
   IrBuiltInTable built_in_table = 1;
-  // `IrTableReference` where this table is the `source_table`.
+  // Every `IrTableReference` where this table is the `source_table`.
   repeated IrTableReference outgoing_references = 2;
-  // `IrTableReference` where this table is the `destination_table`.
+  // Every `IrTableReference` where this table is the `destination_table`.
   repeated IrTableReference incoming_references = 3;
 }
 
