@@ -91,12 +91,13 @@ absl::Status StableSortUpdates(
 // if and only if `r` refers to `e`, directly or transitively. The reference
 // info comes from `ir_p4info`. Returns invalid argument error if root entities
 // are not a `table_entry` or `multicast_group_entry` and non-root entities are
-// not a `table_entry`.
+// not a `table_entry`. `warn_about_non_root_entries` dictates whether to log a
+// warning when a non-root entry that could never be reachable is found.
 absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
     absl::Span<const p4::v1::Entity> entities,
     absl::FunctionRef<absl::StatusOr<bool>(const p4::v1::Entity&)>
         is_root_entity,
-    const IrP4Info& ir_p4info);
+    const IrP4Info& ir_p4info, bool warn_about_non_root_entries = true);
 
 }  // namespace pdpi
 

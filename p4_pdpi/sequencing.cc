@@ -443,7 +443,7 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
     absl::Span<const p4::v1::Entity> entities,
     absl::FunctionRef<absl::StatusOr<bool>(const p4::v1::Entity&)>
         is_root_entity,
-    const IrP4Info& ir_p4info) {
+    const IrP4Info& ir_p4info, bool warn_about_non_root_entries) {
   absl::flat_hash_map<ConcreteTableReference, std::vector<int>>
       potentially_reachable_entries;
   absl::flat_hash_set<int> unreachable_indices;
@@ -457,10 +457,10 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
 
     if (!entity.has_table_entry() &&
         !entity.packet_replication_engine_entry().has_multicast_group_entry()) {
-      return absl::UnimplementedError(
-          absl::StrCat("Garbage collection only supports entities of type "
-                       "table entry or multicast group entry.",
-                       entity.DebugString()));
+      // TODO: b/481033295 - Add support for multicast groups.
+      return absl::UnimplementedError(absl::StrCat(
+          "Currently, does not support entities of type multicast group entry.",
+          entity.DebugString()));
     }
 
     ASSIGN_OR_RETURN(bool is_root_entity, is_root_entity(entity));
@@ -471,8 +471,7 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
     if (!entity.has_table_entry()) {
       // TODO: b/302346101 - Add support for collection of all entities.
       return absl::UnimplementedError(
-          absl::StrCat("Only entities of type table_entry can be garbage "
-                       "collected. Entity: ",
+          absl::StrCat("Entity does not have a table entry. Entity: ",
                        entity.DebugString()));
     }
     const p4::v1::TableEntry& table_entry = entity.table_entry();
@@ -482,10 +481,12 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
                      gutil::FindPtrOrStatus(ir_p4info.tables_by_id(),
                                             table_entry.table_id()));
     if (table_def->incoming_references().empty()) {
-      LOG(WARNING) << "Found non-root entry that could never be reachable. "
-                      "This probably indicates some mistake in is_root_entry "
-                      "or the ir_p4info. Found entry: "
-                   << table_entry.DebugString();
+      if (warn_about_non_root_entries) {
+        LOG(WARNING) << "Found non-root entry that could never be reachable. "
+                        "This probably indicates some mistake in is_root_entry "
+                        "or the ir_p4info. Found entry: "
+                     << table_entry.DebugString();
+      }
       unreachable_indices.insert(i);
     } else {
       for (const auto& reference_info : table_def->incoming_references()) {
