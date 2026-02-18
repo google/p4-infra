@@ -174,6 +174,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     const default_action = NoAction();
   }
 
+  @selector_size_semantics("sum_of_weights")
   action_selector(HashAlgorithm.identity, 1024, 10) wcmp_group_selector;
 
   // WCMP table
