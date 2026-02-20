@@ -178,6 +178,7 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_gutil//gutil:collections",
+        "@com_google_gutil//gutil:proto",
         "@com_google_gutil//gutil:status",
         "@com_google_protobuf//:protobuf",
     ],

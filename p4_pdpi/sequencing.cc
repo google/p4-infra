@@ -36,6 +36,7 @@
 #include "boost/graph/adjacency_list.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "gutil/collections.h"
+#include "gutil/proto.h"
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/v1/p4runtime.pb.h"
@@ -457,10 +458,9 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
 
     if (!entity.has_table_entry() &&
         !entity.packet_replication_engine_entry().has_multicast_group_entry()) {
-      return absl::UnimplementedError(
-          absl::StrCat("Garbage collection only supports entities of type "
-                       "table entry or multicast group entry.",
-                       entity.DebugString()));
+      return absl::UnimplementedError(absl::StrCat(
+          "Only supports table entries and multicast group entries",
+          gutil::PrintTextProto(entity)));
     }
 
     ASSIGN_OR_RETURN(bool is_root_entity, is_root_entity(entity));
@@ -471,9 +471,8 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
     if (!entity.has_table_entry()) {
       // TODO: b/302346101 - Add support for collection of all entities.
       return absl::UnimplementedError(
-          absl::StrCat("Only entities of type table_entry can be garbage "
-                       "collected. Entity: ",
-                       entity.DebugString()));
+          absl::StrCat("Entity does not have a table entry. Entity: ",
+                       gutil::PrintTextProto(entity)));
     }
     const p4::v1::TableEntry& table_entry = entity.table_entry();
     // If the table that entries[i] belongs to is referred to, entries[i] is
@@ -482,10 +481,8 @@ absl::StatusOr<std::vector<p4::v1::Entity>> GetEntitiesUnreachableFromRoots(
                      gutil::FindPtrOrStatus(ir_p4info.tables_by_id(),
                                             table_entry.table_id()));
     if (table_def->incoming_references().empty()) {
-      LOG(WARNING) << "Found non-root entry that could never be reachable. "
-                      "This probably indicates some mistake in is_root_entry "
-                      "or the ir_p4info. Found entry: "
-                   << table_entry.DebugString();
+      // TODO: b/486174411 - Add appropriate error check to either OFPD or P4
+      // event loop to ensure SAI only table entries have incoming references.
       unreachable_indices.insert(i);
     } else {
       for (const auto& reference_info : table_def->incoming_references()) {
