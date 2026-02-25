@@ -129,4 +129,18 @@ std::bitset<64> MacAddress::ToInterfaceId() const {
   return result;
 }
 
+bool MacAddress::IsUnicast() const {
+  // The least significant bit of the first byte (40) of the destination MAC
+  // address must be set to 0 for unicast packets.
+  // The destination MAC address must not be all zeros because it is an
+  // invalid address.
+  return !IsAllZeros() && !ToBitset().test(40);
+}
+
+bool MacAddress::IsMulticast() const {
+  // The least significant bit of the first byte (40) of the destination MAC
+  // address must be set to 1 for multicast packets.
+  return ToBitset().test(40);
+}
+
 }  // namespace netaddr
