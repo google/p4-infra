@@ -630,16 +630,17 @@ absl::StatusOr<PtpHeader> ParsePtpHeader(string_encodings::BitString& data) {
   }
   PtpHeader header;
 
-  header.set_transport_specific(ParseBits(data, kPtpTransportSpecificBitwidth));
+  header.set_major_sdo_id(ParseBits(data, kPtpMajorSdoIdBitwidth));
   header.set_message_type(ParseBits(data, kPtpMessageTypeBitwidth));
-  header.set_reserved0(ParseBits(data, kPtpReserved0Bitwidth));
+  header.set_minor_version_ptp(ParseBits(data, kPtpMinorVersionPtpBitwidth));
   header.set_version_ptp(ParseBits(data, kPtpVersionPtpBitwidth));
   header.set_message_length(ParseBits(data, kPtpMessageLengthBitwidth));
   header.set_domain_number(ParseBits(data, kPtpDomainNumberBitwidth));
-  header.set_reserved1(ParseBits(data, kPtpReserved1Bitwidth));
+  header.set_minor_sdo_id(ParseBits(data, kPtpMinorSdoIdBitwidth));
   header.set_flags(ParseBits(data, kPtpFlagsBitwidth));
   header.set_correction_field(ParseBits(data, kPtpCorrectionFieldBitwidth));
-  header.set_reserved2(ParseBits(data, kPtpReserved2Bitwidth));
+  header.set_message_type_specific(
+      ParseBits(data, kPtpMessageTypeSpecificBitwidth));
   header.set_source_port_identity(
       ParseBits(data, kPtpSourcePortIdentityBitwidth));
   header.set_sequence_id(ParseBits(data, kPtpSequenceIdBitwidth));
@@ -1668,13 +1669,16 @@ void PtpHeaderInvalidReasons(const PtpHeader& header,
                              const std::string& field_prefix,
                              const Packet& packet, int header_index,
                              std::vector<std::string>& output) {
-  HexStringInvalidReasons<kPtpTransportSpecificBitwidth>(
-      header.transport_specific(),
-      absl::StrCat(field_prefix, "transport_specific"), output);
+  HexStringInvalidReasons<kPtpMajorSdoIdBitwidth>(
+      header.major_sdo_id(), absl::StrCat(field_prefix, "major_sdo_id"),
+      output);
   HexStringInvalidReasons<kPtpVersionPtpBitwidth>(
       header.version_ptp(), absl::StrCat(field_prefix, "version_ptp"), output);
   HexStringInvalidReasons<kPtpDomainNumberBitwidth>(
       header.domain_number(), absl::StrCat(field_prefix, "domain_number"),
+      output);
+  HexStringInvalidReasons<kPtpMinorSdoIdBitwidth>(
+      header.minor_sdo_id(), absl::StrCat(field_prefix, "minor_sdo_id"),
       output);
   HexStringInvalidReasons<kPtpFlagsBitwidth>(
       header.flags(), absl::StrCat(field_prefix, "flags"), output);
@@ -1714,29 +1718,25 @@ void PtpHeaderInvalidReasons(const PtpHeader& header,
     }
   }
 
-  // Check that the reserved fields are all set to 0.
-  bool reserved0_invalid = HexStringInvalidReasons<kPtpReserved0Bitwidth>(
-      header.reserved0(), absl::StrCat(field_prefix, "reserved0"), output);
-  if (!reserved0_invalid && header.reserved0() != "0x0") {
+  bool minor_version_ptp_invalid =
+      HexStringInvalidReasons<kPtpMinorVersionPtpBitwidth>(
+          header.minor_version_ptp(),
+          absl::StrCat(field_prefix, "minor_version_ptp"), output);
+  if (!minor_version_ptp_invalid && header.minor_version_ptp() != "0x0") {
     output.push_back(absl::StrCat(field_prefix,
-                                  "reserved0: Must be 0x0, but was ",
-                                  header.reserved0(), " instead."));
+                                  "minor_version_ptp: Must be 0x0, but was ",
+                                  header.minor_version_ptp(), " instead."));
   }
 
-  bool reserved1_invalid = HexStringInvalidReasons<kPtpReserved1Bitwidth>(
-      header.reserved1(), absl::StrCat(field_prefix, "reserved1"), output);
-  if (!reserved1_invalid && header.reserved1() != "0x00") {
-    output.push_back(absl::StrCat(field_prefix,
-                                  "reserved1: Must be 0x00, but was ",
-                                  header.reserved1(), " instead."));
-  }
-
-  bool reserved2_invalid = HexStringInvalidReasons<kPtpReserved2Bitwidth>(
-      header.reserved2(), absl::StrCat(field_prefix, "reserved2"), output);
-  if (!reserved2_invalid && header.reserved2() != "0x00000000") {
-    output.push_back(absl::StrCat(field_prefix,
-                                  "reserved2: Must be 0x00000000, but was ",
-                                  header.reserved2(), " instead."));
+  bool message_type_specific_invalid =
+      HexStringInvalidReasons<kPtpMessageTypeSpecificBitwidth>(
+          header.message_type_specific(),
+          absl::StrCat(field_prefix, "message_type_specific"), output);
+  if (!message_type_specific_invalid &&
+      header.message_type_specific() != "0x00000000") {
+    output.push_back(absl::StrCat(
+        field_prefix, "message_type_specific: Must be 0x00000000, but was ",
+        header.message_type_specific(), " instead."));
   }
 
   // Message length should match the header size plus the remaining bytes in the
@@ -2326,12 +2326,12 @@ absl::Status SerializePsampHeader(const PsampHeader& header,
 
 absl::Status SerializePtpHeader(const PtpHeader& header,
                                 string_encodings::BitString& output) {
-  RETURN_IF_ERROR(SerializeBits<kPtpTransportSpecificBitwidth>(
-      header.transport_specific(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kPtpMajorSdoIdBitwidth>(header.major_sdo_id(), output));
   RETURN_IF_ERROR(
       SerializeBits<kPtpMessageTypeBitwidth>(header.message_type(), output));
-  RETURN_IF_ERROR(
-      SerializeBits<kPtpReserved0Bitwidth>(header.reserved0(), output));
+  RETURN_IF_ERROR(SerializeBits<kPtpMinorVersionPtpBitwidth>(
+      header.minor_version_ptp(), output));
   RETURN_IF_ERROR(
       SerializeBits<kPtpVersionPtpBitwidth>(header.version_ptp(), output));
   RETURN_IF_ERROR(SerializeBits<kPtpMessageLengthBitwidth>(
@@ -2339,12 +2339,12 @@ absl::Status SerializePtpHeader(const PtpHeader& header,
   RETURN_IF_ERROR(
       SerializeBits<kPtpDomainNumberBitwidth>(header.domain_number(), output));
   RETURN_IF_ERROR(
-      SerializeBits<kPtpReserved1Bitwidth>(header.reserved1(), output));
+      SerializeBits<kPtpMinorSdoIdBitwidth>(header.minor_sdo_id(), output));
   RETURN_IF_ERROR(SerializeBits<kPtpFlagsBitwidth>(header.flags(), output));
   RETURN_IF_ERROR(SerializeBits<kPtpCorrectionFieldBitwidth>(
       header.correction_field(), output));
-  RETURN_IF_ERROR(
-      SerializeBits<kPtpReserved2Bitwidth>(header.reserved2(), output));
+  RETURN_IF_ERROR(SerializeBits<kPtpMessageTypeSpecificBitwidth>(
+      header.message_type_specific(), output));
   RETURN_IF_ERROR(SerializeBits<kPtpSourcePortIdentityBitwidth>(
       header.source_port_identity(), output));
   RETURN_IF_ERROR(
@@ -2990,7 +2990,6 @@ absl::StatusOr<int> PacketSizeInBits(const Packet& packet,
                << "Found invalid HEADER_NOT_SET in header.";
     }
   }
-
   size += 8 * packet.payload().size();
   return size;
 }

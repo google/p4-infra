@@ -140,16 +140,16 @@ constexpr int kPsampVariableLengthBitwidth = 8;
 constexpr int kPsampPacketSampledLengthBitwidth = 16;
 
 // PTP constants
-constexpr int kPtpTransportSpecificBitwidth = 4;
+constexpr int kPtpMajorSdoIdBitwidth = 4;
 constexpr int kPtpMessageTypeBitwidth = 4;
-constexpr int kPtpReserved0Bitwidth = 4;
+constexpr int kPtpMinorVersionPtpBitwidth = 4;
 constexpr int kPtpVersionPtpBitwidth = 4;
 constexpr int kPtpMessageLengthBitwidth = 16;
 constexpr int kPtpDomainNumberBitwidth = 8;
-constexpr int kPtpReserved1Bitwidth = 8;
+constexpr int kPtpMinorSdoIdBitwidth = 8;
 constexpr int kPtpFlagsBitwidth = 16;
 constexpr int kPtpCorrectionFieldBitwidth = 64;
-constexpr int kPtpReserved2Bitwidth = 32;
+constexpr int kPtpMessageTypeSpecificBitwidth = 32;
 constexpr int kPtpSourcePortIdentityBitwidth = 80;
 constexpr int kPtpSequenceIdBitwidth = 16;
 constexpr int kPtpControlFieldBitwidth = 8;

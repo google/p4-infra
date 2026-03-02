@@ -250,22 +250,27 @@ message PsampHeader {
   string packet_sampled_length = 12;  // 16 bits (computed field)
 }
 
-// Precision Time Protocol header (RFC 1588-2008)
+// Precision Time Protocol header (RFC 1588-2019)
 message PtpHeader {
-  string transport_specific = 1;
+  string transport_specific = 1 [deprecated = true];  // renamed to major_sdo_id
   string message_type = 2;
-  string reserved0 = 3;
+  string reserved0 = 3 [deprecated = true];  // renamed to minor_version_ptp
   string version_ptp = 4;
   string message_length = 5;
   string domain_number = 6;
-  string reserved1 = 7;
+  string reserved1 = 7 [deprecated = true];  // renamed to minor_sdo_id
   string flags = 8;
   string correction_field = 9;
-  string reserved2 = 10;
+  string reserved2 = 10
+      [deprecated = true];  // renamed to message_type_specific
   string source_port_identity = 11;
   string sequence_id = 12;
   string control_field = 13;
   string log_message_interval = 14;
+  string major_sdo_id = 15;
+  string minor_sdo_id = 16;
+  string minor_version_ptp = 17;
+  string message_type_specific = 18;
 }
 
 // message PspHeader (https://github.com/google/psp)
