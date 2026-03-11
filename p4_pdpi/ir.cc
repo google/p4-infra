@@ -761,7 +761,8 @@ absl::Status PiActionSetToIr(
 
     // A action set weight that is not positive does not make sense on a switch.
     // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (pi_profile_action.weight() < 1 && table_name != "ars_group_table") {
+    if (pi_profile_action.weight() < 1 && table_name != "ars_group_table" &&
+        table_name != "ars_quality_map_table") {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected positive action set weight, but got ",
           pi_profile_action.weight(), " instead."));
@@ -1201,7 +1202,8 @@ absl::Status IrActionSetToPi(
       continue;
     }
     // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (ir_action.weight() < 1 && table_name != "ars_group_table") {
+    if (ir_action.weight() < 1 && table_name != "ars_group_table" &&
+        table_name != "ars_quality_map_table") {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected positive action set weight, but got ",
           ir_action.weight(), " instead."));
