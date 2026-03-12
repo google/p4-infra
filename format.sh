@@ -24,4 +24,5 @@ find . \
   | xargs clang-format -style=google -i
 
 # Run Buildifier.
-bazel run :buildifier
+WORKSPACE="$(bazel info workspace 2>/dev/null)" || WORKSPACE="$(pwd)"
+bazel run -- @buildifier_prebuilt//:buildifier -lint=fix -r "$WORKSPACE"
