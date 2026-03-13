@@ -1,0 +1,5 @@
+exports_files([
+    "grpc_memory_request_fix.patch",
+    "grpc_missing_includes.patch",
+    "grpc_property_list_fix.patch",
+])

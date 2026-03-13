@@ -118,8 +118,14 @@ class NetworkAddress {
   T operator~() const { return T(~bits_); }
 
   // -- Comparisons --
-  bool operator==(const T& other) const { return bits_ == other.bits_; }
-  bool operator!=(const T& other) const { return bits_ != other.bits_; }
+  // Hidden friends avoid C++20 ambiguity from reversed comparison candidates
+  // when operator== is a member of a CRTP base class.
+  friend bool operator==(const T& lhs, const T& rhs) {
+    return lhs.bits_ == rhs.bits_;
+  }
+  friend bool operator!=(const T& lhs, const T& rhs) {
+    return lhs.bits_ != rhs.bits_;
+  }
   bool operator<(const T& other) const {
     return ToPaddedByteString() < other.ToPaddedByteString();
   }
@@ -200,7 +206,7 @@ std::string NetworkAddress<N, T>::ToP4RuntimeByteString() const {
 template <std::size_t N, typename T>
 absl::StatusOr<int> NetworkAddress<N, T>::ToLpmPrefixLength() const {
   for (int i = 0; i <= N; ++i) {
-    if (*this == AllOnes() << (N - i)) return i;
+    if (static_cast<const T&>(*this) == AllOnes() << (N - i)) return i;
   }
   return gutil::InvalidArgumentErrorBuilder() << "not an LPM mask: " << *this;
 }
