@@ -53,8 +53,20 @@ jobs:
     - name: Save start time
       run: echo "start_time=$(date +%s)" >> "$GITHUB_ENV"
 
-    - name: Install libc++
-      run: sudo apt-get install -y libc++-dev libc++abi-dev
+    - name: Install Clang 18 and libc++
+      run: |
+        # Add the official LLVM APT repository to ensure Clang 18 and a
+        # matching libc++ are available on all Ubuntu versions (22.04 only
+        # ships LLVM 14, whose libc++ is too old for some dependencies).
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+          | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+        . /etc/os-release
+        echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-18 main" \
+          | sudo tee /etc/apt/sources.list.d/llvm-18.list
+        sudo apt-get update
+        sudo apt-get install -y clang-18 libc++-18-dev libc++abi-18-dev
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
 
     - name: Build
       run: bazel build --verbose_failures --test_output=errors //...
