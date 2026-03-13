@@ -69,8 +69,10 @@ jobs:
         # libc++-14-dev on ubuntu-22.04 runners. These conflict with the
         # LLVM 18 headers at /usr/lib/llvm-18/include/c++/v1/.
         sudo rm -rf /usr/include/c++/v1
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+        # Force /usr/bin/clang to point to clang-18. update-alternatives does
+        # not override existing symlinks not managed by the alternatives system.
+        sudo ln -sf /usr/bin/clang-18 /usr/bin/clang
+        sudo ln -sf /usr/bin/clang++-18 /usr/bin/clang++
 
     - name: Reconfigure C++ toolchain
       # The Bazel cache may contain a C++ toolchain auto-configured for a
