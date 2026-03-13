@@ -72,6 +72,15 @@ jobs:
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
 
+    - name: Reconfigure C++ toolchain
+      # The Bazel cache may contain a C++ toolchain auto-configured for a
+      # different compiler or stdlib. Force re-detection after LLVM install.
+      run: >-
+        rm -rf
+        "$(bazel info output_base)/external/rules_cc~~cc_configure~local_config_cc"
+        "$(bazel info output_base)/external/local_config_cc"
+        2>/dev/null || true
+
     - name: Build
       run: bazel build --verbose_failures --test_output=errors //...
 
