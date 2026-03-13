@@ -276,6 +276,11 @@ tables {
     annotations: "@proto_id(1)"
   }
   action_refs {
+    id: 16777221
+    annotations: "@unsupported"
+    annotations: "@proto_id(3)"
+  }
+  action_refs {
     id: 21257015
     annotations: "@defaultonly"
     scope: DEFAULT_ONLY
@@ -1184,6 +1189,13 @@ actions {
 }
 actions {
   preamble {
+    id: 16777221
+    name: "do_thing_4"
+    alias: "do_thing_4"
+  }
+}
+actions {
+  preamble {
     id: 21257015
     name: "NoAction"
     alias: "NoAction"
@@ -1219,13 +1231,6 @@ actions {
     name: "normal"
     annotations: "@refers_to(exact_table , normal)"
     bitwidth: 10
-  }
-}
-actions {
-  preamble {
-    id: 16777221
-    name: "do_thing_4"
-    alias: "do_thing_4"
   }
 }
 actions {
@@ -1746,6 +1751,22 @@ tables_by_id {
         }
       }
       proto_id: 1
+    }
+    entry_actions {
+      ref {
+        id: 16777221
+        annotations: "@unsupported"
+        annotations: "@proto_id(3)"
+      }
+      action {
+        preamble {
+          id: 16777221
+          name: "do_thing_4"
+          alias: "do_thing_4"
+        }
+      }
+      proto_id: 3
+      is_unsupported_by_table: true
     }
     default_only_actions {
       ref {
@@ -7009,6 +7030,22 @@ tables_by_name {
       }
       proto_id: 1
     }
+    entry_actions {
+      ref {
+        id: 16777221
+        annotations: "@unsupported"
+        annotations: "@proto_id(3)"
+      }
+      action {
+        preamble {
+          id: 16777221
+          name: "do_thing_4"
+          alias: "do_thing_4"
+        }
+      }
+      proto_id: 3
+      is_unsupported_by_table: true
+    }
     default_only_actions {
       ref {
         id: 21257015
@@ -11410,6 +11447,7 @@ dependency_rank_by_table_name {
 deleted: actions_by_id[16777223]: { preamble { id: 16777223 name: "unsupported_action" alias: "unsupported_action" annotations: "@unsupported" } params_by_id { key: 1 value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } params_by_name { key: "normal" value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } is_unsupported: true }
 deleted: actions_by_name[unsupported_action]: { preamble { id: 16777223 name: "unsupported_action" alias: "unsupported_action" annotations: "@unsupported" } params_by_id { key: 1 value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } params_by_name { key: "normal" value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } is_unsupported: true }
 deleted: dependency_rank_by_table_name[unsupported_table]: -1
+deleted: tables_by_id[33554433].entry_actions[2]: { ref { id: 16777221 annotations: "@unsupported" annotations: "@proto_id(3)" } action { preamble { id: 16777221 name: "do_thing_4" alias: "do_thing_4" } } proto_id: 3 is_unsupported_by_table: true }
 deleted: tables_by_id[33554434].incoming_references[0]: { source_table { p4_table { table_name: "ternary_table" table_id: 33554435 } } destination_table { p4_table { table_name: "exact_table" table_id: 33554434 } } field_references { source { action_field { p4_action_field { action_name: "unsupported_action" action_id: 16777223 parameter_name: "normal" parameter_id: 1 } } } destination { match_field { p4_match_field { field_name: "normal" field_id: 1 } } } } }
 deleted: tables_by_id[33554434].incoming_references[1]: { source_table { p4_table { table_name: "unsupported_table" table_id: 33554447 } } destination_table { p4_table { table_name: "exact_table" table_id: 33554434 } } field_references { source { match_field { p4_match_field { field_name: "mac" field_id: 3 } } } destination { match_field { p4_match_field { field_name: "mac" field_id: 4 } } } } }
 deleted: tables_by_id[33554435].entry_actions[1]: { ref { id: 16777223 annotations: "@proto_id(2)" } action { preamble { id: 16777223 name: "unsupported_action" alias: "unsupported_action" annotations: "@unsupported" } params_by_id { key: 1 value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } params_by_name { key: "normal" value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } is_unsupported: true } proto_id: 2 }
@@ -11419,6 +11457,7 @@ deleted: tables_by_id[33554435].outgoing_references[0]: { source_table { p4_tabl
 deleted: tables_by_id[33554447]: { preamble { id: 33554447 name: "ingress.unsupported_table" alias: "unsupported_table" annotations: "@unsupported" } match_fields_by_id { key: 1 value { match_field { id: 1 name: "ipv6" annotations: "@format(IPV6_ADDRESS)" bitwidth: 128 match_type: EXACT } format: IPV6 } } match_fields_by_id { key: 2 value { match_field { id: 2 name: "ipv4" annotations: "@format(IPV4_ADDRESS)" bitwidth: 32 match_type: EXACT } format: IPV4 } } match_fields_by_id { key: 3 value { match_field { id: 3 name: "mac" annotations: "@format(MAC_ADDRESS)" annotations: "@refers_to(exact_table , mac)" bitwidth: 48 match_type: EXACT } format: MAC references { table: "exact_table" match_field: "mac" table_id: 33554434 match_field_id: 4 } } } match_fields_by_name { key: "ipv4" value { match_field { id: 2 name: "ipv4" annotations: "@format(IPV4_ADDRESS)" bitwidth: 32 match_type: EXACT } format: IPV4 } } match_fields_by_name { key: "ipv6" value { match_field { id: 1 name: "ipv6" annotations: "@format(IPV6_ADDRESS)" bitwidth: 128 match_type: EXACT } format: IPV6 } } match_fields_by_name { key: "mac" value { match_field { id: 3 name: "mac" annotations: "@format(MAC_ADDRESS)" annotations: "@refers_to(exact_table , mac)" bitwidth: 48 match_type: EXACT } format: MAC references { table: "exact_table" match_field: "mac" table_id: 33554434 match_field_id: 4 } } } default_only_actions { ref { id: 21257015 annotations: "@defaultonly" scope: DEFAULT_ONLY } action { preamble { id: 21257015 name: "NoAction" alias: "NoAction" annotations: "@noWarn(\"unused\")" } } } size: 1024 const_default_action { preamble { id: 21257015 name: "NoAction" alias: "NoAction" annotations: "@noWarn(\"unused\")" } } is_unsupported: true outgoing_references { source_table { p4_table { table_name: "unsupported_table" table_id: 33554447 } } destination_table { p4_table { table_name: "exact_table" table_id: 33554434 } } field_references { source { match_field { p4_match_field { field_name: "mac" field_id: 3 } } } destination { match_field { p4_match_field { field_name: "mac" field_id: 4 } } } } } }
 deleted: tables_by_name[exact_table].incoming_references[0]: { source_table { p4_table { table_name: "ternary_table" table_id: 33554435 } } destination_table { p4_table { table_name: "exact_table" table_id: 33554434 } } field_references { source { action_field { p4_action_field { action_name: "unsupported_action" action_id: 16777223 parameter_name: "normal" parameter_id: 1 } } } destination { match_field { p4_match_field { field_name: "normal" field_id: 1 } } } } }
 deleted: tables_by_name[exact_table].incoming_references[1]: { source_table { p4_table { table_name: "unsupported_table" table_id: 33554447 } } destination_table { p4_table { table_name: "exact_table" table_id: 33554434 } } field_references { source { match_field { p4_match_field { field_name: "mac" field_id: 3 } } } destination { match_field { p4_match_field { field_name: "mac" field_id: 4 } } } } }
+deleted: tables_by_name[id_test_table].entry_actions[2]: { ref { id: 16777221 annotations: "@unsupported" annotations: "@proto_id(3)" } action { preamble { id: 16777221 name: "do_thing_4" alias: "do_thing_4" } } proto_id: 3 is_unsupported_by_table: true }
 deleted: tables_by_name[ternary_table].entry_actions[1]: { ref { id: 16777223 annotations: "@proto_id(2)" } action { preamble { id: 16777223 name: "unsupported_action" alias: "unsupported_action" annotations: "@unsupported" } params_by_id { key: 1 value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } params_by_name { key: "normal" value { param { id: 1 name: "normal" annotations: "@refers_to(exact_table , normal)" bitwidth: 10 } references { table: "exact_table" match_field: "normal" table_id: 33554434 match_field_id: 1 } } } is_unsupported: true } proto_id: 2 }
 deleted: tables_by_name[ternary_table].match_fields_by_id[5]: { match_field { id: 5 name: "unsupported_field" annotations: "@unsupported" bitwidth: 1 match_type: TERNARY } is_unsupported: true }
 deleted: tables_by_name[ternary_table].match_fields_by_name[unsupported_field]: { match_field { id: 5 name: "unsupported_field" annotations: "@unsupported" bitwidth: 1 match_type: TERNARY } is_unsupported: true }

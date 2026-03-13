@@ -53,6 +53,8 @@ message IdTestTableEntry {
   oneof action {
     DoThing1Action do_thing_1 = 2;
     DoThing2Action do_thing_2 = 1;
+    // CAUTION: This action is not (yet) supported for this table.
+    DoThing4Action do_thing_4 = 3;
   }
   }
   Action action = 2;

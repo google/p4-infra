@@ -174,6 +174,11 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
     if (action.action().is_unsupported()) {
       absl::StrAppend(&result, "    ", GetUnsupportedWarning("action"));
     }
+    if (action.is_unsupported_by_table()) {
+      absl::StrAppend(
+          &result, "    ",
+          "// CAUTION: This action is not (yet) supported for this table.\n");
+    }
     absl::StrAppend(&result, "    ", action_message_name, " ",
                     action_field_name, " = ", action.proto_id(), ";\n");
   }

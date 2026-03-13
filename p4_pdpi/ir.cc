@@ -83,7 +83,8 @@ bool IsSupported(const Value& value) {
 }
 
 bool IsSupported(const IrActionReference& action_ref) {
-  return !action_ref.action().is_unsupported();
+  return !action_ref.is_unsupported_by_table() &&
+         !action_ref.action().is_unsupported();
 }
 template <class Key, class Value>
 void RemoveUnsupportedValues(google::protobuf::Map<Key, Value>& map) {
@@ -676,14 +677,16 @@ absl::Status PiActionToIr(
   }
   const auto* ir_action_definition = *status_or_ir_action_definition;
 
-  if (absl::c_find_if(valid_actions,
-                      [action_id](const IrActionReference& action) {
-                        return action.action().preamble().id() == action_id;
-                      }) == valid_actions.end()) {
+  auto action_ref_iter = absl::c_find_if(
+      valid_actions, [action_id](const IrActionReference& action) {
+        return action.action().preamble().id() == action_id;
+      });
+  if (action_ref_iter == valid_actions.end()) {
     return absl::InvalidArgumentError(
         GenerateFormattedError(absl::StrCat("Action ID ", action_id),
                                "It is not a valid action for this table."));
   }
+  const IrActionReference& action_ref = *action_ref_iter;
 
   action_entry.set_name(ir_action_definition->preamble().alias());
   absl::flat_hash_set<uint32_t> used_params(pi_action.params().size());
@@ -693,6 +696,10 @@ absl::Status PiActionToIr(
   if (ir_action_definition->is_unsupported() && !options.allow_unsupported) {
     invalid_reasons.push_back(
         absl::StrCat(kNewBullet, "Action has @unsupported annotation."));
+  }
+  if (action_ref.is_unsupported_by_table() && !options.allow_unsupported) {
+    invalid_reasons.push_back(absl::StrCat(
+        kNewBullet, "Action reference has @unsupported annotation."));
   }
 
   for (const auto& param : pi_action.params()) {
@@ -1112,13 +1119,15 @@ absl::Status IrActionInvocationToPi(
   }
   const auto* ir_action_definition = *status_or_ir_action_definition;
 
-  if (absl::c_find_if(
-          valid_actions, [action_name](const IrActionReference& action) {
-            return action.action().preamble().alias() == action_name;
-          }) == valid_actions.end()) {
+  auto action_ref_iter = absl::c_find_if(
+      valid_actions, [action_name](const IrActionReference& action) {
+        return action.action().preamble().alias() == action_name;
+      });
+  if (action_ref_iter == valid_actions.end()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
         ActionName(action_name), "It is not a valid action for this table."));
   }
+  const IrActionReference& action_ref = *action_ref_iter;
 
   action.set_action_id(ir_action_definition->preamble().id());
   std::vector<std::string> invalid_reasons;
@@ -1126,6 +1135,10 @@ absl::Status IrActionInvocationToPi(
   if (ir_action_definition->is_unsupported() && !options.allow_unsupported) {
     invalid_reasons.push_back(
         absl::StrCat(kNewBullet, "Action has @unsupported annotation."));
+  }
+  if (action_ref.is_unsupported_by_table() && !options.allow_unsupported) {
+    invalid_reasons.push_back(absl::StrCat(
+        kNewBullet, "Action reference has @unsupported annotation."));
   }
 
   absl::flat_hash_set<std::string> used_params(ir_table_action.params().size());
@@ -1638,6 +1651,8 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info& p4_info) {
     for (const auto& action_ref : table.action_refs()) {
       IrActionReference ir_action_reference;
       *ir_action_reference.mutable_ref() = action_ref;
+      ir_action_reference.set_is_unsupported_by_table(
+          ExpensiveIsElementUnsupported(action_ref.annotations()));
       // Make sure the action is defined
       ASSIGN_OR_RETURN(
           *ir_action_reference.mutable_action(),

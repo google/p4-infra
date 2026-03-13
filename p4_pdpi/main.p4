@@ -86,7 +86,7 @@ action do_thing_4() {
 }
 
 @id(7) @unsupported
-action unsupported_action(@refers_to(exact_table, normal) @id(1) bit<10> normal) 
+action unsupported_action(@refers_to(exact_table, normal) @id(1) bit<10> normal)
 {}
 
 
@@ -104,6 +104,9 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     actions = {
       @proto_id(2) do_thing_1;
       @proto_id(1) do_thing_2;
+      // Add an unsupported action that's only unsupported in this table.
+      @unsupported
+      @proto_id(3) do_thing_4;
       @defaultonly NoAction();
     }
     const default_action = NoAction();
