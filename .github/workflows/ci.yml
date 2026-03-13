@@ -75,7 +75,10 @@ jobs:
     - name: Reconfigure C++ toolchain
       # The Bazel cache may contain a C++ toolchain auto-configured for a
       # different compiler or stdlib. Force re-detection after LLVM install.
-      run: bazel sync --configure
+      # The repo name varies between Bazel versions, so use a glob.
+      run: |
+        output_base=$(bazel info output_base)
+        rm -rfv "$output_base"/external/*local_config_cc* || true
 
     - name: Build
       run: bazel build --verbose_failures --test_output=errors //...
