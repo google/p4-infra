@@ -31,6 +31,11 @@ build:linux --cxxopt=-stdlib=libc++
 build:linux --host_cxxopt=-stdlib=libc++
 build:linux --linkopt=-stdlib=libc++
 build:linux --host_linkopt=-stdlib=libc++
+# Tell Bazel's toolchain auto-configuration to probe with libc++ so it
+# registers the libc++ include paths as builtin (avoiding "absolute path
+# inclusion" errors). BAZEL_CXXOPTS replaces the default, so -std=c++20
+# must be included explicitly.
+build:linux --repo_env=BAZEL_CXXOPTS=-std=c++20:-stdlib=libc++
 
 # macOS requires some extra tweaks.
 build:macos --macos_minimum_os=10.15
