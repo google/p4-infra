@@ -15,13 +15,14 @@
 #include "p4_pdpi/ir_utils.h"
 
 #include <arpa/inet.h>
-#include <endian.h>
-#include <net/ethernet.h>
-#include <netinet/ether.h>
-#include <netinet/in.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+
+#ifdef __APPLE__
+#include <libkern/OSByteOrder.h>
+#define be64toh(x) OSSwapBigToHostInt64(x)
+#else
+#include <endian.h>
+#endif
 
 #include <algorithm>
 #include <cctype>

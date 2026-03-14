@@ -1,6 +1,44 @@
-build --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
-run --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
+# Use Bzlmod (`MODULE.bazel`) instead of the legacy workspace system.
+common --enable_bzlmod
+common --noenable_workspace
+
+# Auto-select build:linux / build:macos based on the host OS.
+common --enable_platform_specific_config
+
+# Use C++20.
+build --cxxopt=-std=c++20
+build --host_cxxopt=-std=c++20
+
+# Disable Bazel's strict include layering check. Without this, transitive
+# includes are forbidden, exposing missing #include directives in dependencies
+# like grpc (fixed upstream in v1.78.0 but not in the version we pin).
+build --features=-layering_check
+build --host_features=-layering_check
 
 # To allow loops with int and comparison against a .size() that's size_t.
-build --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
-run --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
+build --copt=-Wno-sign-compare
+build --host_copt=-Wno-sign-compare
+
+# Use Clang.
+build --action_env=CC=clang
+build --action_env=CXX=clang++
+build:linux --repo_env=CC=clang
+build:macos --repo_env=CC=/usr/bin/clang
+
+# Use LLVM's libc++ standard library to match the compiler (Clang) and the
+# macOS toolchain, which also uses libc++.
+build:linux --cxxopt=-stdlib=libc++
+build:linux --host_cxxopt=-stdlib=libc++
+build:linux --linkopt=-stdlib=libc++
+build:linux --host_linkopt=-stdlib=libc++
+# Tell Bazel's toolchain auto-configuration to probe with libc++ so it
+# registers the libc++ include paths as builtin (avoiding "absolute path
+# inclusion" errors). BAZEL_CXXOPTS replaces the default, so -std=c++20
+# must be included explicitly.
+build:linux --repo_env=BAZEL_CXXOPTS=-std=c++20:-stdlib=libc++
+
+# macOS requires some extra tweaks.
+build:macos --macos_minimum_os=10.15
+build:macos --host_macos_minimum_os=10.15
+build:macos --copt=-D_XOPEN_SOURCE
+build:macos --host_copt=-D_XOPEN_SOURCE
