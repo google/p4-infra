@@ -23,7 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "grpcpp/support/status.h"
+#include "google/rpc/status.pb.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_pdpi/ir.pb.h"
@@ -161,22 +161,25 @@ absl::StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
     const IrStreamMessageResponse& ir_stream_message_response,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
 
-// Formats a grpc status about write request into a readible string.
-std::string WriteRequestGrpcStatusToString(const grpc::Status& grpc_status);
+// Formats an RPC status about write request into a readable string.
+std::string WriteRequestRpcStatusToString(
+    const google::rpc::Status& rpc_status);
 
 // RPC-level conversion functions for write response.
-absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
-    const grpc::Status& status, int number_of_updates_in_write_request);
+absl::StatusOr<IrWriteRpcStatus> RpcStatusToIrWriteRpcStatus(
+    const google::rpc::Status& rpc_status,
+    int number_of_updates_in_write_request);
 
-absl::StatusOr<grpc::Status> IrWriteRpcStatusToGrpcStatus(
+absl::StatusOr<google::rpc::Status> IrWriteRpcStatusToRpcStatus(
     const IrWriteRpcStatus& ir_write_status);
 
-// Translates a Write RPC result (a gRPC status; see P4RT spec for details) into
-// a absl::Status. This is useful if one does not care about the individual
-// update statuses and only is interested if everything succeeded, or if at
-// least one update failed.
-absl::Status WriteRpcGrpcStatusToAbslStatus(
-    const grpc::Status& grpc_status, int number_of_updates_in_write_request);
+// Translates a Write RPC result (a google::rpc::Status; see P4RT spec for
+// details) into an absl::Status. This is useful if one does not care about the
+// individual update statuses and only is interested if everything succeeded, or
+// if at least one update failed.
+absl::Status WriteRpcStatusToAbslStatus(
+    const google::rpc::Status& rpc_status,
+    int number_of_updates_in_write_request);
 
 // -- Conversions from IR to IR ------------------------------------------------
 

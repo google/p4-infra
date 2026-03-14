@@ -185,14 +185,15 @@ absl::StatusOr<p4::v1::StreamMessageResponse> PdStreamMessageResponseToPi(
     const google::protobuf::Message& stream_message_response,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
 
-// -- Conversions to and from grpc::Status -------------------------------------
+// -- Conversions to and from google::rpc::Status ------------------------------
 
-absl::Status GrpcStatusToPd(
-    const grpc::Status& status, int number_of_updates_in_write_request,
+absl::Status RpcStatusToPd(
+    const google::rpc::Status& status,
+    int number_of_updates_in_write_request,
     google::protobuf::Message* pd,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
 
-absl::StatusOr<grpc::Status> PdWriteRpcStatusToGrpcStatus(
+absl::StatusOr<google::rpc::Status> PdWriteRpcStatusToRpcStatus(
     const google::protobuf::Message& pd,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
 

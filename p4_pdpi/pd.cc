@@ -806,21 +806,21 @@ absl::StatusOr<p4::v1::StreamMessageResponse> PdStreamMessageResponseToPi(
   return IrStreamMessageResponseToPi(info, ir, options);
 }
 
-absl::Status GrpcStatusToPd(const grpc::Status& status,
-                            int number_of_updates_in_write_request,
-                            google::protobuf::Message* pd,
-                            const TranslationOptions& options) {
+absl::Status RpcStatusToPd(const google::rpc::Status& status,
+                           int number_of_updates_in_write_request,
+                           google::protobuf::Message* pd,
+                           const TranslationOptions& options) {
   ASSIGN_OR_RETURN(
       const auto ir_write_rpc_status,
-      GrpcStatusToIrWriteRpcStatus(status, number_of_updates_in_write_request));
+      RpcStatusToIrWriteRpcStatus(status, number_of_updates_in_write_request));
   return IrWriteRpcStatusToPd(ir_write_rpc_status, pd, options);
 }
 
-absl::StatusOr<grpc::Status> PdWriteRpcStatusToGrpcStatus(
+absl::StatusOr<google::rpc::Status> PdWriteRpcStatusToRpcStatus(
     const google::protobuf::Message& pd, const TranslationOptions& options) {
   ASSIGN_OR_RETURN(const auto ir_write_rpc_status,
                    pdpi::PdWriteRpcStatusToIr(pd, options));
-  return IrWriteRpcStatusToGrpcStatus(ir_write_rpc_status);
+  return IrWriteRpcStatusToRpcStatus(ir_write_rpc_status);
 }
 
 // Converts all IR matches to their PD form and stores them in the match field
