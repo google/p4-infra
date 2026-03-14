@@ -123,9 +123,6 @@ class NetworkAddress {
   friend bool operator==(const T& lhs, const T& rhs) {
     return lhs.bits_ == rhs.bits_;
   }
-  friend bool operator!=(const T& lhs, const T& rhs) {
-    return lhs.bits_ != rhs.bits_;
-  }
   bool operator<(const T& other) const {
     return ToPaddedByteString() < other.ToPaddedByteString();
   }
