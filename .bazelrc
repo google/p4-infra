@@ -1,6 +1,26 @@
-build --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
-run --cxxopt='-std=c++17' --host_cxxopt='-std=c++17'
+# Use Bzlmod (`MODULE.bazel`) instead of the legacy workspace system.
+common --enable_bzlmod
+common --noenable_workspace
+
+# Auto-select build:linux / build:macos based on the host OS.
+common --enable_platform_specific_config
+
+# Use C++17.
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
 
 # To allow loops with int and comparison against a .size() that's size_t.
-build --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
-run --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
+build --copt=-Wno-sign-compare
+build --host_copt=-Wno-sign-compare
+
+# Use Clang.
+build --action_env=CC=clang
+build --action_env=CXX=clang++
+build:linux --repo_env=CC=clang
+build:macos --repo_env=CC=/usr/bin/clang
+
+# macOS requires some extra tweaks.
+build:macos --macos_minimum_os=10.15
+build:macos --host_macos_minimum_os=10.15
+build:macos --copt=-D_XOPEN_SOURCE
+build:macos --host_copt=-D_XOPEN_SOURCE
