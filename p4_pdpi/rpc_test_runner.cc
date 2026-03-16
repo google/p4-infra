@@ -155,8 +155,6 @@ static void RunInvalidGrpcFailToTranslateToIrTest(
                    "Invalid gRPC WriteRpcStatus should fail test: ", test_name))
             << std::endl
             << std::endl;
-  std::cout << "--- gRPC (Input):" << std::endl;
-  std::cout << pdpi::WriteRequestGrpcStatusToString(grpc_status);
 
   // Grpc -> Absl
   std::cout << "--- absl::Status:" << std::endl;
@@ -273,9 +271,6 @@ static void RunPdWriteRpcStatusTest(const std::string& test_name,
 
   // At this point, validity == INPUT_IS_VALID
   const auto& grpc_write_status = status_or_grpc_status.value();
-  std::cout << "---gRPC Status:" << std::endl;
-  std::cout << pdpi::WriteRequestGrpcStatusToString(grpc_write_status)
-            << std::endl;
 
   // Grpc -> Absl
   std::cout << "--- absl::Status:" << std::endl;

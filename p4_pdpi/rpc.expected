@@ -1137,10 +1137,6 @@ Write Request is invalid: updates[1] is invalid: Table entry for 'ternary_table'
 Invalid gRPC WriteRpcStatus should fail test: Grpc status has ok status with non empty message
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 0
-gRPC_error_message: "message_string"
-gRPC_error_details: <empty>
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: gRPC status can not be ok and contain an error message or error details
 --- gRPC is invalid/unsupported:
@@ -1150,10 +1146,6 @@ INVALID_ARGUMENT: gRPC status can not be ok and contain an error message or erro
 Invalid gRPC WriteRpcStatus should fail test: Invalid gRPC StatusCode
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 42
-gRPC_error_message: "error_message"
-gRPC_error_details: <empty>
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: Invalid status code: 42.
 --- gRPC is invalid/unsupported:
@@ -1163,16 +1155,6 @@ INVALID_ARGUMENT: Invalid status code: 42.
 Invalid gRPC WriteRpcStatus should fail test: None of p4_error contained in google::rpc::status within grpc::Status is non-ok
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 2
-gRPC_error_message: "batch update all successful"
-details in google.rpc.Status:
-inner_status.code:2
-inner_status.message:"batch update all successful"
-inner_status.details:
-  error_status: OK error_message: ""
-  error_status: OK error_message: ""
-  error_status: OK error_message: ""
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: gRPC status should contain a mixure of successful and failed update status but all p4 errors are ok
 --- gRPC is invalid/unsupported:
@@ -1182,16 +1164,6 @@ INVALID_ARGUMENT: gRPC status should contain a mixure of successful and failed u
 Invalid gRPC WriteRpcStatus should fail test: Invalid p4 error has ok status but has non-empty message
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 2
-gRPC_error_message: "mix of successful and failed batch update"
-details in google.rpc.Status:
-inner_status.code:2
-inner_status.message:"mix of successful and failed batch update"
-inner_status.details:
-  error_status: OK error_message: ""
-  error_status: RESOURCE_EXHAUSTED error_message: "table is full"
-  error_status: OK error_message: "some message"
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: OK status should not contain error message.
 --- gRPC is invalid/unsupported:
@@ -1201,14 +1173,6 @@ INVALID_ARGUMENT: OK status should not contain error message.
 Invalid gRPC WriteRpcStatus should fail test: gRPC status has code that is different from code contained in google::rpc::Status
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 2
-gRPC_error_message: "some message"
-details in google.rpc.Status:
-inner_status.code:8
-inner_status.message:"some message"
-inner_status.details:
-  error_status: RESOURCE_EXHAUSTED error_message: "table is full"
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: google::rpc::Status's status code does not match with status code in grpc_status
 --- gRPC is invalid/unsupported:
@@ -1218,14 +1182,6 @@ INVALID_ARGUMENT: google::rpc::Status's status code does not match with status c
 Invalid gRPC WriteRpcStatus should fail test: gRPC status contains batch update information but does not have UNKNOWN status
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 8
-gRPC_error_message: "some message"
-details in google.rpc.Status:
-inner_status.code:8
-inner_status.message:"some message"
-inner_status.details:
-  error_status: RESOURCE_EXHAUSTED error_message: "table is full"
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: Only rpc-wide error and batch update status formats are supported for non-ok gRPC status
 --- gRPC is invalid/unsupported:
@@ -1235,14 +1191,6 @@ INVALID_ARGUMENT: Only rpc-wide error and batch update status formats are suppor
 Invalid gRPC WriteRpcStatus should fail test: gRPC status has batch update information but p4 error's canonical_code is not valid
 =========================================================================
 
---- gRPC (Input):
-gRPC_error_code: 2
-gRPC_error_message: "some message"
-details in google.rpc.Status:
-inner_status.code:2
-inner_status.message:"some message"
-inner_status.details:
-  error_status:  error_message: ""
 --- absl::Status:
 INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: Invalid status code: 42.
 --- gRPC is invalid/unsupported:
@@ -1431,11 +1379,6 @@ rpc_response {
   }
 }
 
----gRPC Status:
-gRPC_error_code: 0
-gRPC_error_message: ""
-gRPC_error_details: <empty>
-
 --- absl::Status:
 OK
 
@@ -1493,11 +1436,6 @@ rpc_wide_error {
   message: "int value of ABORTED is 10"
 }
 
----gRPC Status:
-gRPC_error_code: 10
-gRPC_error_message: "int value of ABORTED is 10"
-gRPC_error_details: <empty>
-
 --- absl::Status:
 ABORTED: int value of ABORTED is 10
 
@@ -1532,21 +1470,6 @@ rpc_response {
     message: "Entity already exists."
   }
 }
-
----gRPC Status:
-gRPC_error_code: 2
-gRPC_error_message: "Batch failed, individual results:
-#1: RESOURCE_EXHAUSTED: Table is full.
-#2: OK
-#3: ALREADY_EXISTS: Entity already exists.
-"
-details in google.rpc.Status:
-inner_status.code:2
-inner_status.message:""
-inner_status.details:
-  error_status: RESOURCE_EXHAUSTED error_message: "Table is full."
-  error_status: OK error_message: ""
-  error_status: ALREADY_EXISTS error_message: "Entity already exists."
 
 --- absl::Status:
 UNKNOWN: Batch failed, individual results:
@@ -1590,21 +1513,6 @@ rpc_response {
     message: "entry already exists."
   }
 }
-
----gRPC Status:
-gRPC_error_code: 2
-gRPC_error_message: "Batch failed, individual results:
-#1: RESOURCE_EXHAUSTED: Table is full.
-#2: INVALID_ARGUMENT: can not parse write request.
-#3: ALREADY_EXISTS: entry already exists.
-"
-details in google.rpc.Status:
-inner_status.code:2
-inner_status.message:""
-inner_status.details:
-  error_status: RESOURCE_EXHAUSTED error_message: "Table is full."
-  error_status: INVALID_ARGUMENT error_message: "can not parse write request."
-  error_status: ALREADY_EXISTS error_message: "entry already exists."
 
 --- absl::Status:
 UNKNOWN: Batch failed, individual results:

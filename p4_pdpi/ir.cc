@@ -3078,44 +3078,6 @@ StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
   return pi_stream_message_response;
 }
 
-// Formats a grpc status about write request into a readible string.
-std::string WriteRequestGrpcStatusToString(const grpc::Status& status) {
-  std::string readable_status = absl::StrCat(
-      "gRPC_error_code: ", status.error_code(), "\n",
-      "gRPC_error_message: ", "\"", status.error_message(), "\"", "\n");
-  if (status.error_details().empty()) {
-    absl::StrAppend(&readable_status, "gRPC_error_details: <empty>\n");
-  } else {
-    google::rpc::Status inner_status;
-    if (inner_status.ParseFromString(status.error_details())) {
-      absl::StrAppend(&readable_status, "details in google.rpc.Status:\n",
-                      "inner_status.code:", inner_status.code(),
-                      "\n"
-                      "inner_status.message:\"",
-                      inner_status.message(), "\"\n",
-                      "inner_status.details:\n");
-      p4::v1::Error p4_error;
-      for (const auto& inner_status_detail : inner_status.details()) {
-        absl::StrAppend(&readable_status, "  ");
-        if (inner_status_detail.UnpackTo(&p4_error)) {
-          absl::StrAppend(
-              &readable_status, "error_status: ",
-              absl::StatusCodeToString(
-                  static_cast<absl::StatusCode>(p4_error.canonical_code())));
-          absl::StrAppend(&readable_status, " error_message: ", "\"",
-                          p4_error.message(), "\"", "\n");
-        } else {
-          absl::StrAppend(&readable_status, "<Can not unpack p4error>\n");
-        }
-      }
-    } else {
-      absl::StrAppend(&readable_status,
-                      "<Can not parse google::rpc::status>\n");
-    }
-  }
-  return readable_status;
-}
-
 absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
     const grpc::Status& grpc_status, int number_of_updates_in_write_request) {
   IrWriteRpcStatus ir_write_status;

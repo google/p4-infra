@@ -161,9 +161,6 @@ absl::StatusOr<p4::v1::StreamMessageResponse> IrStreamMessageResponseToPi(
     const IrStreamMessageResponse& ir_stream_message_response,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
 
-// Formats a grpc status about write request into a readible string.
-std::string WriteRequestGrpcStatusToString(const grpc::Status& grpc_status);
-
 // RPC-level conversion functions for write response.
 absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
     const grpc::Status& status, int number_of_updates_in_write_request);
