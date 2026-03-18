@@ -136,10 +136,10 @@ def p4_infra_deps():
         # rather than a release.
         http_archive(
             name = "com_github_p4lang_p4runtime",
-            # Newest commit on main as of 2025-10-17.
-            urls = ["https://github.com/p4lang/p4runtime/archive/f5187a26cd8745cae1b8a48bcdddddc00ec85e22.zip"],
-            strip_prefix = "p4runtime-f5187a26cd8745cae1b8a48bcdddddc00ec85e22/proto",
-            sha256 = "ec894c1458a3a9504e98e4f6cc0683ddb2307d1aa229807819b2d8edab963b04",
+            # Newest commit on main as of 2026-03-18.
+            urls = ["https://github.com/p4lang/p4runtime/archive/dc059941fcea59cc1f2f94dc8d7b50ee3cd51a6a.zip"],
+            strip_prefix = "p4runtime-dc059941fcea59cc1f2f94dc8d7b50ee3cd51a6a/proto",
+            sha256 = "991809dd9aca8be0e97c36a1539adb7ee4fc11ab1739114adeced9d76c5306fe",
         )
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
         # This commit is from https://github.com/p4lang/p4-constraints/pull/177.
