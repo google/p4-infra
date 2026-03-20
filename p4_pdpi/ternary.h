@@ -133,6 +133,8 @@ struct Ternary<netaddr::Ipv4Address> {
   // Binary constructor: arbitrary ternary match.
   Ternary(netaddr::Ipv4Address value, netaddr::Ipv4Address mask)
       : value{value}, mask{mask} {}
+
+  bool IsWildcard() const { return mask == netaddr::Ipv4Address::AllZeros(); }
 };
 
 template <>
@@ -156,6 +158,8 @@ struct Ternary<netaddr::Ipv6Address> {
   // Binary constructor: arbitrary ternary match.
   Ternary(netaddr::Ipv6Address value, netaddr::Ipv6Address mask)
       : value{value}, mask{mask} {}
+
+  bool IsWildcard() const { return mask == netaddr::Ipv6Address::AllZeros(); }
 };
 
 // -- Deduction guides ---------------------------------------------------------
