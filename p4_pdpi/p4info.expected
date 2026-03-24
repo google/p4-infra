@@ -1133,6 +1133,42 @@ tables {
   implementation_id: 290772822
   size: 1024
 }
+tables {
+  preamble {
+    id: 33554457
+    name: "ingress.group_action_test_table"
+    alias: "group_action_test_table"
+    annotations: "@oneshot"
+    annotations: "@weight_proto_id(1)"
+  }
+  match_fields {
+    id: 1
+    name: "ipv6"
+    bitwidth: 128
+    match_type: EXACT
+  }
+  action_refs {
+    id: 16777217
+    annotations: "@proto_id(1)"
+  }
+  action_refs {
+    id: 16777316
+    annotations: "@proto_id(2)"
+    annotations: "@pergrouponly"
+  }
+  action_refs {
+    id: 16777416
+    annotations: "@proto_id(3)"
+    annotations: "@pergrouponly"
+  }
+  action_refs {
+    id: 21257015
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  implementation_id: 290772822
+  size: 1024
+}
 actions {
   preamble {
     id: 16777217
@@ -1231,6 +1267,25 @@ actions {
     name: "normal"
     annotations: "@refers_to(exact_table , normal)"
     bitwidth: 10
+  }
+}
+actions {
+  preamble {
+    id: 16777316
+    name: "group_action_1"
+    alias: "group_action_1"
+  }
+  params {
+    id: 1
+    name: "arg1"
+    bitwidth: 32
+  }
+}
+actions {
+  preamble {
+    id: 16777416
+    name: "group_action_2"
+    alias: "group_action_2"
   }
 }
 actions {
@@ -1355,6 +1410,7 @@ action_profiles {
     alias: "wcmp_group_selector"
   }
   table_ids: 37604604
+  table_ids: 33554457
   table_ids: 33554440
   table_ids: 33554438
   with_selector: true
@@ -3507,6 +3563,162 @@ tables_by_id {
         annotations: "@noWarn(\"unused\")"
       }
     }
+  }
+}
+tables_by_id {
+  key: 33554457
+  value {
+    preamble {
+      id: 33554457
+      name: "ingress.group_action_test_table"
+      alias: "group_action_test_table"
+      annotations: "@oneshot"
+      annotations: "@weight_proto_id(1)"
+    }
+    match_fields_by_id {
+      key: 1
+      value {
+        match_field {
+          id: 1
+          name: "ipv6"
+          bitwidth: 128
+          match_type: EXACT
+        }
+      }
+    }
+    match_fields_by_name {
+      key: "ipv6"
+      value {
+        match_field {
+          id: 1
+          name: "ipv6"
+          bitwidth: 128
+          match_type: EXACT
+        }
+      }
+    }
+    entry_actions {
+      ref {
+        id: 16777217
+        annotations: "@proto_id(1)"
+      }
+      action {
+        preamble {
+          id: 16777217
+          name: "do_thing_1"
+          alias: "do_thing_1"
+        }
+        params_by_id {
+          key: 1
+          value {
+            param {
+              id: 1
+              name: "arg2"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_id {
+          key: 2
+          value {
+            param {
+              id: 2
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg1"
+          value {
+            param {
+              id: 2
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg2"
+          value {
+            param {
+              id: 1
+              name: "arg2"
+              bitwidth: 32
+            }
+          }
+        }
+      }
+      proto_id: 1
+    }
+    entry_actions {
+      ref {
+        id: 16777316
+        annotations: "@proto_id(2)"
+        annotations: "@pergrouponly"
+      }
+      action {
+        preamble {
+          id: 16777316
+          name: "group_action_1"
+          alias: "group_action_1"
+        }
+        params_by_id {
+          key: 1
+          value {
+            param {
+              id: 1
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg1"
+          value {
+            param {
+              id: 1
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+      }
+      proto_id: 2
+    }
+    entry_actions {
+      ref {
+        id: 16777416
+        annotations: "@proto_id(3)"
+        annotations: "@pergrouponly"
+      }
+      action {
+        preamble {
+          id: 16777416
+          name: "group_action_2"
+          alias: "group_action_2"
+        }
+      }
+      proto_id: 3
+    }
+    default_only_actions {
+      ref {
+        id: 21257015
+        annotations: "@defaultonly"
+        scope: DEFAULT_ONLY
+      }
+      action {
+        preamble {
+          id: 21257015
+          name: "NoAction"
+          alias: "NoAction"
+          annotations: "@noWarn(\"unused\")"
+        }
+      }
+    }
+    size: 1024
+    uses_oneshot: true
+    action_profile_id: 290772822
   }
 }
 tables_by_id {
@@ -6765,6 +6977,162 @@ tables_by_name {
         }
       }
       proto_id: 2
+    }
+    default_only_actions {
+      ref {
+        id: 21257015
+        annotations: "@defaultonly"
+        scope: DEFAULT_ONLY
+      }
+      action {
+        preamble {
+          id: 21257015
+          name: "NoAction"
+          alias: "NoAction"
+          annotations: "@noWarn(\"unused\")"
+        }
+      }
+    }
+    size: 1024
+    uses_oneshot: true
+    action_profile_id: 290772822
+  }
+}
+tables_by_name {
+  key: "group_action_test_table"
+  value {
+    preamble {
+      id: 33554457
+      name: "ingress.group_action_test_table"
+      alias: "group_action_test_table"
+      annotations: "@oneshot"
+      annotations: "@weight_proto_id(1)"
+    }
+    match_fields_by_id {
+      key: 1
+      value {
+        match_field {
+          id: 1
+          name: "ipv6"
+          bitwidth: 128
+          match_type: EXACT
+        }
+      }
+    }
+    match_fields_by_name {
+      key: "ipv6"
+      value {
+        match_field {
+          id: 1
+          name: "ipv6"
+          bitwidth: 128
+          match_type: EXACT
+        }
+      }
+    }
+    entry_actions {
+      ref {
+        id: 16777217
+        annotations: "@proto_id(1)"
+      }
+      action {
+        preamble {
+          id: 16777217
+          name: "do_thing_1"
+          alias: "do_thing_1"
+        }
+        params_by_id {
+          key: 1
+          value {
+            param {
+              id: 1
+              name: "arg2"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_id {
+          key: 2
+          value {
+            param {
+              id: 2
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg1"
+          value {
+            param {
+              id: 2
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg2"
+          value {
+            param {
+              id: 1
+              name: "arg2"
+              bitwidth: 32
+            }
+          }
+        }
+      }
+      proto_id: 1
+    }
+    entry_actions {
+      ref {
+        id: 16777316
+        annotations: "@proto_id(2)"
+        annotations: "@pergrouponly"
+      }
+      action {
+        preamble {
+          id: 16777316
+          name: "group_action_1"
+          alias: "group_action_1"
+        }
+        params_by_id {
+          key: 1
+          value {
+            param {
+              id: 1
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+        params_by_name {
+          key: "arg1"
+          value {
+            param {
+              id: 1
+              name: "arg1"
+              bitwidth: 32
+            }
+          }
+        }
+      }
+      proto_id: 2
+    }
+    entry_actions {
+      ref {
+        id: 16777416
+        annotations: "@proto_id(3)"
+        annotations: "@pergrouponly"
+      }
+      action {
+        preamble {
+          id: 16777416
+          name: "group_action_2"
+          alias: "group_action_2"
+        }
+      }
+      proto_id: 3
     }
     default_only_actions {
       ref {
@@ -10085,6 +10453,46 @@ actions_by_id {
   }
 }
 actions_by_id {
+  key: 16777316
+  value {
+    preamble {
+      id: 16777316
+      name: "group_action_1"
+      alias: "group_action_1"
+    }
+    params_by_id {
+      key: 1
+      value {
+        param {
+          id: 1
+          name: "arg1"
+          bitwidth: 32
+        }
+      }
+    }
+    params_by_name {
+      key: "arg1"
+      value {
+        param {
+          id: 1
+          name: "arg1"
+          bitwidth: 32
+        }
+      }
+    }
+  }
+}
+actions_by_id {
+  key: 16777416
+  value {
+    preamble {
+      id: 16777416
+      name: "group_action_2"
+      alias: "group_action_2"
+    }
+  }
+}
+actions_by_id {
   key: 18598416
   value {
     preamble {
@@ -10723,6 +11131,46 @@ actions_by_name {
   }
 }
 actions_by_name {
+  key: "group_action_1"
+  value {
+    preamble {
+      id: 16777316
+      name: "group_action_1"
+      alias: "group_action_1"
+    }
+    params_by_id {
+      key: 1
+      value {
+        param {
+          id: 1
+          name: "arg1"
+          bitwidth: 32
+        }
+      }
+    }
+    params_by_name {
+      key: "arg1"
+      value {
+        param {
+          id: 1
+          name: "arg1"
+          bitwidth: 32
+        }
+      }
+    }
+  }
+}
+actions_by_name {
+  key: "group_action_2"
+  value {
+    preamble {
+      id: 16777416
+      name: "group_action_2"
+      alias: "group_action_2"
+    }
+  }
+}
+actions_by_name {
   key: "other_golden_test_friendly_action"
   value {
     preamble {
@@ -11198,6 +11646,7 @@ action_profiles_by_id {
         alias: "wcmp_group_selector"
       }
       table_ids: 37604604
+      table_ids: 33554457
       table_ids: 33554440
       table_ids: 33554438
       with_selector: true
@@ -11217,6 +11666,7 @@ action_profiles_by_name {
         alias: "wcmp_group_selector"
       }
       table_ids: 37604604
+      table_ids: 33554457
       table_ids: 33554440
       table_ids: 33554438
       with_selector: true
@@ -11373,6 +11823,10 @@ dependency_rank_by_table_name {
 }
 dependency_rank_by_table_name {
   key: "golden_test_friendly_wcmp_table"
+  value: 0
+}
+dependency_rank_by_table_name {
+  key: "group_action_test_table"
   value: 0
 }
 dependency_rank_by_table_name {

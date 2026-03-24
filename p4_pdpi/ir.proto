@@ -458,6 +458,9 @@ message IrActionSetInvocation {
 
 // Describes an action profile action set (for Group tables).
 message IrActionSet {
+  // The group's pre-action that gets composed with the selected member action.
+  IrActionInvocation group_action = 4;
+
   // Required. The set of actions.
   repeated IrActionSetInvocation actions = 1;
 

@@ -1051,6 +1051,22 @@ static absl::Status IrActionSetToPd(const IrP4Info& ir_p4info,
     invalid_reasons.push_back(absl::StrCat(kNewBullet, status.message()));
   }
 
+  if (ir_table_entry.action_set().has_group_action()) {
+    const auto& pd_group_action = GetMutableMessage(pd_table, "group_action");
+    if (!pd_group_action.ok()) {
+      invalid_reasons.push_back(
+          absl::StrCat(kNewBullet, pd_group_action.status().message()));
+    } else {
+      const auto& action_status = IrActionInvocationToPd(
+          ir_p4info, options, ir_table_entry.action_set().group_action(),
+          *pd_group_action);
+      if (!action_status.ok()) {
+        invalid_reasons.push_back(
+            absl::StrCat(kNewBullet, action_status.message()));
+      }
+    }
+  }
+
   const auto& pd_wcmp_action_set_descriptor =
       GetFieldDescriptor(*pd_table, "wcmp_actions");
   if (!pd_wcmp_action_set_descriptor.ok()) {
@@ -2298,6 +2314,21 @@ absl::StatusOr<IrTableEntry> PartialPdTableEntryToIrTableEntry(
             continue;
           }
           *action_set->add_actions() = *ir_action_set;
+        }
+
+        if (HasField(*pd_table, "group_action").value_or(false)) {
+          const auto& pd_group_action =
+              GetMessageField(*pd_table, "group_action");
+          if (pd_group_action.ok()) {
+            const auto& ir_group_action =
+                PdActionInvocationToIr(ir_p4info, options, **pd_group_action);
+            if (ir_group_action.ok()) {
+              *action_set->mutable_group_action() = *ir_group_action;
+            } else {
+              invalid_reasons.push_back(
+                  absl::StrCat(kNewBullet, ir_group_action.status().message()));
+            }
+          }
         }
       }
     } else {
