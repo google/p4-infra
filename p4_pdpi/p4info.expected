@@ -1359,6 +1359,8 @@ action_profiles {
   table_ids: 33554438
   with_selector: true
   size: 1024
+  sum_of_weights {
+  }
 }
 direct_counters {
   preamble {
@@ -11200,6 +11202,8 @@ action_profiles_by_id {
       table_ids: 33554438
       with_selector: true
       size: 1024
+      sum_of_weights {
+      }
     }
   }
 }
@@ -11217,6 +11221,8 @@ action_profiles_by_name {
       table_ids: 33554438
       with_selector: true
       size: 1024
+      sum_of_weights {
+      }
     }
   }
 }
