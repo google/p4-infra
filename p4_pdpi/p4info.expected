@@ -1154,7 +1154,7 @@ tables {
   action_refs {
     id: 16777316
     annotations: "@proto_id(2)"
-    annotations: "@pergrouponly"
+    annotations: "@groupaction"
   }
   action_refs {
     id: 21257015
@@ -1181,12 +1181,12 @@ tables {
   action_refs {
     id: 16777316
     annotations: "@proto_id(1)"
-    annotations: "@pergrouponly"
+    annotations: "@groupaction"
   }
   action_refs {
     id: 16777416
     annotations: "@proto_id(2)"
-    annotations: "@pergrouponly"
+    annotations: "@groupaction"
   }
   action_refs {
     id: 21257015
@@ -3683,7 +3683,7 @@ tables_by_id {
       ref {
         id: 16777316
         annotations: "@proto_id(2)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
@@ -3770,7 +3770,7 @@ tables_by_id {
       ref {
         id: 16777316
         annotations: "@proto_id(1)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
@@ -3805,7 +3805,7 @@ tables_by_id {
       ref {
         id: 16777416
         annotations: "@proto_id(2)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
@@ -7203,7 +7203,7 @@ tables_by_name {
       ref {
         id: 16777316
         annotations: "@proto_id(2)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
@@ -7886,7 +7886,7 @@ tables_by_name {
       ref {
         id: 16777316
         annotations: "@proto_id(1)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
@@ -7921,7 +7921,7 @@ tables_by_name {
       ref {
         id: 16777416
         annotations: "@proto_id(2)"
-        annotations: "@pergrouponly"
+        annotations: "@groupaction"
       }
       action {
         preamble {
