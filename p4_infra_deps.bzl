@@ -136,10 +136,10 @@ def p4_infra_deps():
         # rather than a release.
         http_archive(
             name = "com_github_p4lang_p4runtime",
-            # Newest commit on main as of 2025-10-17.
-            urls = ["https://github.com/p4lang/p4runtime/archive/f5187a26cd8745cae1b8a48bcdddddc00ec85e22.zip"],
-            strip_prefix = "p4runtime-f5187a26cd8745cae1b8a48bcdddddc00ec85e22/proto",
-            sha256 = "ec894c1458a3a9504e98e4f6cc0683ddb2307d1aa229807819b2d8edab963b04",
+            # Newest (and only) commit on `bazel-workspace-support-no-strip` branch as of 2026-03-20.
+            urls = ["https://github.com/p4lang/p4runtime/archive/bd2a626484e125da30422326d27fad0ddebdd645.zip"],
+            strip_prefix = "p4runtime-bd2a626484e125da30422326d27fad0ddebdd645/proto",
+            sha256 = "1fe4b233e413f7b73be50f8aa419db806c27a54253b904d25b8133b8a97938c8",
         )
     if not native.existing_rule("com_github_p4lang_p4_constraints"):
         # This commit is from https://github.com/p4lang/p4-constraints/pull/177.
