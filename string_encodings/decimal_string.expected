@@ -55,19 +55,19 @@ $ string_encodings::IntToDecimalString(-1)
 $ string_encodings::IntToDecimalString(213)
 -> 213
 
-$ string_encodings::IntToDecimalString(2147483648)
+$ string_encodings::IntToDecimalString(int64_t{2147483648})
 -> 2147483648
 
-$ string_encodings::IntToDecimalString(4294967296)
+$ string_encodings::IntToDecimalString(int64_t{4294967296})
 -> 4294967296
 
-$ string_encodings::IntToDecimalString(4294967295U)
+$ string_encodings::IntToDecimalString(int64_t{4294967295U})
 -> 4294967295
 
-$ string_encodings::IntToDecimalString(9223372036854775807)
+$ string_encodings::IntToDecimalString(int64_t{9223372036854775807})
 -> 9223372036854775807
 
-$ string_encodings::IntToDecimalString(18446744073709551615U)
+$ string_encodings::IntToDecimalString(uint64_t{18446744073709551615U})
 -> 18446744073709551615
 
 $ string_encodings::IntToDecimalString(0213)

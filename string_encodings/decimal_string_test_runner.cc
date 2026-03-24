@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <iostream>
 
 #include "absl/status/status.h"
@@ -57,11 +58,13 @@ int main() {
   TEST_STATUSOR(string_encodings::IntToDecimalString(-1));
   // decimal literal.
   TEST_STATUSOR(string_encodings::IntToDecimalString(213));
-  TEST_STATUSOR(string_encodings::IntToDecimalString(2147483648));
-  TEST_STATUSOR(string_encodings::IntToDecimalString(4294967296));
-  TEST_STATUSOR(string_encodings::IntToDecimalString(4294967295U));
-  TEST_STATUSOR(string_encodings::IntToDecimalString(9223372036854775807));
-  TEST_STATUSOR(string_encodings::IntToDecimalString(18446744073709551615U));
+  TEST_STATUSOR(string_encodings::IntToDecimalString(int64_t{2147483648}));
+  TEST_STATUSOR(string_encodings::IntToDecimalString(int64_t{4294967296}));
+  TEST_STATUSOR(string_encodings::IntToDecimalString(int64_t{4294967295U}));
+  TEST_STATUSOR(
+      string_encodings::IntToDecimalString(int64_t{9223372036854775807}));
+  TEST_STATUSOR(
+      string_encodings::IntToDecimalString(uint64_t{18446744073709551615U}));
   // octal literal.
   TEST_STATUSOR(string_encodings::IntToDecimalString(0213));
   // hexadecimal literal.
