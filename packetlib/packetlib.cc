@@ -162,6 +162,7 @@ absl::StatusOr<NextHeader> GetNextHeader(const UdpHeader& header) {
   if (dest_port == 319) return Header::kPtpHeader;
   if (dest_port == 320) return Header::kPtpHeader;
   if (dest_port == 1000) return Header::kPspHeader;
+  if (dest_port == 4791) return Header::kIbBthHeader;
   return Header::HEADER_NOT_SET;
 }
 absl::StatusOr<NextHeader> GetNextHeader(const TcpHeader& header) {
@@ -180,6 +181,9 @@ absl::StatusOr<NextHeader> GetNextHeader(const PsampHeader& header) {
   return Header::HEADER_NOT_SET;
 }
 absl::StatusOr<NextHeader> GetNextHeader(const PtpHeader& header) {
+  return Header::HEADER_NOT_SET;
+}
+absl::StatusOr<NextHeader> GetNextHeader(const IbBthHeader& header) {
   return Header::HEADER_NOT_SET;
 }
 absl::StatusOr<NextHeader> GetNextHeader(const PspHeader& header) {
@@ -229,6 +233,8 @@ absl::StatusOr<NextHeader> GetNextHeader(const Header& header) {
       return GetNextHeader(header.ptp_header());
     case Header::kPspHeader:
       return GetNextHeader(header.psp_header());
+    case Header::kIbBthHeader:
+      return GetNextHeader(header.ib_bth_header());
     case Header::HEADER_NOT_SET:
       return Header::HEADER_NOT_SET;
   }
@@ -677,6 +683,29 @@ absl::StatusOr<PspHeader> ParsePspHeader(string_encodings::BitString& data) {
   return header;
 }
 
+absl::StatusOr<IbBthHeader> ParseIbBthHeader(
+    string_encodings::BitString& data) {
+  if (data.size() < kIbBthHeaderBitwidth) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "Packet is too short to parse an IB BT header next. Only "
+           << data.size() << " bits left, need at least "
+           << kIbBthHeaderBitwidth << ".";
+  }
+  IbBthHeader header;
+  header.set_op_code(ParseBits(data, kIbBthOpCodeBitwidth));
+  header.set_solicited_event(ParseBits(data, kIbBthSolicitedEventBitwidth));
+  header.set_mig_req(ParseBits(data, kIbBthMigReqBitwidth));
+  header.set_pad_count(ParseBits(data, kIbBthPadCountBitwidth));
+  header.set_transport_ver(ParseBits(data, kIbBthTransportVerBitwidth));
+  header.set_p_key(ParseBits(data, kIbBthPKeyBitwidth));
+  header.set_reserved1(ParseBits(data, kIbBthReserved1Bitwidth));
+  header.set_dst_qp(ParseBits(data, kIbBthDstQpBitwidth));
+  header.set_ack_req(ParseBits(data, kIbBthAckReqBitwidth));
+  header.set_reserved2(ParseBits(data, kIbBthReserved2Bitwidth));
+  header.set_psn(ParseBits(data, kIbBthPsnBitwidth));
+  return header;
+}
+
 absl::StatusOr<Header> ParseHeader(Header::HeaderCase header_case,
                                    string_encodings::BitString& data) {
   Header result;
@@ -746,6 +775,10 @@ absl::StatusOr<Header> ParseHeader(Header::HeaderCase header_case,
     }
     case Header::kPspHeader: {
       ASSIGN_OR_RETURN(*result.mutable_psp_header(), ParsePspHeader(data));
+      return result;
+    }
+    case Header::kIbBthHeader: {
+      ASSIGN_OR_RETURN(*result.mutable_ib_bth_header(), ParseIbBthHeader(data));
       return result;
     }
     case Header::HEADER_NOT_SET:
@@ -1808,6 +1841,35 @@ void PspHeaderInvalidReasons(const PspHeader& header,
   // }
 }
 
+void IbBthHeaderInvalidReasons(const IbBthHeader& header,
+                               const std::string& field_prefix,
+                               std::vector<std::string>& output) {
+  HexStringInvalidReasons<kIbBthOpCodeBitwidth>(
+      header.op_code(), absl::StrCat(field_prefix, "op_code"), output);
+  HexStringInvalidReasons<kIbBthSolicitedEventBitwidth>(
+      header.solicited_event(), absl::StrCat(field_prefix, "solicited_event"),
+      output);
+  HexStringInvalidReasons<kIbBthMigReqBitwidth>(
+      header.mig_req(), absl::StrCat(field_prefix, "mig_req"), output);
+  HexStringInvalidReasons<kIbBthPadCountBitwidth>(
+      header.pad_count(), absl::StrCat(field_prefix, "pad_count"), output);
+  HexStringInvalidReasons<kIbBthTransportVerBitwidth>(
+      header.transport_ver(), absl::StrCat(field_prefix, "transport_ver"),
+      output);
+  HexStringInvalidReasons<kIbBthPKeyBitwidth>(
+      header.p_key(), absl::StrCat(field_prefix, "p_key"), output);
+  HexStringInvalidReasons<kIbBthReserved1Bitwidth>(
+      header.reserved1(), absl::StrCat(field_prefix, "reserved1"), output);
+  HexStringInvalidReasons<kIbBthDstQpBitwidth>(
+      header.dst_qp(), absl::StrCat(field_prefix, "dst_qp"), output);
+  HexStringInvalidReasons<kIbBthAckReqBitwidth>(
+      header.ack_req(), absl::StrCat(field_prefix, "ack_req"), output);
+  HexStringInvalidReasons<kIbBthReserved2Bitwidth>(
+      header.reserved2(), absl::StrCat(field_prefix, "reserved2"), output);
+  HexStringInvalidReasons<kIbBthPsnBitwidth>(
+      header.psn(), absl::StrCat(field_prefix, "psn"), output);
+}
+
 }  // namespace
 
 std::string HeaderCaseName(Header::HeaderCase header_case) {
@@ -1844,6 +1906,8 @@ std::string HeaderCaseName(Header::HeaderCase header_case) {
       return "PtpHeader";
     case Header::kPspHeader:
       return "PspHeader";
+    case Header::kIbBthHeader:
+      return "IbBthHeader";
     case Header::HEADER_NOT_SET:
       return "HEADER_NOT_SET";
   }
@@ -2025,6 +2089,10 @@ std::vector<std::string> PacketInvalidReasons(const Packet& packet) {
       }
       case Header::kPspHeader: {
         PspHeaderInvalidReasons(header.psp_header(), error_prefix, result);
+        break;
+      }
+      case Header::kIbBthHeader: {
+        IbBthHeaderInvalidReasons(header.ib_bth_header(), error_prefix, result);
         break;
       }
       case Header::HEADER_NOT_SET:
@@ -2381,6 +2449,30 @@ absl::Status SerializePspHeader(const PspHeader& header,
   return absl::OkStatus();
 }
 
+absl::Status SerializeIbBthHeader(const IbBthHeader& header,
+                                  string_encodings::BitString& output) {
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthOpCodeBitwidth>(header.op_code(), output));
+  RETURN_IF_ERROR(SerializeBits<kIbBthSolicitedEventBitwidth>(
+      header.solicited_event(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthMigReqBitwidth>(header.mig_req(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthPadCountBitwidth>(header.pad_count(), output));
+  RETURN_IF_ERROR(SerializeBits<kIbBthTransportVerBitwidth>(
+      header.transport_ver(), output));
+  RETURN_IF_ERROR(SerializeBits<kIbBthPKeyBitwidth>(header.p_key(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthReserved1Bitwidth>(header.reserved1(), output));
+  RETURN_IF_ERROR(SerializeBits<kIbBthDstQpBitwidth>(header.dst_qp(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthAckReqBitwidth>(header.ack_req(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kIbBthReserved2Bitwidth>(header.reserved2(), output));
+  RETURN_IF_ERROR(SerializeBits<kIbBthPsnBitwidth>(header.psn(), output));
+  return absl::OkStatus();
+}
+
 absl::Status SerializeHeader(const Header& header,
                              string_encodings::BitString& output) {
   switch (header.header_case()) {
@@ -2416,6 +2508,8 @@ absl::Status SerializeHeader(const Header& header,
       return SerializePtpHeader(header.ptp_header(), output);
     case Header::kPspHeader:
       return SerializePspHeader(header.psp_header(), output);
+    case Header::kIbBthHeader:
+      return SerializeIbBthHeader(header.ib_bth_header(), output);
     case Header::kCsigHeader:
       return SerializeCsigHeader(header.csig_header(), output);
     case Header::HEADER_NOT_SET:
@@ -2816,6 +2910,9 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
         }
         break;
       }
+      case Header::kIbBthHeader: {
+        break;
+      }
       case Header::kVlanHeader:
       case Header::kCsigHeader:
       case Header::kPspHeader: {
@@ -2871,6 +2968,7 @@ absl::StatusOr<bool> PadPacketToMinimumSizeFromHeaderIndex(Packet& packet,
     case Header::kPsampHeader:
     case Header::kPtpHeader:
     case Header::kPspHeader:
+    case Header::kIbBthHeader:
     case Header::kCsigHeader:
       return PadPacketToMinimumSizeFromHeaderIndex(packet, header_index + 1);
     case Header::HEADER_NOT_SET:
@@ -2981,6 +3079,9 @@ absl::StatusOr<int> PacketSizeInBits(const Packet& packet,
         break;
       case Header::kPspHeader:
         size += kPspHeaderBitwidth;
+        break;
+      case Header::kIbBthHeader:
+        size += kIbBthHeaderBitwidth;
         break;
       case Header::kCsigHeader:
         size += kCsigHeaderBitwidth;

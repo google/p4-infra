@@ -36,6 +36,7 @@ constexpr int kIpfixHeaderBitwidth = 128;
 constexpr int kPsampHeaderBitwidth = 224;
 constexpr int kPtpHeaderBitwidth = 272;
 constexpr int kPspHeaderBitwidth = 128;
+constexpr int kIbBthHeaderBitwidth = 96;
 constexpr int kCsigHeaderBitwidth = 32;
 
 // Ethernet constants.
@@ -169,6 +170,19 @@ constexpr int kPspVirtualizationCookieBitwidth = 1;
 constexpr int kPspReserved1Bitwidth = 1;
 constexpr int kPspSecurityParametersIndexBitwidth = 32;
 constexpr int kPspInitializationVectorBitwidth = 64;
+
+// IB BTH constants
+constexpr int kIbBthOpCodeBitwidth = 8;
+constexpr int kIbBthSolicitedEventBitwidth = 1;
+constexpr int kIbBthMigReqBitwidth = 1;
+constexpr int kIbBthPadCountBitwidth = 2;
+constexpr int kIbBthTransportVerBitwidth = 4;
+constexpr int kIbBthPKeyBitwidth = 16;
+constexpr int kIbBthReserved1Bitwidth = 8;
+constexpr int kIbBthDstQpBitwidth = 24;
+constexpr int kIbBthAckReqBitwidth = 1;
+constexpr int kIbBthReserved2Bitwidth = 7;
+constexpr int kIbBthPsnBitwidth = 24;
 
 }  // namespace packetlib
 

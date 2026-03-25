@@ -1062,6 +1062,33 @@ TEST(PacketLib, MldPacket) {
   EXPECT_OK(ValidatePacket(parsed_mld_packet));
 }
 
+TEST(PacketLib, RoundTrippingForIbBthHeader) {
+  Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
+    headers {
+      ib_bth_header {
+        op_code: "0x0c"  # RDMA_READ_ONLY
+        solicited_event: "0x0"
+        mig_req: "0x0"
+        pad_count: "0x0"
+        transport_ver: "0x0"
+        p_key: "0x0000"
+        reserved1: "0x00"
+        dst_qp: "0x000000"
+        ack_req: "0x0"
+        reserved2: "0x40"  # MSB of set to 1
+        psn: "0x000000"
+      }
+    }
+  )pb");
+  ASSERT_OK_AND_ASSIGN(std::string raw_packet,
+                       packetlib::RawSerializePacket(packet));
+  EXPECT_EQ(absl::BytesToHexString(raw_packet), "0c0000000000000040000000");
+
+  Packet parsed_packet = ParsePacket(raw_packet, Header::kIbBthHeader);
+  EXPECT_THAT(PacketSizeInBits(parsed_packet, 0), IsOkAndHolds(96));
+  EXPECT_THAT(parsed_packet, EqualsProto(packet));
+}
+
 TEST(HeaderCaseName, WorksForEthernetHeader) {
   auto header = Header();
   header.mutable_ethernet_header();
