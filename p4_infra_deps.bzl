@@ -126,10 +126,9 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_p4lang_p4c"):
         http_archive(
             name = "com_github_p4lang_p4c",
-            # Newest commit on main on 2024-08-01.
-            url = "https://github.com/p4lang/p4c/archive/44dbcda9c7e3d26d24baadb884b31b32d215edef.zip",
-            strip_prefix = "p4c-44dbcda9c7e3d26d24baadb884b31b32d215edef",
-            sha256 = "ae4d53d0fd41572c38b03e881a8e2d2e472df246f75d6a64555f9ff1b656b574",
+            # Newest commit on `bazel-workspace-support-no-strip` on 2026-03-25.
+            url = "https://github.com/p4lang/p4c/archive/bazel-workspace-support-no-strip.zip",
+            strip_prefix = "p4c-bazel-workspace-support-no-strip",
         )
     if not native.existing_rule("com_github_p4lang_p4runtime"):
         # We frequently need bleeding-edge, unreleased version of P4Runtime, so we use a commit
