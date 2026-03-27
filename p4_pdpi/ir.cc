@@ -231,6 +231,28 @@ void RemoveUnsupportedEntities(IrP4Info& p4_info) {
   RemoveDanglingReferences(p4_info);
 }
 
+bool WeightsDisallowed(const IrP4Info& info, const std::string& table_name) {
+  absl::flat_hash_set<uint32_t> table_ids_with_weights_disallowed;
+  for (const auto& [_, action_profile] : info.action_profiles_by_id()) {
+    if (action_profile.action_profile().weights_disallowed()) {
+      for (const uint32_t table_id :
+           action_profile.action_profile().table_ids()) {
+        table_ids_with_weights_disallowed.insert(table_id);
+      }
+    }
+  }
+  if (table_ids_with_weights_disallowed.empty()) {
+    return false;
+  }
+
+  for (const uint32_t table_id : table_ids_with_weights_disallowed) {
+    if (info.tables_by_id().at(table_id).preamble().alias() == table_name) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // -- Conversions from PI to IR ------------------------------------------------
 
 namespace {
@@ -763,6 +785,7 @@ absl::Status PiActionSetToIr(
     }
   }
 
+  bool weights_disallowed = WeightsDisallowed(info, table_name);
   for (const auto& pi_profile_action : pi_action_set.action_profile_actions()) {
     auto* ir_action = ir_action_set.add_actions();
     absl::Status action_status =
@@ -778,15 +801,13 @@ absl::Status PiActionSetToIr(
 
     // A action set weight that is not positive does not make sense on a switch.
     // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (pi_profile_action.weight() < 1 && table_name != "ars_group_table" &&
-        table_name != "ars_path_profile_table") {
+    if (pi_profile_action.weight() < 1 && !weights_disallowed) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected positive action set weight, but got ",
           pi_profile_action.weight(), " instead."));
       continue;
     }
-    // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (pi_profile_action.weight() != 0 && table_name == "ars_group_table") {
+    if (pi_profile_action.weight() != 0 && weights_disallowed) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected action set weight to be zero, but got ",
           pi_profile_action.weight(), " instead."));
@@ -1224,6 +1245,7 @@ absl::Status IrActionSetToPi(
   }
 
   pi.mutable_action_profile_actions()->Reserve(ir_action_set.actions().size());
+  bool weights_disallowed = WeightsDisallowed(info, table_name);
   for (const auto& ir_action : ir_action_set.actions()) {
     auto* pi_action = pi.add_action_profile_actions();
     absl::Status action_status =
@@ -1234,16 +1256,13 @@ absl::Status IrActionSetToPi(
           absl::StrCat(kNewBullet, action_status.message()));
       continue;
     }
-    // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (ir_action.weight() < 1 && table_name != "ars_group_table" &&
-        table_name != "ars_path_profile_table") {
+    if (ir_action.weight() < 1 && !weights_disallowed) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected positive action set weight, but got ",
           ir_action.weight(), " instead."));
       continue;
     }
-    // TODO: b/448994091 - Update once we use the `weights_disallowed` field.
-    if (ir_action.weight() != 0 && table_name == "ars_group_table") {
+    if (ir_action.weight() != 0 && weights_disallowed) {
       invalid_reasons.push_back(absl::StrCat(
           kNewBullet, "Expected action set weight to be zero, but got ",
           ir_action.weight(), " instead."));
