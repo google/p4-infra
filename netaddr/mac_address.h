@@ -18,6 +18,7 @@
 #include <bitset>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -72,6 +73,16 @@ class MacAddress : public NetworkAddress<48, MacAddress> {
   // Returns 64-bit interface identifier for this MAC address,
   // following RFC4291, Section 2.5.1 & Appendix A.
   std::bitset<64> ToInterfaceId() const;
+
+  // Returns true if the MAC address is a unicast address.
+  // RFC 1469 defines that the multicast bit (the least significant
+  // bit of the first byte) must be set to 0 for unicast MAC addresses.
+  bool IsUnicast() const;
+
+  // Returns true if the MAC address is a multicast address.
+  // RFC 1469 defines that the multicast bit (the least significant
+  // bit of the first byte) must be set to 1 for multicast MAC addresses.
+  bool IsMulticast() const;
 };
 
 }  // namespace netaddr
