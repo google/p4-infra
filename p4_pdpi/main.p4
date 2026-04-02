@@ -603,7 +603,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
     }
     actions = {
       @proto_id(1) do_thing_1;
-      @proto_id(2) @pergrouponly group_action_1;
+      @proto_id(2) @groupaction group_action_1;
     }
     implementation = wcmp_group_selector;
   }
@@ -617,8 +617,8 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
       wcmp_selector_input : selector;
     }
     actions = {
-      @proto_id(1) @pergrouponly group_action_1;
-      @proto_id(2) @pergrouponly group_action_2;
+      @proto_id(1) @groupaction group_action_1;
+      @proto_id(2) @groupaction group_action_2;
     }
     implementation = wcmp_group_selector;
   }
