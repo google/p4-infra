@@ -146,10 +146,11 @@ StatusOr<std::string> GetTableMatchMessage(const IrTableDefinition& table) {
   return result;
 }
 
-bool IsGroupOnlyAction(const IrActionReference& action) {
+// TODO: b/499072223 - Update function to use scope rather than annotation.
+bool IsGroupAction(const IrActionReference& action) {
   return absl::c_any_of(action.ref().annotations(),
                         [](absl::string_view annotation) {
-                          return annotation == "@pergrouponly";
+                          return annotation == "@groupaction";
                         });
 }
 
@@ -166,13 +167,13 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
               return a.action().preamble().id() < b.action().preamble().id();
             });
 
-  // Actions that are @pergrouponly can only be used as a group action and
+  // Actions that are @groupaction can only be used as a group action and
   // cannot be used as a non-group action. See the P4Runtime spec for more
   // details: https://screenshot.googleplex.com/Ah4bnNNgo9UHtc8).
   std::vector<IrActionReference> group_only_actions;
   std::vector<IrActionReference> non_group_actions;
   for (const auto& action : entry_actions) {
-    if (IsGroupOnlyAction(action)) {
+    if (IsGroupAction(action)) {
       group_only_actions.push_back(action);
     } else {
       non_group_actions.push_back(action);
