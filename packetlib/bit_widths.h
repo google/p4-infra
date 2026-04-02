@@ -37,6 +37,7 @@ constexpr int kPsampHeaderBitwidth = 224;
 constexpr int kPtpHeaderBitwidth = 272;
 constexpr int kPspHeaderBitwidth = 128;
 constexpr int kCsigHeaderBitwidth = 32;
+constexpr int kCsigWideHeaderBitwidth = 64;
 
 // Ethernet constants.
 constexpr int kEthernetEthertypeBitwidth = 16;
@@ -53,6 +54,13 @@ constexpr int kCsigReserved0Bitwidth = 1;
 constexpr int kCsigSignalValueBitwidth = 5;
 constexpr int kCsigLocatorMetadataBitwidth = 7;
 constexpr int kCsigEthertypeBitwidth = 16;
+
+// CSIG Wide constants.
+constexpr int kCsigWideLocatorMetadataBitwidth = 16;
+constexpr int kCsigWideSignalTypeBitwidth = 4;
+constexpr int kCsigWideSignalValueBitwidth = 20;
+constexpr int kCsigWideReservedBitwidth = 8;
+constexpr int kCsigWideEthertypeBitwidth = 16;
 
 // IP constants.
 constexpr int kIpVersionBitwidth = 4;          // IPv4 & IPv6
