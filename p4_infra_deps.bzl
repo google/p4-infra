@@ -126,10 +126,10 @@ def p4_infra_deps():
     if not native.existing_rule("com_github_p4lang_p4c"):
         http_archive(
             name = "com_github_p4lang_p4c",
-            # Newest commit on main on 2024-08-01.
-            url = "https://github.com/p4lang/p4c/archive/44dbcda9c7e3d26d24baadb884b31b32d215edef.zip",
-            strip_prefix = "p4c-44dbcda9c7e3d26d24baadb884b31b32d215edef",
-            sha256 = "ae4d53d0fd41572c38b03e881a8e2d2e472df246f75d6a64555f9ff1b656b574",
+            # Latest commit on bazel-workspace-support-no-strip branch.
+            url = "https://github.com/p4lang/p4c/archive/df264349e4216f08275c1c71a532f631df9b5666.zip",
+            strip_prefix = "p4c-df264349e4216f08275c1c71a532f631df9b5666",
+            sha256 = "5ee8e5529c53c524f32501aad199b0cec44bfda70d3dfb237b0c9f86a89f0aaf",
         )
     if not native.existing_rule("com_github_p4lang_p4runtime"):
         # We frequently need bleeding-edge, unreleased version of P4Runtime, so we use a commit
@@ -146,8 +146,9 @@ def p4_infra_deps():
         # TODO: b/445173612 - Remove Bazel build hacks and depend on a proper upstream branch.
         http_archive(
             name = "com_github_p4lang_p4_constraints",
-            urls = ["https://github.com/p4lang/p4-constraints/archive/5b6ec72c61c9f69b1d62b58e170eb414c6748059.zip"],
-            strip_prefix = "p4-constraints-5b6ec72c61c9f69b1d62b58e170eb414c6748059",
+            urls = ["https://github.com/p4lang/p4-constraints/archive/1ae5568ad4545ca02d3ef95c1f07c837ecf4aec3.zip"],
+            strip_prefix = "p4-constraints-1ae5568ad4545ca02d3ef95c1f07c837ecf4aec3",
+            sha256 = "69cbf386e58137de2fab8f8e4a9696a6cbcfa380f67f93f8c8864171747b421f",
         )
     if not native.existing_rule("com_jsoncpp"):
         http_archive(
