@@ -1072,6 +1072,92 @@ UpdateAllComputedFields(packet) = false
 ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
 - headers[1]: header missing - expected CsigHeader
 ================================================================================
+Parsing test: CSIG Wide IPv6 packet (valid)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+# ethernet header
+    ethernet_destination: 0xaabbccddeeff
+    ethernet_source: 0x112233445566
+    ether_type: 0x9901
+    # CSIG Wide header
+    locator_metadata: 0x1234
+    signal_type: 0x1
+    signal_value: 0x12345
+    reserved: 0x00
+    ethertype: 0x86dd
+    # IPv6 header:
+    version: 0x6
+    dscp: 0b011011
+    ecn: 0b01
+    flow_label: 0x12345
+    payload_length: 0x0010
+    next_header: 0xfd  # Reserved for experimentation -- payload is arbitrary.
+    hop_limit: 0x03
+    ipv6_source: 0x00001111222233334444555566667777
+    ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+    # other headers:
+    payload: 0x00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff
+-- OUTPUT ----------------------------------------------------------------------
+headers {
+  ethernet_header {
+    ethernet_destination: "aa:bb:cc:dd:ee:ff"
+    ethernet_source: "11:22:33:44:55:66"
+    ethertype: "0x9901"
+  }
+}
+headers {
+  csig_wide_header {
+    locator_metadata: "0x1234"
+    signal_type: "0x1"
+    signal_value: "0x12345"
+    reserved: "0x00"
+    ethertype: "0x86dd"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x1b"
+    ecn: "0x1"
+    flow_label: "0x12345"
+    payload_length: "0x0010"
+    next_header: "0xfd"
+    hop_limit: "0x03"
+    ipv6_source: "0:1111:2222:3333:4444:5555:6666:7777"
+    ipv6_destination: "8888:9999:aaaa:bbbb:cccc:dddd:eeee:ffff"
+  }
+}
+payload: "\000\021\"3DUfw\210\231\252\273\314\335\356\377"
+
+================================================================================
+Parsing test: CSIG Wide IPv6 packet (invalid length)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+# ethernet header
+    ethernet_destination: 0xaabbccddeeff
+    ethernet_source: 0x112233445566
+    ether_type: 0x9901
+    # CSIG Wide header (only 24 bits provided, 64 needed)
+    locator_metadata: 0x1234
+    signal_type: 0x01
+-- OUTPUT ----------------------------------------------------------------------
+headers {
+  ethernet_header {
+    ethernet_destination: "aa:bb:cc:dd:ee:ff"
+    ethernet_source: "11:22:33:44:55:66"
+    ethertype: "0x9901"
+  }
+}
+payload: "\0224\001"
+reasons_invalid: "Packet is too short to parse a CsigWide header next. Only 24 bits left, need at least 64."
+reasons_invalid: "in EthernetHeader headers[0]: expected at least 46 bytes of Ethernet payload, but got only 3"
+reasons_invalid: "headers[1]: header missing - expected CsigWideHeader"
+
+PadPacketToMinimumSize(packet) = true
+UpdateAllComputedFields(packet) = false
+ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
+- headers[1]: header missing - expected CsigWideHeader
+================================================================================
 Parsing test: PTP in L2 packet (valid)
 ================================================================================
 -- INPUT -----------------------------------------------------------------------
@@ -5731,3 +5817,46 @@ UpdateMissingComputedFields(packet) = false
 
 Serialize(Packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
 - in PspHeader headers[3]: reserved0: Must be 0x0, but was 0x1 instead.
+
+================================================================================
+Proto packet test: CSIG Wide packet (invalid field values)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+packet =
+headers {
+  ethernet_header {
+    ethernet_destination: "aa:bb:cc:dd:ee:ff"
+    ethernet_source: "11:22:33:44:55:66"
+    ethertype: "0x9901"
+  }
+}
+headers {
+  csig_wide_header {
+    locator_metadata: "0x12345"
+    signal_type: "0x12"
+    signal_value: "0x123456"
+    reserved: "0x123"
+    ethertype: "0x86dd1"
+  }
+}
+
+-- OUTPUT ----------------------------------------------------------------------
+ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
+- in EthernetHeader headers[0]: expected at least 46 bytes of Ethernet payload, but got only 8
+- in CsigWideHeader headers[1]: locator_metadata: invalid format: illegal conversion from hex string '0x12345' to 16 bits; expected 4 hex digits but got 5
+- in CsigWideHeader headers[1]: signal_type: invalid format: illegal conversion from hex string '0x12' to 4 bits; expected 1 hex digits but got 2
+- in CsigWideHeader headers[1]: signal_value: invalid format: illegal conversion from hex string '0x123456' to 20 bits; expected 5 hex digits but got 6
+- in CsigWideHeader headers[1]: reserved: invalid format: illegal conversion from hex string '0x123' to 8 bits; expected 2 hex digits but got 3
+- in CsigWideHeader headers[1]: ethertype: invalid format: illegal conversion from hex string '0x86dd1' to 16 bits; expected 4 hex digits but got 5
+
+PadPacketToMinimumSize(packet) = true
+new payload: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+
+UpdateMissingComputedFields(packet) = false
+
+Serialize(Packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
+- in CsigWideHeader headers[1]: locator_metadata: invalid format: illegal conversion from hex string '0x12345' to 16 bits; expected 4 hex digits but got 5
+- in CsigWideHeader headers[1]: signal_type: invalid format: illegal conversion from hex string '0x12' to 4 bits; expected 1 hex digits but got 2
+- in CsigWideHeader headers[1]: signal_value: invalid format: illegal conversion from hex string '0x123456' to 20 bits; expected 5 hex digits but got 6
+- in CsigWideHeader headers[1]: reserved: invalid format: illegal conversion from hex string '0x123' to 8 bits; expected 2 hex digits but got 3
+- in CsigWideHeader headers[1]: ethertype: invalid format: illegal conversion from hex string '0x86dd1' to 16 bits; expected 4 hex digits but got 5

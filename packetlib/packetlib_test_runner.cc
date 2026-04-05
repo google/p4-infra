@@ -718,6 +718,39 @@ void RunPacketParseTests() {
     # other headers:
     payload: 0x12
   )pb");
+  RunPacketParseTest("CSIG Wide IPv6 packet (valid)", R"pb(
+    # ethernet header
+    ethernet_destination: 0xaabbccddeeff
+    ethernet_source: 0x112233445566
+    ether_type: 0x9901
+    # CSIG Wide header
+    locator_metadata: 0x1234
+    signal_type: 0x1
+    signal_value: 0x12345
+    reserved: 0x00
+    ethertype: 0x86dd
+    # IPv6 header:
+    version: 0x6
+    dscp: 0b011011
+    ecn: 0b01
+    flow_label: 0x12345
+    payload_length: 0x0010
+    next_header: 0xfd  # Reserved for experimentation -- payload is arbitrary.
+    hop_limit: 0x03
+    ipv6_source: 0x00001111222233334444555566667777
+    ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+    # other headers:
+    payload: 0x00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff
+  )pb");
+  RunPacketParseTest("CSIG Wide IPv6 packet (invalid length)", R"pb(
+    # ethernet header
+    ethernet_destination: 0xaabbccddeeff
+    ethernet_source: 0x112233445566
+    ether_type: 0x9901
+    # CSIG Wide header (only 24 bits provided, 64 needed)
+    locator_metadata: 0x1234
+    signal_type: 0x01
+  )pb");
   RunPacketParseTest("PTP in L2 packet (valid)",
                      R"pb(
                        # Ethernet header.
@@ -3142,6 +3175,25 @@ void RunProtoPacketTests() {
                               }
                               payload: "ABCDABCDABCDABCDABCD"  # 20 octets
                          )pb"));
+  RunProtoPacketTest("CSIG Wide packet (invalid field values)",
+                     gutil::ParseProtoOrDie<Packet>(R"pb(
+                       headers {
+                         ethernet_header {
+                           ethernet_destination: "aa:bb:cc:dd:ee:ff"
+                           ethernet_source: "11:22:33:44:55:66"
+                           ethertype: "0x9901"
+                         }
+                       }
+                       headers {
+                         csig_wide_header {
+                           locator_metadata: "0x12345"  # 20 bits, expected 16
+                           signal_type: "0x12"          # 8 bits, expected 4
+                           signal_value: "0x123456"     # 24 bits, expected 20
+                           reserved: "0x123"            # 12 bits, expected 8
+                           ethertype: "0x86dd1"         # 20 bits, expected 16
+                         }
+                       }
+                     )pb"));
 }  // NOLINT(readability/fn_size)
 
 void main() {
