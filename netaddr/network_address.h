@@ -118,19 +118,20 @@ class NetworkAddress {
   T operator~() const { return T(~bits_); }
 
   // -- Comparisons --
-  bool operator==(const T& other) const { return bits_ == other.bits_; }
-  bool operator!=(const T& other) const { return bits_ != other.bits_; }
-  bool operator<(const T& other) const {
-    return ToPaddedByteString() < other.ToPaddedByteString();
+  friend bool operator==(const T& left, const T& right) {
+    return left.bits_ == right.bits_;
   }
-  bool operator<=(const T& other) const {
-    return ToPaddedByteString() <= other.ToPaddedByteString();
+  friend bool operator<(const T& left, const T& right) {
+    return left.ToPaddedByteString() < right.ToPaddedByteString();
   }
-  bool operator>(const T& other) const {
-    return ToPaddedByteString() > other.ToPaddedByteString();
+  friend bool operator<=(const T& left, const T& right) {
+    return left.ToPaddedByteString() <= right.ToPaddedByteString();
   }
-  bool operator>=(const T& other) const {
-    return ToPaddedByteString() >= other.ToPaddedByteString();
+  friend bool operator>(const T& left, const T& right) {
+    return left.ToPaddedByteString() > right.ToPaddedByteString();
+  }
+  friend bool operator>=(const T& left, const T& right) {
+    return left.ToPaddedByteString() >= right.ToPaddedByteString();
   }
 
   // Hashing (https://abseil.io/docs/cpp/guides/hash).
@@ -200,7 +201,7 @@ std::string NetworkAddress<N, T>::ToP4RuntimeByteString() const {
 template <std::size_t N, typename T>
 absl::StatusOr<int> NetworkAddress<N, T>::ToLpmPrefixLength() const {
   for (int i = 0; i <= N; ++i) {
-    if (*this == AllOnes() << (N - i)) return i;
+    if (*static_cast<const T*>(this) == AllOnes() << (N - i)) return i;
   }
   return gutil::InvalidArgumentErrorBuilder() << "not an LPM mask: " << *this;
 }

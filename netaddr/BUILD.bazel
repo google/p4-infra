@@ -12,9 +12,9 @@ cc_library(
     deps = [
         "//string_encodings:byte_string",
         "//string_encodings:hex_string",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -24,10 +24,10 @@ cc_library(
     hdrs = ["ipv4_address.h"],
     deps = [
         ":network_address",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -37,11 +37,11 @@ cc_test(
     deps = [
         ":ipv4_address",
         "//string_encodings:safe",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status",
-        "@com_google_gutil//gutil:status_matchers",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status",
+        "@gutil//gutil:status_matchers",
     ],
 )
 
@@ -51,12 +51,12 @@ cc_library(
     hdrs = ["ipv6_address.h"],
     deps = [
         ":network_address",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/numeric:int128",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/numeric:int128",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -66,11 +66,11 @@ cc_test(
     deps = [
         ":ipv6_address",
         "//string_encodings:safe",
-        "@com_google_absl//absl/numeric:int128",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status",
-        "@com_google_gutil//gutil:status_matchers",
+        "@abseil-cpp//absl/numeric:int128",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status",
+        "@gutil//gutil:status_matchers",
     ],
 )
 
@@ -82,10 +82,10 @@ cc_library(
         ":ipv6_address",
         ":network_address",
         "//string_encodings:hex_string",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -96,9 +96,9 @@ cc_test(
         ":mac_address",
         ":network_address",
         "//string_encodings:safe",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status",
-        "@com_google_gutil//gutil:status_matchers",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status",
+        "@gutil//gutil:status_matchers",
     ],
 )

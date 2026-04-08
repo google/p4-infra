@@ -1,4 +1,4 @@
-load("@com_google_gutil//gutil:diff_test.bzl", "cmd_diff_test")
+load("@gutil//gutil:diff_test.bzl", "cmd_diff_test")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
@@ -12,10 +12,10 @@ cc_library(
     srcs = ["byte_string.cc"],
     hdrs = ["byte_string.h"],
     deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -25,10 +25,10 @@ cc_test(
     deps = [
         ":byte_string",
         ":safe",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status",
-        "@com_google_gutil//gutil:status_matchers",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status",
+        "@gutil//gutil:status_matchers",
     ],
 )
 
@@ -47,10 +47,10 @@ cc_library(
         "//netaddr:ipv4_address",
         "//netaddr:ipv6_address",
         "//netaddr:mac_address",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -59,9 +59,9 @@ cc_test(
     srcs = ["bit_string_test.cc"],
     deps = [
         ":bit_string",
-        "@com_google_absl//absl/status",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status_matchers",
+        "@abseil-cpp//absl/status",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status_matchers",
     ],
 )
 
@@ -72,9 +72,9 @@ cc_library(
     deps = [
         ":bit_string",
         ":hex_string",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -83,8 +83,8 @@ cc_test(
     srcs = ["readable_byte_string_test.cc"],
     deps = [
         ":readable_byte_string",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_gutil//gutil:status_matchers",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status_matchers",
     ],
 )
 
@@ -94,10 +94,10 @@ cc_library(
     hdrs = ["hex_string.h"],
     deps = [
         ":safe",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -107,7 +107,7 @@ cc_test(
     linkstatic = True,
     deps = [
         ":hex_string",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
     ],
 )
 
@@ -125,9 +125,9 @@ cc_library(
     srcs = ["decimal_string.cc"],
     hdrs = ["decimal_string.h"],
     deps = [
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_gutil//gutil:status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
     ],
 )
 
@@ -137,7 +137,7 @@ cc_test(
     linkstatic = True,
     deps = [
         ":decimal_string",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
     ],
 )
 

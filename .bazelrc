@@ -1,6 +1,12 @@
+# Enable Bzlmod.
+common --enable_bzlmod
+common --noenable_workspace
+
+# Use C++20.
 build --cxxopt='-std=c++20' --host_cxxopt='-std=c++20'
 run --cxxopt='-std=c++20' --host_cxxopt='-std=c++20'
 
-# To allow loops with int and comparison against a .size() that's size_t.
-build --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
-run --copt='-Wno-sign-compare' --host_copt='-Wno-sign-compare'
+# Disable Bazel's strict include layering check. Without this, transitive
+# includes are forbidden, exposing missing #include directives in dependencies.
+build --features=-layering_check
+build --host_features=-layering_check
