@@ -54,6 +54,14 @@ constexpr int kCsigSignalValueBitwidth = 5;
 constexpr int kCsigLocatorMetadataBitwidth = 7;
 constexpr int kCsigEthertypeBitwidth = 16;
 
+// Wide CSIG constants.
+constexpr int kCsigWideHeaderBitwidth = 64;
+constexpr int kCsigWideReserved0Bitwidth = 8;
+constexpr int kCsigWideSignalValueBitwidth = 20;
+constexpr int kCsigWideSignalTypeBitwidth = 4;
+constexpr int kCsigWideLocatorMetadataBitwidth = 16;
+constexpr int kCsigWideEthertypeBitwidth = 16;
+
 // IP constants.
 constexpr int kIpVersionBitwidth = 4;          // IPv4 & IPv6
 constexpr int kIpIhlBitwidth = 4;              // IPv4

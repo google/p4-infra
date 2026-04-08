@@ -70,6 +70,7 @@ message Header {
     PspHeader psp_header = 14;
     CsigHeader csig_header = 15;
     HopByHopOptionsHeader hop_by_hop_options_header = 16;
+    CsigWideHeader csig_wide_header = 17;
   }
 }
 
@@ -96,6 +97,15 @@ message CsigHeader {
   string reserved0 = 2;         // 1 bit
   string signal_value = 3;      // 5 bits
   string locator_metadata = 4;  // 7 bits
+  string ethertype = 5;         // 16 bits
+}
+
+// A Wide CSIG header.
+message CsigWideHeader {
+  string signal_type = 1;       // 4 bits
+  string reserved0 = 2;         // 8 bit
+  string signal_value = 3;      // 20 bits
+  string locator_metadata = 4;  // 16 bits
   string ethertype = 5;         // 16 bits
 }
 
