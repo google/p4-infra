@@ -70,6 +70,7 @@ message Header {
     PspHeader psp_header = 14;
     CsigHeader csig_header = 15;
     HopByHopOptionsHeader hop_by_hop_options_header = 16;
+    IbBthHeader ib_bth_header = 17;
   }
 }
 
@@ -248,6 +249,21 @@ message PsampHeader {
   // Variable packet length identifier - 0xFF.
   string variable_length = 11;        // 8 bits (computed field)
   string packet_sampled_length = 12;  // 16 bits (computed field)
+}
+
+// Infiniband Base Transport Header
+message IbBthHeader {
+  string op_code = 1;          // 8 bits
+  string solicited_event = 2;  // 1 bit
+  string mig_req = 3;          // 1 bit
+  string pad_count = 4;        // 2 bits
+  string transport_ver = 5;    // 4 bits
+  string p_key = 6;            // 16 bits
+  string reserved1 = 7;        // 8 bits
+  string dst_qp = 8;           // 24 bits
+  string ack_req = 9;          // 1 bit
+  string reserved2 = 10;       // 7 bits
+  string psn = 11;             // 24 bits
 }
 
 // Precision Time Protocol header (RFC 1588-2019)
