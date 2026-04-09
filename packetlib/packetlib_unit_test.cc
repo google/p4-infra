@@ -1074,5 +1074,16 @@ TEST(HeaderCaseName, OverloadsAgree) {
   EXPECT_EQ(HeaderCaseName(header), HeaderCaseName(header.header_case()));
 }
 
+TEST(PacketLib, ParseCsigWideHeaderTooShort) {
+  // CsigWideHeader requires 64 bits (8 bytes).
+  // Provide only 1 byte (8 bits).
+  std::string data = absl::HexStringToBytes("01");
+  Packet packet = ParsePacket(data, Header::kCsigWideHeader);
+  EXPECT_THAT(
+      packet.reasons_invalid(),
+      testing::Contains(HasSubstr(
+          "Packet is too short to parse a CsigWide header next. Only 8 bits")));
+}
+
 }  // namespace
 }  // namespace packetlib
