@@ -63,6 +63,24 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "references_benchmark",
+    srcs = ["references_benchmark.cc"],
+    deps = [
+        ":main_p4_pd_cc_proto",
+        ":pd",
+        ":references",
+        ":test_p4info_cc",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@com_github_google_benchmark//:benchmark",
+        "@gutil//gutil:proto",
+        "@p4runtime//proto/p4/v1:p4runtime_cc_proto",
+    ],
+)
+
 cc_library(
     name = "built_ins",
     srcs = [
