@@ -29,6 +29,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "google/protobuf/descriptor.h"
@@ -56,9 +57,6 @@ using ::p4::config::v1::MatchField;
 using ::string_encodings::BitsetToHexString;
 
 namespace {
-
-constexpr char kPdProtoAndP4InfoOutOfSync[] =
-    "The PD proto and P4Info file are out of sync";
 
 constexpr absl::string_view kTableMessageSuffix = "Entry";
 constexpr absl::string_view kActionMessageSuffix = "Action";
@@ -133,8 +131,7 @@ absl::StatusOr<google::protobuf::Message*> GetMutableMessage(
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in "
-           << parent_message->GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message->GetTypeName() << ". ";
   }
 
   return parent_message->GetReflection()->MutableMessage(parent_message,
@@ -149,8 +146,7 @@ absl::StatusOr<const google::protobuf::Message*> GetMessageField(
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in "
-           << parent_message.GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message.GetTypeName() << ". ";
   }
 
   return &parent_message.GetReflection()->GetMessage(parent_message,
@@ -164,8 +160,7 @@ absl::StatusOr<bool> HasField(const google::protobuf::Message& parent_message,
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in schema for "
-           << parent_message.GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message.GetTypeName() << ". ";
   }
 
   return parent_message.GetReflection()->HasField(parent_message,
@@ -182,8 +177,7 @@ absl::StatusOr<const google::protobuf::Message*> GetRepeatedFieldMessage(
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in "
-           << parent_message.GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message.GetTypeName() << ". ";
   }
   if (!field_descriptor->is_repeated()) {
     return gutil::InvalidArgumentErrorBuilder()
@@ -212,8 +206,7 @@ GetRepeatedFieldMessages(const google::protobuf::Message& parent_message,
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in "
-           << parent_message.GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message.GetTypeName() << ". ";
   }
   if (!field_descriptor->is_repeated()) {
     return gutil::InvalidArgumentErrorBuilder()
@@ -239,8 +232,7 @@ absl::StatusOr<google::protobuf::Message*> AddRepeatedMutableMessage(
   if (field_descriptor == nullptr) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Field " << fieldname << " missing in "
-           << parent_message->GetTypeName() << ". "
-           << kPdProtoAndP4InfoOutOfSync;
+           << parent_message->GetTypeName() << ". ";
   }
   return parent_message->GetReflection()->AddMessage(parent_message,
                                                      field_descriptor);
@@ -984,9 +976,8 @@ static absl::Status IrActionInvocationToPd(
   absl::StatusOr<const pdpi::IrActionDefinition*> ir_action_info_wrapper =
       gutil::FindPtrOrStatus(ir_p4info.actions_by_name(), action_name);
   if (!ir_action_info_wrapper.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        ActionName(action_name),
-        absl::StrCat(kNewBullet, "It does not exist in the P4Info.")));
+    return absl::InvalidArgumentError(absl::StrCat(
+        ActionName(action_name), " does not exist in the P4Info."));
   }
   const pdpi::IrActionDefinition& ir_action_info = **ir_action_info_wrapper;
   const auto& pd_action_name =
@@ -1122,10 +1113,8 @@ absl::Status IrTableEntryToPd(const IrP4Info& ir_p4info, const IrTableEntry& ir,
   const auto& status_or_ir_table_info =
       gutil::FindPtrOrStatus(ir_p4info.tables_by_name(), ir.table_name());
   if (!status_or_ir_table_info.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        TableName(ir.table_name()),
-        absl::StrCat(kNewBullet, "It does not exist in the P4Info. ",
-                     kPdProtoAndP4InfoOutOfSync)));
+    return absl::InvalidArgumentError(absl::StrCat(
+        TableName(ir.table_name()), " does not exist in the P4Info."));
   }
   const auto* ir_table_info = *status_or_ir_table_info;
   const auto& pd_table_name =
@@ -1905,8 +1894,8 @@ static absl::Status PdMatchEntryToIr(const IrTableDefinition& ir_table_info,
   std::vector<std::string> invalid_reasons;
   for (const auto& field : GetAllFieldNames(pd_match)) {
     if (!match_set.contains(field)) {
-      invalid_reasons.push_back(GenerateFormattedError(
-          MatchFieldName(field), "Match field does not exist in the P4Info."));
+      invalid_reasons.push_back(absl::StrCat(MatchFieldName(field),
+                                             " does not exist in the P4Info."));
     }
   }
   std::sort(matches.begin(), matches.end());
@@ -1915,9 +1904,8 @@ static absl::Status PdMatchEntryToIr(const IrTableDefinition& ir_table_info,
     const auto& status_or_ir_match_info = gutil::FindPtrOrStatus(
         ir_table_info.match_fields_by_name(), pd_match_name);
     if (!status_or_ir_match_info.ok()) {
-      return absl::InvalidArgumentError(GenerateFormattedError(
-          MatchFieldName(pd_match_name),
-          absl::StrCat(kNewBullet, "It does not exist in the P4Info.")));
+      return absl::InvalidArgumentError(absl::StrCat(
+          MatchFieldName(pd_match_name), " does not exist in the P4Info."));
     }
     const auto* ir_match_info = *status_or_ir_match_info;
 
@@ -2112,9 +2100,8 @@ static absl::StatusOr<IrActionInvocation> PdActionInvocationToIr(
   absl::StatusOr<const pdpi::IrActionDefinition*> ir_action_info_wrapper =
       gutil::FindPtrOrStatus(ir_p4info.actions_by_name(), action_name);
   if (!ir_action_info_wrapper.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        ActionName(action_name),
-        absl::StrCat(kNewBullet, "It does not exist in the P4Info.")));
+    return absl::InvalidArgumentError(absl::StrCat(
+        ActionName(action_name), " does not exist in the P4Info."));
   }
   const pdpi::IrActionDefinition& ir_action_info = **ir_action_info_wrapper;
   IrActionInvocation ir_action;
@@ -2226,10 +2213,8 @@ absl::StatusOr<IrTableEntry> PartialPdTableEntryToIrTableEntry(
   const auto& status_or_ir_table_info =
       gutil::FindPtrOrStatus(ir_p4info.tables_by_name(), *p4_table_name);
   if (!status_or_ir_table_info.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        TableName(*p4_table_name),
-        absl::StrCat(kNewBullet, "It does not exist in the P4Info. ",
-                     kPdProtoAndP4InfoOutOfSync)));
+    return absl::InvalidArgumentError(absl::StrCat(
+        TableName(*p4_table_name), " does not exist in the P4Info."));
   }
   const auto* ir_table_info = *status_or_ir_table_info;
   ir.set_table_name(*p4_table_name);
@@ -2259,7 +2244,10 @@ absl::StatusOr<IrTableEntry> PartialPdTableEntryToIrTableEntry(
   const auto& match_status =
       PdMatchEntryToIr(*ir_table_info, options, **pd_match, &ir);
   if (!match_status.ok()) {
-    invalid_reasons.push_back(absl::StrCat(kNewBullet, match_status.message()));
+    for (absl::string_view line :
+         absl::StrSplit(match_status.message(), '\n')) {
+      invalid_reasons.push_back(absl::StrCat(kNewBullet, line));
+    }
   }
 
   const auto& status_or_priority = GetInt32Field(*pd_table, "priority");
@@ -3006,8 +2994,7 @@ absl::StatusOr<IrWriteRpcStatus> PdWriteRpcStatusToIr(
     return ir_write_rpc_status;
   } else {
     return gutil::InvalidArgumentErrorBuilder()
-           << status_oneof_name << " is not a valid status one_of value. "
-           << kPdProtoAndP4InfoOutOfSync;
+           << status_oneof_name << " is not a valid status one_of value.";
   }
   return ir_write_rpc_status;
 }
@@ -3057,11 +3044,10 @@ absl::Status PdTableEntryToOnlyKeyPd(const IrP4Info& info,
   ASSIGN_OR_RETURN(
       const std::string& p4_table_name,
       ProtobufFieldNameToP4Name(pd_table_field_name, pdpi::kP4Table));
-  ASSIGN_OR_RETURN(const auto& ir_table_info,
-                   gutil::FindOrStatus(info.tables_by_name(), p4_table_name),
-                   _ << "Table \"" << p4_table_name
-                     << "\" does not exist in P4Info. "
-                     << kPdProtoAndP4InfoOutOfSync);
+  ASSIGN_OR_RETURN(
+      const auto& ir_table_info,
+      gutil::FindOrStatus(info.tables_by_name(), p4_table_name),
+      _ << TableName(p4_table_name) << " does not exist in P4Info.");
   ASSIGN_OR_RETURN(auto* pd_table,
                    GetMutableMessage(key_only_pd, pd_table_field_name));
 

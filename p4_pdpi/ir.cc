@@ -2436,7 +2436,7 @@ StatusOr<IrWriteRequest> PiWriteRequestToIr(
 
   if (!invalid_update_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
-        "Write request", absl::StrJoin(invalid_reasons, "\n")));
+        "Write request", absl::StrJoin(invalid_update_reasons, "\n")));
   }
   return ir_write_request;
 }
@@ -2569,8 +2569,9 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
   const auto& status_or_table =
       gutil::FindPtrOrStatus(info.tables_by_name(), ir.table_name());
   if (!status_or_table.ok()) {
-    return absl::InvalidArgumentError(
-        absl::StrCat(TableName(table_name), " does not exist in the P4Info."));
+    return absl::InvalidArgumentError(GenerateFormattedError(
+        TableName(table_name),
+        absl::StrCat(TableName(table_name), " does not exist in the P4Info.")));
   }
   const auto* table = *status_or_table;
   pi.set_table_id(table->preamble().id());
@@ -2598,7 +2599,7 @@ StatusOr<p4::v1::TableEntry> IrTableEntryToPi(
     const auto& status_or_match =
         gutil::FindPtrOrStatus(table->match_fields_by_name(), ir_match.name());
     if (!status_or_match.ok()) {
-      invalid_reasons.push_back(absl::StrCat(kNewBullet, "Match Field '",
+      invalid_reasons.push_back(absl::StrCat(kNewBullet, "Match field '",
                                              ir_match.name(),
                                              "' does not exist in table."));
       continue;
