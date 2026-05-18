@@ -1683,7 +1683,7 @@ table_entry {
 }
 
 --- IR (converting to PI) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for '' does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for '' is invalid: Table '' does not exist in the P4Info.
 
 =========================================================================
 empty table IR (IR -> PD)
@@ -1694,7 +1694,7 @@ table_entry {
 }
 
 --- IR (converting to PD) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for '' is invalid: It does not exist in the P4Info. The PD proto and P4Info file are out of sync
+INVALID_ARGUMENT: Table entry for '' is invalid: Table '' does not exist in the P4Info.
 
 =========================================================================
 invalid table name (IR -> PI)
@@ -1706,7 +1706,7 @@ table_entry {
 }
 
 --- IR (converting to PI) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'invalid' does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for 'invalid' is invalid: Table 'invalid' does not exist in the P4Info.
 
 =========================================================================
 invalid table name (IR -> PD)
@@ -1718,7 +1718,7 @@ table_entry {
 }
 
 --- IR (converting to PD) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'invalid' is invalid: It does not exist in the P4Info. The PD proto and P4Info file are out of sync
+INVALID_ARGUMENT: Table entry for 'invalid' is invalid: Table 'invalid' does not exist in the P4Info.
 
 =========================================================================
 missing matches (IR -> PI)
@@ -1899,7 +1899,7 @@ table_entry {
 
 --- IR (converting to PI) is invalid/unsupported:
 INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid for the following reasons:
-  - Match Field 'invalid' does not exist in table.
+  - Match field 'invalid' does not exist in table.
   - Missing matches: 'ipv4', 'ipv6'. Expected 2 mandatory match conditions, but found 0 instead.
   - Action is required.
 
@@ -2180,7 +2180,7 @@ table_entry {
 }
 
 --- IR (converting to PD) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid: Action '' is invalid: It does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid: Action '' does not exist in the P4Info.
 
 =========================================================================
 invalid action name (IR -> PI)
@@ -2234,7 +2234,7 @@ table_entry {
 }
 
 --- IR (converting to PD) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid: Action 'invalid' is invalid: It does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid: Action 'invalid' does not exist in the P4Info.
 
 =========================================================================
 missing action params (IR -> PI)
@@ -3114,7 +3114,7 @@ table_entry {
 }
 
 --- IR (converting to PD) is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'wcmp_table' is invalid: ActionSet is invalid: Action 'invalid_do_thing_1' is invalid: It does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for 'wcmp_table' is invalid: ActionSet is invalid: Action 'invalid_do_thing_1' does not exist in the P4Info.
 
 =========================================================================
 counter in a table with no counters (IR -> PI)
@@ -6799,7 +6799,7 @@ optional_table_entry {
 }
 
 --- PD is invalid/unsupported:
-INVALID_ARGUMENT: Table entry for 'optional_table' is invalid: Match field 'mac' is invalid: Match field does not exist in the P4Info.
+INVALID_ARGUMENT: Table entry for 'optional_table' is invalid: Match field 'mac' does not exist in the P4Info.
 =========================================================================
 table entry with a meter counter data (packet counter)
 pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
