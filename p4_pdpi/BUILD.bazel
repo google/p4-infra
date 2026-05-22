@@ -234,6 +234,20 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "pd_test",
+    srcs = ["pd_test.cc"],
+    deps = [
+        ":ir_cc_proto",
+        ":main_p4_pd_cc_proto",
+        ":pd",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:proto",
+        "@gutil//gutil:status_matchers",
+        "@p4runtime//proto/p4/v1:p4runtime_cc_proto",
+    ],
+)
+
 cc_binary(
     name = "pdgen",
     srcs = ["pdgen.cc"],
