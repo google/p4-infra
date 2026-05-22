@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <bitset>
 #include <cctype>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -3001,6 +3003,70 @@ absl::StatusOr<IrWriteRpcStatus> PdWriteRpcStatusToIr(
            << status_oneof_name << " is not a valid status one_of value.";
   }
   return ir_write_rpc_status;
+}
+
+absl::StatusOr<std::string> ShortDescription(
+    const google::protobuf::Message& pd_table_entry) {
+  // Make a copy to mutate.
+  std::unique_ptr<google::protobuf::Message> copy(pd_table_entry.New());
+  copy->CopyFrom(pd_table_entry);
+  ASSIGN_OR_RETURN(std::string oneof_field_name,
+                   gutil::GetOneOfFieldName(*copy, "entry"));
+  ASSIGN_OR_RETURN(auto* entry_message,
+                   GetMutableMessage(copy.get(), oneof_field_name));
+
+  // Clear fields if they exist.
+  ClearField(entry_message, "counter_data").IgnoreError();
+  ClearField(entry_message, "meter_counter_data").IgnoreError();
+  ClearField(entry_message, "controller_metadata").IgnoreError();
+
+  return google::protobuf::ShortFormat(*copy);
+}
+
+absl::StatusOr<std::optional<const google::protobuf::Message*>> GetCounterData(
+    const google::protobuf::Message& pd_table_entry) {
+  ASSIGN_OR_RETURN(const std::string& oneof_field_name,
+                   gutil::GetOneOfFieldName(pd_table_entry, "entry"));
+  ASSIGN_OR_RETURN(const google::protobuf::Message* pd_specific_entry,
+                   GetMessageField(pd_table_entry, oneof_field_name));
+
+  // If `counter_data` is not in the schema for this type of entry, then return
+  // std::nullopt.
+  if (pd_specific_entry->GetDescriptor()->FindFieldByName("counter_data") ==
+      nullptr) {
+    return std::nullopt;
+  }
+
+  // If `counter_data` exists, but is unset, then return std::nullopt.
+  ASSIGN_OR_RETURN(bool has_counters,
+                   HasField(*pd_specific_entry, "counter_data"));
+  if (!has_counters) return std::nullopt;
+
+  // Otherwise, return the `counter_data` field.
+  return GetMessageField(*pd_specific_entry, "counter_data");
+}
+
+absl::StatusOr<std::optional<const google::protobuf::Message*>>
+GetMeterCounterData(const google::protobuf::Message& pd_table_entry) {
+  ASSIGN_OR_RETURN(const std::string& oneof_field_name,
+                   gutil::GetOneOfFieldName(pd_table_entry, "entry"));
+  ASSIGN_OR_RETURN(const google::protobuf::Message* pd_specific_entry,
+                   GetMessageField(pd_table_entry, oneof_field_name));
+
+  // If `meter_counter_data` is not in the schema for this type of entry, then
+  // return std::nullopt.
+  if (pd_specific_entry->GetDescriptor()->FindFieldByName(
+          "meter_counter_data") == nullptr) {
+    return std::nullopt;
+  }
+
+  // If `meter_counter_data` exists, but is unset, then return std::nullopt.
+  ASSIGN_OR_RETURN(bool has_meter_counters,
+                   HasField(*pd_specific_entry, "meter_counter_data"));
+  if (!has_meter_counters) return std::nullopt;
+
+  // Otherwise, return the `meter_counter_data` field.
+  return GetMessageField(*pd_specific_entry, "meter_counter_data");
 }
 
 absl::StatusOr<int> GetEnumField(const google::protobuf::Message& message,

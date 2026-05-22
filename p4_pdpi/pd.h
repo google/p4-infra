@@ -15,13 +15,16 @@
 #ifndef P4_INFRA_P4_PDPI_PD_H_
 #define P4_INFRA_P4_PDPI_PD_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "google/protobuf/message.h"
+#include "grpcpp/support/status.h"
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/v1/p4runtime.pb.h"
@@ -335,6 +338,36 @@ absl::StatusOr<IrStreamMessageResponse> PdStreamMessageResponseToIr(
 absl::StatusOr<IrWriteRpcStatus> PdWriteRpcStatusToIr(
     const google::protobuf::Message& pd,
     const TranslationOptions& options PDPI_TRANSLATION_OPTIONS_DEFAULT);
+
+// -- PD helpers ---------------------------------------------------------------
+
+// Returns a short description of a PD table entry, including only match fields
+// and actions.
+//
+// It excludes `counter_data`, `meter_counter_data`, and `controller_metadata`.
+// Creates a copy of the message internally, but can't take it by value due to
+// Message being an abstract class.
+absl::StatusOr<std::string> ShortDescription(
+    const google::protobuf::Message& pd_table_entry);
+
+// Returns a pointer to the `counter_data` field of type
+// `BytesAndPacketsCounterData` in the PD table entry if it exists and is set.
+// Returns `std::nullopt` if the field is not set or does not exist for this
+// particular `pd_table_entry`, but the `pd_table_entry` is otherwise valid.
+// Returns an error if the `pd_table_entry` is not a valid TableEntry proto
+// message of the relevant PD format.
+absl::StatusOr<std::optional<const google::protobuf::Message*>> GetCounterData(
+    const google::protobuf::Message& pd_table_entry);
+
+// Returns a pointer to the `meter_counter_data` field of type
+// `MeterBytesAndPacketsCounterData` in the PD table entry if it exists and is
+// set.
+// Returns `std::nullopt` if the field is not set or does not exist for this
+// particular `pd_table_entry`, but the `pd_table_entry` is otherwise valid.
+// Returns an error if the `pd_table_entry` is not a valid TableEntry proto
+// message of the relevant PD format.
+absl::StatusOr<std::optional<const google::protobuf::Message*>>
+GetMeterCounterData(const google::protobuf::Message& pd_table_entry);
 
 // -- PD getters/setters -------------------------------------------------------
 

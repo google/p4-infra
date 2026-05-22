@@ -30,3 +30,10 @@ git_override(
     commit = "2ed6cd75562b31bfe904b58282a67cf6f5445938",
     remote = "https://github.com/p4lang/p4runtime",
 )
+
+# TODO: Remove git_override once a new gutil has been released to the BCR.
+git_override(
+    module_name = "gutil",
+    commit = "f4d09fa663366c8bf7c8df19b549cc58cfaf3fed",
+    remote = "https://github.com/google/gutil",
+)
