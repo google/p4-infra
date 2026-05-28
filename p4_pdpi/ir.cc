@@ -31,6 +31,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
@@ -74,6 +75,26 @@ using ::pdpi::IrTableReference;
 using ::pdpi::ParsedRefersToAnnotation;
 
 namespace {
+
+std::string GrpcStatusDetailstToString(const grpc::Status& status) {
+  std::string details = status.error_details();
+  if (details.empty()) return "";
+
+  google::rpc::Status rpc_status;
+  if (rpc_status.ParseFromString(details)) {
+    return gutil::PrintShortTextProto(rpc_status);
+  }
+
+  return absl::BytesToHexString(details);
+}
+
+std::string GrpcStatusToString(const grpc::Status& status) {
+  return absl::StrFormat(
+      "[code: %s, message: %s, details { %s }]",
+      absl::StatusCodeToStringView(
+          static_cast<absl::StatusCode>(status.error_code())),
+      status.error_message(), GrpcStatusDetailstToString(status));
+}
 
 // -- IrP4Info utilities -------------------------------------------------------
 
@@ -3138,7 +3159,9 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
           ::google::rpc::OK);
     }
     return ir_write_status;
-  } else if (!grpc_status.ok() && grpc_status.error_details().empty()) {
+  }
+
+  if (grpc_status.error_details().empty()) {
     // Rpc-wide error
     RETURN_IF_ERROR(
         IsGoogleRpcCode(static_cast<int>(grpc_status.error_code())));
@@ -3150,8 +3173,10 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
     ir_write_status.mutable_rpc_wide_error()->set_message(
         grpc_status.error_message());
     return ir_write_status;
-  } else if (grpc_status.error_code() == grpc::StatusCode::UNKNOWN &&
-             !grpc_status.error_details().empty()) {
+  }
+
+  if (grpc_status.error_code() == grpc::StatusCode::UNKNOWN &&
+      !grpc_status.error_details().empty()) {
     google::rpc::Status inner_rpc_status;
     if (!inner_rpc_status.ParseFromString(grpc_status.error_details())) {
       return absl::InvalidArgumentError(
@@ -3199,12 +3224,12 @@ absl::StatusOr<IrWriteRpcStatus> GrpcStatusToIrWriteRpcStatus(
                 "update status but all p4 errors are ok";
     }
     return ir_write_status;
-
-  } else {
-    return gutil::InvalidArgumentErrorBuilder()
-           << "Only rpc-wide error and batch update status formats are "
-              "supported for non-ok gRPC status";
   }
+
+  return gutil::InvalidArgumentErrorBuilder()
+         << "Only rpc-wide error and batch update status formats are "
+            "supported for non-ok gRPC status, but got: "
+         << GrpcStatusToString(grpc_status);
 }
 
 static absl::StatusOr<grpc::Status> IrWriteResponseToGrpcStatus(

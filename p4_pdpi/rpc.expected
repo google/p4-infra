@@ -1183,9 +1183,9 @@ Invalid gRPC WriteRpcStatus should fail test: gRPC status contains batch update 
 =========================================================================
 
 --- absl::Status:
-INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: Only rpc-wide error and batch update status formats are supported for non-ok gRPC status
+INVALID_ARGUMENT: Invalid gRPC status w.r.t. P4RT specification: Only rpc-wide error and batch update status formats are supported for non-ok gRPC status, but got: [code: RESOURCE_EXHAUSTED, message: some message, details { code: 8 message: "some message" details { [type.googleapis.com/p4.v1.Error] { canonical_code: 8 message: "table is full" } } }]
 --- gRPC is invalid/unsupported:
-INVALID_ARGUMENT: Only rpc-wide error and batch update status formats are supported for non-ok gRPC status
+INVALID_ARGUMENT: Only rpc-wide error and batch update status formats are supported for non-ok gRPC status, but got: [code: RESOURCE_EXHAUSTED, message: some message, details { code: 8 message: "some message" details { [type.googleapis.com/p4.v1.Error] { canonical_code: 8 message: "table is full" } } }]
 
 =========================================================================
 Invalid gRPC WriteRpcStatus should fail test: gRPC status has batch update information but p4 error's canonical_code is not valid
