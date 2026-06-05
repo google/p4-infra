@@ -1,9 +1,11 @@
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -142,6 +144,9 @@ std::vector<::p4::v1::Entity> GenerateMulticastGroupEntries(
 
 // Benchmarks the performance of `UnsatisfiedOutgoingReferences` when processing
 // parameterized normal table entries.
+// This performs a stateless validation of all references within the given set
+// of entities. The benchmark measures the time to validate the entire set from
+// scratch.
 void BM_UnsatisfiedOutgoingReferences_TableEntries(benchmark::State& state) {
   int entry_to_reference = state.range(0);
   int referring_entries = state.range(1);
@@ -161,12 +166,13 @@ BENCHMARK(BM_UnsatisfiedOutgoingReferences_TableEntries)
     ->Args({100, 100})
     ->Args({1000, 1000})
     ->Args({10000, 10000})
-    ->Args({100000, 100000})
     ->Args({10, 100})
-    ->Args({10, 100000});
+    ->Args({10, 10000});
 
 // Benchmarks the performance of `UnsatisfiedOutgoingReferences` when processing
 // multicast references with potentially dangling references.
+// Similar to the table entry benchmark, this measures the stateless validation
+// of a batch of entities containing multicast groups and replica references.
 void BM_UnsatisfiedOutgoingReferences_Multicast(benchmark::State& state) {
   int entry_to_reference = state.range(0);
   int referring_entries = state.range(1);
@@ -189,10 +195,98 @@ BENCHMARK(BM_UnsatisfiedOutgoingReferences_Multicast)
     ->Args({100, 100, 100})
     ->Args({1000, 1000, 100})
     ->Args({10000, 10000, 100})
-    ->Args({100000, 100000, 100})
     ->Args({10, 100, 100})
-    ->Args({10, 100000, 100})
-    ->Args({10, 100000, 10});
+    ->Args({10, 10000, 100})
+    ->Args({10, 10000, 10});
+
+// Benchmarks the performance of `StatefulReferenceChecker` when processing
+// parameterized normal table entries.
+// Unlike `UnsatisfiedOutgoingReferences`, `StatefulReferenceChecker` is
+// stateful. This benchmark measures the incremental cost of adding a single
+// entity to a checker that is already populated with `N-1` entities.
+void BM_StatefulReferenceChecker_TableEntries(benchmark::State& state) {
+  int entry_to_reference = state.range(0);
+  int referring_entries = state.range(1);
+  const pdpi::IrP4Info& info = pdpi::GetTestIrP4Info();
+  auto entities = GenerateTableEntries(entry_to_reference, referring_entries);
+  CHECK(!entities.empty());
+  const auto& last_entity = entities.back();
+
+  // Populate the checker with all but the last entity.
+  pdpi::StatefulReferenceChecker checker(info);
+  for (size_t i = 0; i < entities.size() - 1; ++i) {
+    auto status = checker.AddEntity(entities[i]);
+    // We allow kFailedPrecondition because setup might introduce dangling
+    // references.
+    CHECK(status.ok() || status.code() == absl::StatusCode::kFailedPrecondition)
+        << status;
+  }
+
+  for (auto s : state) {
+    // Measure only the time of operations on the last entity.
+    auto add_res = checker.AddEntity(last_entity);
+    auto update_res = checker.UpdateEntity(last_entity);
+    auto remove_res = checker.RemoveEntity(last_entity);
+    benchmark::DoNotOptimize(add_res);
+    benchmark::DoNotOptimize(update_res);
+    benchmark::DoNotOptimize(remove_res);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+BENCHMARK(BM_StatefulReferenceChecker_TableEntries)
+    ->ArgNames({"num_referenced_entries", "num_referring_entries"})
+    ->Args({10, 10})
+    ->Args({100, 100})
+    ->Args({1000, 1000})
+    ->Args({10000, 10000})
+    ->Args({10, 100})
+    ->Args({10, 10000});
+
+// Benchmarks the performance of `StatefulReferenceChecker` when processing
+// multicast references with potentially dangling references.
+// This measures the incremental cost of adding a single multicast-related
+// entity to a pre-populated stateful checker.
+void BM_StatefulReferenceChecker_Multicast(benchmark::State& state) {
+  int entry_to_reference = state.range(0);
+  int referring_entries = state.range(1);
+  int replicas_per_entry = state.range(2);
+  const pdpi::IrP4Info& info = pdpi::GetTestIrP4Info();
+  auto entities = GenerateMulticastGroupEntries(
+      entry_to_reference, referring_entries, replicas_per_entry);
+  CHECK(!entities.empty());
+  const auto& last_entity = entities.back();
+
+  // Populate the checker with all but the last entity.
+  pdpi::StatefulReferenceChecker checker(info);
+  for (size_t i = 0; i < entities.size() - 1; ++i) {
+    auto status = checker.AddEntity(entities[i]);
+    // We allow kFailedPrecondition because setup might introduce dangling
+    // references.
+    CHECK(status.ok() || status.code() == absl::StatusCode::kFailedPrecondition)
+        << status;
+  }
+
+  for (auto s : state) {
+    // Measure only the time of operations on the last entity.
+    auto add_res = checker.AddEntity(last_entity);
+    auto update_res = checker.UpdateEntity(last_entity);
+    auto remove_res = checker.RemoveEntity(last_entity);
+    benchmark::DoNotOptimize(add_res);
+    benchmark::DoNotOptimize(update_res);
+    benchmark::DoNotOptimize(remove_res);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+BENCHMARK(BM_StatefulReferenceChecker_Multicast)
+    ->ArgNames({"num_referenced_entries", "num_referring_replicas",
+                "replicas_per_multicast_group"})
+    ->Args({10, 10, 100})
+    ->Args({100, 100, 100})
+    ->Args({1000, 1000, 100})
+    ->Args({10000, 10000, 100})
+    ->Args({10, 100, 100})
+    ->Args({10, 10000, 100})
+    ->Args({10, 10000, 10});
 
 }  // namespace
 }  // namespace pdpi

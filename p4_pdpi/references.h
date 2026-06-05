@@ -23,11 +23,13 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "p4/v1/p4runtime.pb.h"
+#include "p4_pdpi/entity_keys.h"
 #include "p4_pdpi/ir.pb.h"
 
 // WARNING: THIS LIBRARY IS KNOWN TO HAVE POOR PERFORMANCE.
@@ -181,6 +183,56 @@ H AbslHashValue(H h, const ConcreteTableReference& entry) {
   }
   return h;
 }
+
+// A stateful checker for unsatisfied references.
+class StatefulReferenceChecker {
+ public:
+  explicit StatefulReferenceChecker(IrP4Info info) : info_(std::move(info)) {}
+
+  // Attempts to add an entity to the checker.
+  // - If the entity already exists, returns an ALREADY_EXISTS error.
+  // - If the addition would introduce unsatisfied outgoing references, the
+  //   addition is not committed and a FAILED_PRECONDITION error is returned.
+  // - Otherwise, the entity is added and OK is returned.
+  absl::Status AddEntity(const ::p4::v1::Entity& entity);
+
+  // Attempts to remove an entity from the checker.
+  // - If the entity is not found, returns a NOT_FOUND error.
+  // - If removing the entity would leave incoming references dangling (i.e.
+  //   they are still in use), the removal is not committed and a
+  //   FAILED_PRECONDITION error is returned.
+  // - Otherwise, the entity is removed and OK is returned.
+  absl::Status RemoveEntity(const ::p4::v1::Entity& entity);
+
+  // Attempts to update an existing entity in the checker.
+  // - If the original entity does not exist, returns a NOT_FOUND error.
+  // - If the update would introduce unsatisfied outgoing references, the update
+  //   is not committed and a FAILED_PRECONDITION error is returned.
+  // - Otherwise, the entity is updated and OK is returned.
+  absl::Status UpdateEntity(const ::p4::v1::Entity& entity);
+
+  // Checks internal invariants. Returns OK on success, or an internal error
+  // if invariants are violated.
+  // FOR TESTING ONLY.
+  absl::Status CheckInvariantsForTesting() const;
+
+ private:
+  IrP4Info info_;
+
+  struct ReferenceState {
+    // The number of entities that have an outgoing reference to this target.
+    int referrer_count = 0;
+    // The number of entities that satisfy (provide) this reference target.
+    int satisfying_count = 0;
+  };
+  // Maps a concrete reference tag to its current tracking state.
+  absl::flat_hash_map<ConcreteTableReference, ReferenceState>
+      concrete_reference_to_state_;
+
+  // Maps an EntityKey to its outgoing concrete table references.
+  absl::flat_hash_map<EntityKey, std::vector<ConcreteTableReference>>
+      entity_key_to_outgoing_references_;
+};
 
 }  // namespace pdpi
 

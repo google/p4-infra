@@ -24,12 +24,16 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "gutil/collections.h"
 #include "gutil/proto.h"
 #include "gutil/status.h"
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_pdpi/built_ins.h"
+#include "p4_pdpi/entity_keys.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/reference_annotations.h"
 #include "string_encodings/byte_string.h"
@@ -838,6 +842,219 @@ bool operator<(const ConcreteTableReference& lhs,
     return lhs.destination_table < rhs.destination_table;
   }
   return lhs.fields < rhs.fields;
+}
+
+absl::Status StatefulReferenceChecker::AddEntity(
+    const ::p4::v1::Entity& entity) {
+  ASSIGN_OR_RETURN(EntityKey key, EntityKey::MakeEntityKey(entity));
+  if (entity_key_to_outgoing_references_.contains(key)) {
+    return absl::AlreadyExistsError(
+        absl::StrCat("Entity already exists in P4 reference checker.\n",
+                     gutil::PrintTextProto(entity)));
+  }
+
+  // Gather needed references.
+  ASSIGN_OR_RETURN(auto outgoing_table_refs,
+                   GetOutgoingTableReferences(info_, entity));
+  std::vector<ConcreteTableReference> needed_references;
+  for (const auto& table_ref : outgoing_table_refs) {
+    ASSIGN_OR_RETURN(auto outgoing_references,
+                     OutgoingConcreteTableReferences(table_ref, entity));
+    for (const auto& reference : outgoing_references) {
+      needed_references.push_back(reference);
+    }
+  }
+
+  // Pre-validate: Check if all needed concrete references are satisfied.
+  std::vector<ConcreteTableReference> missing_references;
+  for (const auto& reference : needed_references) {
+    if (!concrete_reference_to_state_.contains(reference)) {
+      missing_references.push_back(reference);
+    }
+  }
+
+  if (!missing_references.empty()) {
+    return absl::FailedPreconditionError(
+        absl::StrCat("Addition aborted. When trying to add entity:\n ",
+                     gutil::PrintTextProto(entity),
+                     "\n found unsatisfied outgoing references:\n  ",
+                     absl::StrJoin(missing_references, "\n  ")));
+  }
+
+  // Gather provided references.
+  ASSIGN_OR_RETURN(auto incoming_table_refs,
+                   GetIncomingTableReferences(info_, entity));
+  std::vector<ConcreteTableReference> provided_references;
+  for (const auto& table_ref : incoming_table_refs) {
+    ASSIGN_OR_RETURN(
+        auto incoming_references,
+        PossibleIncomingConcreteTableReferences(table_ref, entity));
+    for (const auto& reference : incoming_references) {
+      provided_references.push_back(reference);
+    }
+  }
+
+  // Commit the addition.
+  for (const auto& reference : needed_references) {
+    concrete_reference_to_state_[reference].referrer_count++;
+  }
+  for (const auto& reference : provided_references) {
+    concrete_reference_to_state_[reference].satisfying_count++;
+  }
+  entity_key_to_outgoing_references_[key] = needed_references;
+  return absl::OkStatus();
+}
+
+absl::Status StatefulReferenceChecker::RemoveEntity(
+    const ::p4::v1::Entity& entity) {
+  ASSIGN_OR_RETURN(EntityKey key, EntityKey::MakeEntityKey(entity));
+  if (!entity_key_to_outgoing_references_.contains(key)) {
+    return absl::NotFoundError(
+        absl::StrCat("Entity not found in P4 reference checker.\n",
+                     gutil::PrintTextProto(entity)));
+  }
+
+  // Gather all satisfied references provided by this entity
+  ASSIGN_OR_RETURN(auto incoming_table_refs,
+                   GetIncomingTableReferences(info_, entity));
+  std::vector<ConcreteTableReference> satisfied_references;
+  for (const auto& table_ref : incoming_table_refs) {
+    ASSIGN_OR_RETURN(
+        auto incoming_references,
+        PossibleIncomingConcreteTableReferences(table_ref, entity));
+    for (const auto& reference : incoming_references) {
+      satisfied_references.push_back(reference);
+    }
+  }
+
+  // Pre-validate: If satisfying count drops to 0 and there are referrers, they
+  // will generate dangling references.
+  std::vector<ConcreteTableReference> dangling_refs;
+  for (const auto& reference : satisfied_references) {
+    if (concrete_reference_to_state_.at(reference).referrer_count > 0 &&
+        concrete_reference_to_state_.at(reference).satisfying_count == 1) {
+      dangling_refs.push_back(reference);
+    }
+  }
+
+  if (!dangling_refs.empty()) {
+    return absl::FailedPreconditionError(
+        absl::StrCat("Removal aborted. When trying to remove entity:\n ",
+                     gutil::PrintTextProto(entity),
+                     "\n dectected new dangling incoming references:\n  ",
+                     absl::StrJoin(dangling_refs, "\n  ")));
+  }
+
+  // Use pre-computed needed references.
+  const std::vector<ConcreteTableReference>& needed_references =
+      entity_key_to_outgoing_references_.at(key);
+
+  // Commit the actual removal.
+  for (const auto& reference : needed_references) {
+    concrete_reference_to_state_[reference].referrer_count--;
+  }
+  for (const auto& reference : satisfied_references) {
+    concrete_reference_to_state_.at(reference).satisfying_count--;
+    if (concrete_reference_to_state_.at(reference).satisfying_count == 0) {
+      concrete_reference_to_state_.erase(reference);
+    }
+  }
+  entity_key_to_outgoing_references_.erase(key);
+  return absl::OkStatus();
+}
+
+absl::Status StatefulReferenceChecker::UpdateEntity(
+    const ::p4::v1::Entity& entity) {
+  ASSIGN_OR_RETURN(EntityKey key, EntityKey::MakeEntityKey(entity));
+  if (!entity_key_to_outgoing_references_.contains(key)) {
+    return absl::NotFoundError(
+        absl::StrCat("Entity not found in P4 reference checker.\n",
+                     gutil::PrintTextProto(entity)));
+  }
+
+  // Precompute the new required outgoing references.
+  ASSIGN_OR_RETURN(auto outgoing_table_refs,
+                   GetOutgoingTableReferences(info_, entity));
+  std::vector<ConcreteTableReference> needed_references;
+  for (const auto& table_ref : outgoing_table_refs) {
+    ASSIGN_OR_RETURN(auto outgoing_references,
+                     OutgoingConcreteTableReferences(table_ref, entity));
+    for (const auto& reference : outgoing_references) {
+      needed_references.push_back(reference);
+    }
+  }
+
+  // Pre-validate: Check if all needed concrete references are satisfied.
+  std::vector<ConcreteTableReference> missing_refs;
+  for (const auto& reference : needed_references) {
+    if (!concrete_reference_to_state_.contains(reference)) {
+      missing_refs.push_back(reference);
+    }
+  }
+
+  if (!missing_refs.empty()) {
+    return absl::FailedPreconditionError(
+        absl::StrCat("Update aborted. When trying to update entity:\n ",
+                     gutil::PrintTextProto(entity),
+                     ", found unsatisfied outgoing references:\n",
+                     absl::StrJoin(missing_refs, "\n  ")));
+  }
+
+  // Use pre-computed old references.
+  const std::vector<ConcreteTableReference>& old_references =
+      entity_key_to_outgoing_references_.at(key);
+
+  // Commit the update
+  for (const auto& reference : old_references) {
+    concrete_reference_to_state_[reference].referrer_count--;
+  }
+  for (const auto& reference : needed_references) {
+    concrete_reference_to_state_[reference].referrer_count++;
+  }
+  entity_key_to_outgoing_references_[key] = needed_references;
+  return absl::OkStatus();
+}
+
+absl::Status StatefulReferenceChecker::CheckInvariantsForTesting() const {
+  absl::flat_hash_map<ConcreteTableReference, int> expected_referrer_counts;
+  for (const auto& [key, needed_references] :
+       entity_key_to_outgoing_references_) {
+    for (const auto& reference : needed_references) {
+      expected_referrer_counts[reference]++;
+    }
+  }
+
+  for (const auto& [reference, state] : concrete_reference_to_state_) {
+    if (state.satisfying_count < 1) {
+      return absl::InternalError(absl::StrFormat(
+          "Invariant failed: reference %v has satisfying_count = %d. "
+          "Every tracked reference must be satisfied by at least one entity in "
+          "the checker; otherwise, it should have been erased.",
+          reference, state.satisfying_count));
+    }
+    int expected_count = 0;
+    if (auto it = expected_referrer_counts.find(reference);
+        it != expected_referrer_counts.end()) {
+      expected_count = it->second;
+    }
+    if (state.referrer_count != expected_count) {
+      return absl::InternalError(absl::StrFormat(
+          "Invariant failed: reference %v has referrer_count = %d, but "
+          "expected %d",
+          reference, state.referrer_count, expected_count));
+    }
+  }
+
+  for (const auto& [reference, count] : expected_referrer_counts) {
+    if (!concrete_reference_to_state_.contains(reference)) {
+      return absl::InternalError(absl::StrFormat(
+          "Invariant failed: reference %v is needed %d times but not present "
+          "in concrete_reference_to_state_",
+          reference, count));
+    }
+  }
+
+  return absl::OkStatus();
 }
 
 }  // namespace pdpi
