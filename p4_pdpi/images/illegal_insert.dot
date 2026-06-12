@@ -1,0 +1,19 @@
+digraph IllegalInsert {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", shape=box, style=filled, width=1.6,
+        fillcolor="#f1f3f4", color="#5f6368"];
+  edge [fontname="sans-serif", color="#5f6368"];
+
+  subgraph cluster_illegal_insert {
+    label = "Illegal Insert / Modify";
+    style = rounded;
+    bgcolor = "#fce8e6";
+    color = "#c5221f";
+    A2 [label="Entry A\n(Source)"];
+    B2 [label="Missing Entry B", style="filled,dashed",
+        fillcolor="#f1f3f4", fontcolor="#5f6368"];
+    A2 -> B2 [label=" dangling ref! ", color="#c5221f",
+              fontcolor="#c5221f"];
+  }
+}

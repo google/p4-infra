@@ -1,0 +1,24 @@
+digraph ReferenceDirection {
+  rankdir=TB;
+  fontname="sans-serif";
+  node [fontname="sans-serif", shape=box, style=filled,
+        fillcolor="#f1f3f4", color="#5f6368"];
+  edge [fontname="sans-serif", color="#5f6368"];
+
+  src [label="Referring Entity (Source)"];
+  dst [label="Referenced Entity (Destination)"];
+  outRef [label="Specific Outgoing Reference\n(A Single Need)"];
+  inRef [label="Exhaustive Incoming References\n(All Possibilities)"];
+  eq [label="Found In Set?\n(Need ∈ Possibilities)", shape=diamond,
+      fillcolor="#e8f0fe", color="#1a73e8"];
+  match [label="Valid Target For This Need", fillcolor="#e6f4ea",
+         color="#137333"];
+
+  src -> outRef [label=" Generates ", fontsize=10, fontcolor="#5f6368",
+                 style=dashed];
+  dst -> inRef [label=" Generates ", fontsize=10, fontcolor="#5f6368",
+                style=dashed];
+  outRef -> eq:w;
+  inRef -> eq:e;
+  eq -> match [label=" Yes ", fontsize=10, fontcolor="#137333"];
+}

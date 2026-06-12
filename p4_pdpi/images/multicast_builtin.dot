@@ -1,0 +1,25 @@
+digraph ActionRef {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", fontsize=11, shape=box, style="rounded,filled",
+        penwidth=1.2, width=3.4, fillcolor="#ffffff", color="#5f6368"];
+
+  subgraph cluster_entry_3 {
+    label = "Table Entry A";
+    fontsize = 12; fontcolor = "#5f6368";
+    style = rounded; bgcolor = "#f1f3f4"; color = "#bdc1c6";
+    Action3 [label="set_class\nclass_id = \"taco\""];
+    Match3 [label="Match Fields\nvrf_id = 10"];
+  }
+
+  subgraph cluster_out_3 {
+    label = "Generated outgoing references";
+    fontsize = 12; fontcolor = "#1a73e8";
+    style = rounded; bgcolor = "#f8f9fa"; color = "#80868b";
+    R3 [fillcolor="#f3e8fd", color="#7627bb", fontcolor="#7627bb",
+        label="Table A → Table B\nvrf_id → vrf_id : 10\nset_class.class_id → class_id : \"taco\""];
+  }
+
+  Action3 -> R3 [style=invis];
+  Match3 -> R3 [style=invis];
+}

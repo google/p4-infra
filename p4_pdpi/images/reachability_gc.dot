@@ -1,0 +1,42 @@
+digraph MinimalReachability {
+  rankdir=LR;
+  nodesep=0.4;
+  ranksep=0.6;
+  node [shape=circle, style=filled, fontname="Roboto, Arial", fontsize=10,
+        width=1.0, fixedsize=true];
+  edge [color="#424242", arrowsize=0.7];
+
+  // Self-sustaining root nodes
+  R_src [label="Root", fillcolor="#1976d2", fontcolor="white",
+         color="#0d47a1"];
+  R_dst [label="Root", fillcolor="#1976d2", fontcolor="white",
+         color="#0d47a1"];
+  R_iso [label="Root", fillcolor="#1976d2", fontcolor="white",
+         color="#0d47a1"];
+
+  // Reachable non-root nodes
+  N1 [label="Non-Root", fillcolor="#2e7d32", fontcolor="white",
+      color="#1b5e20"];
+  N2 [label="Non-Root", fillcolor="#2e7d32", fontcolor="white",
+      color="#1b5e20"];
+
+  // Unreachable non-root nodes (Garbage)
+  G1 [label="Non-Root\n[Garbage]", fillcolor="#ffebee", fontcolor="#b71c1c",
+      color="#c62828", style="filled,dotted"];
+  G2 [label="Non-Root\n[Garbage]", fillcolor="#ffebee", fontcolor="#b71c1c",
+      color="#c62828", style="filled,dotted"];
+
+  // Row 1: Active reachability chain
+  R_src -> R_dst;
+  R_dst -> N1;
+  N1 -> N2;
+
+  // Row 2: Unreachable garbage chain & isolated root
+  G1 -> G2;
+
+  // Compact 2-row vertical alignment constraints
+  R_src -> R_iso [style=invis];
+  R_dst -> G1 [style=invis];
+  N1 -> G2 [style=invis];
+  R_iso -> G1 [style=invis];
+}

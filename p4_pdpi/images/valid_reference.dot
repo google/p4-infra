@@ -1,0 +1,18 @@
+digraph ValidReference {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", shape=box, style=filled, width=1.6,
+        fillcolor="#f1f3f4", color="#5f6368"];
+  edge [fontname="sans-serif", color="#5f6368"];
+
+  subgraph cluster_valid {
+    label = "Valid State";
+    style = rounded;
+    bgcolor = "#e6f4ea";
+    color = "#137333";
+    A1 [label="Entry A\n(Source)"];
+    B1 [label="Entry B\n(Destination)"];
+    A1 -> B1 [label=" refers to ", color="#137333",
+              fontcolor="#137333"];
+  }
+}

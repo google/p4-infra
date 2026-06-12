@@ -1,0 +1,25 @@
+digraph OptPresent {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", fontsize=11, shape=box, style="rounded,filled",
+        penwidth=1.2, width=3.4, fillcolor="#ffffff", color="#5f6368"];
+
+  subgraph cluster_entry_1 {
+    label = "Table Entry A";
+    fontsize = 12; fontcolor = "#5f6368";
+    style = rounded; bgcolor = "#f1f3f4"; color = "#bdc1c6";
+    Action1 [label="drop"];
+    Match1 [label="Match Fields\nvrf_id = 10\nopt_tag = 100"];
+  }
+
+  subgraph cluster_out_1 {
+    label = "Generated outgoing references";
+    fontsize = 12; fontcolor = "#1a73e8";
+    style = rounded; bgcolor = "#f8f9fa"; color = "#80868b";
+    R1 [fillcolor="#e8f0fe", color="#1a73e8", fontcolor="#1a73e8",
+        label="Table A → Table B\nvrf_id → vrf_id : 10\nopt_tag → tag_id : 100"];
+  }
+
+  Action1 -> R1 [style=invis];
+  Match1 -> R1 [style=invis];
+}

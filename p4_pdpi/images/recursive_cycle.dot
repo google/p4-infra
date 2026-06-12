@@ -1,0 +1,25 @@
+digraph OptOmitted {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", fontsize=11, shape=box, style="rounded,filled",
+        penwidth=1.2, width=3.4, fillcolor="#ffffff", color="#5f6368"];
+
+  subgraph cluster_entry_2 {
+    label = "Table Entry A";
+    fontsize = 12; fontcolor = "#5f6368";
+    style = rounded; bgcolor = "#f1f3f4"; color = "#bdc1c6";
+    Action2 [label="drop"];
+    Match2 [label="Match Fields\nvrf_id = 10"];
+  }
+
+  subgraph cluster_out_2 {
+    label = "Generated outgoing references";
+    fontsize = 12; fontcolor = "#1a73e8";
+    style = rounded; bgcolor = "#f8f9fa"; color = "#80868b";
+    R2 [fillcolor="#e6f4ea", color="#137333", fontcolor="#137333",
+        label="Table A → Table B\nvrf_id → vrf_id : 10"];
+  }
+
+  Action2 -> R2 [style=invis];
+  Match2 -> R2 [style=invis];
+}

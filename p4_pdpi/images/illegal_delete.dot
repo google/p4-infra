@@ -1,0 +1,18 @@
+digraph IllegalDelete {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", shape=box, style=filled, width=1.6,
+        fillcolor="#f1f3f4", color="#5f6368"];
+  edge [fontname="sans-serif", color="#5f6368"];
+
+  subgraph cluster_illegal_delete {
+    label = "Illegal Delete";
+    style = rounded;
+    bgcolor = "#fce8e6";
+    color = "#c5221f";
+    A3 [label="Entry A\n(Source)"];
+    B3 [label="Deleting Entry B", fillcolor="#fad2cf"];
+    A3 -> B3 [label=" active ref! ", color="#c5221f",
+              fontcolor="#c5221f"];
+  }
+}

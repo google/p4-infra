@@ -1,0 +1,50 @@
+digraph IncomingReferences {
+  rankdir=LR;
+  fontname="sans-serif";
+  node [fontname="sans-serif", fontsize=11, shape=box, style="rounded,filled",
+        penwidth=1.2, width=3.4, fillcolor="#ffffff", color="#5f6368"];
+
+  subgraph cluster_entry_b {
+    label = "Table Entry B";
+    fontsize = 12; fontcolor = "#5f6368";
+    style = rounded; bgcolor = "#f1f3f4"; color = "#bdc1c6";
+    ActionB [label="drop"];
+    MatchB [label="Match Fields\nvrf_id = 10\ntag_id = 100\nclass_id = \"taco\"\nport_id = \"eth0\""];
+  }
+
+  subgraph cluster_in_b {
+    label = "Satisfiable incoming references";
+    fontsize = 12; fontcolor = "#1a73e8";
+    style = rounded; bgcolor = "#f8f9fa"; color = "#80868b";
+
+    InB9 [fillcolor="#fce8e6", color="#c5221f", fontcolor="#c5221f",
+          label="Group Table A → Table B\nvrf_id → vrf_id : 10"];
+
+    InB8 [fillcolor="#e0f2f1", color="#00796b", fontcolor="#00796b",
+          label="Group Table A → Table B\nvrf_id → vrf_id : 10\nroute.port_id → port_id : \"eth0\""];
+
+    InB7 [fillcolor="#fef7e0", color="#b06000", fontcolor="#b06000",
+          label="Group Table A → Table B\nvrf_id → vrf_id : 10\nset_class.class_id → class_id : \"taco\""];
+
+    InB6 [fillcolor="#f1f3f4", color="#bdc1c6", fontcolor="#5f6368",
+          label="Table A → Table B\nvrf_id → vrf_id : 10\nroute.port_id → port_id : \"eth0\""];
+
+    InB5 [fillcolor="#f3e8fd", color="#7627bb", fontcolor="#7627bb",
+          label="Table A → Table B\nvrf_id → vrf_id : 10\nset_class.class_id → class_id : \"taco\""];
+
+    InB4 [fillcolor="#e6f4ea", color="#137333", fontcolor="#137333",
+          label="Table A → Table B\nvrf_id → vrf_id : 10"];
+
+    InB3 [fillcolor="#f1f3f4", color="#bdc1c6", fontcolor="#5f6368",
+          label="Table A → Table B\nvrf_id → vrf_id : 10\nopt_tag → tag_id : 100\nroute.port_id → port_id : \"eth0\""];
+
+    InB2 [fillcolor="#f1f3f4", color="#bdc1c6", fontcolor="#5f6368",
+          label="Table A → Table B\nvrf_id → vrf_id : 10\nopt_tag → tag_id : 100\nset_class.class_id → class_id : \"taco\""];
+
+    InB1 [fillcolor="#e8f0fe", color="#1a73e8", fontcolor="#1a73e8",
+          label="Table A → Table B\nvrf_id → vrf_id : 10\nopt_tag → tag_id : 100"];
+  }
+
+  MatchB -> InB1 [style=invis];
+  ActionB -> InB9 [style=invis];
+}
