@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@gutil//gutil:diff_test.bzl", "cmd_diff_test", "diff_test")
 load("@gutil//gutil/embed_data:build_defs.bzl", "cc_embed_data")
 load("@p4c//bazel:p4_library.bzl", "p4_library")
@@ -1036,4 +1037,10 @@ cc_test(
         "@gutil//gutil:status_matchers",
         "@p4runtime//proto/p4/v1:p4runtime_cc_proto",
     ],
+)
+
+bzl_library(
+    name = "pdgen_bzl",
+    srcs = ["pdgen.bzl"],
+    parse_tests = False,
 )
