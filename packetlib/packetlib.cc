@@ -62,7 +62,7 @@ struct UnsupportedNextHeader {
 };
 
 // Encodes header, if any, that should follow the current header.
-using NextHeader = absl::variant<
+using NextHeader = std::variant<
     // A supported next header, or no next header (encoded as HEADER_NOT_SET) if
     // the previous header was the final one before the payload.
     Header::HeaderCase,
