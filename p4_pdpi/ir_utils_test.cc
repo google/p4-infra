@@ -14,8 +14,7 @@
 
 #include "p4_pdpi/ir_utils.h"
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -41,6 +40,8 @@ using ::google::protobuf::util::MessageDifferencer;
 using ::gutil::EqualsProto;
 using ::gutil::IsOkAndHolds;
 using ::gutil::StatusIs;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 TEST(StringToIrValueTest, Okay) {
   std::vector<std::tuple<std::string, Format, std::string>> testcases = {
@@ -705,6 +706,34 @@ TEST(ShortDescriptiontest, TranslatesIrTableEntryWithConsistentOrdering) {
   *entry312.mutable_action_set()->add_actions() = action312;
 
   EXPECT_EQ(ShortDescription(entry123), ShortDescription(entry312));
+}
+
+TEST(ReadableWriteResponseTest, ReturnsReadableMessage) {
+  ASSERT_OK_AND_ASSIGN(auto response,
+                       gutil::ParseTextProto<pdpi::IrWriteResponse>(R"pb(
+                         statuses { code: OK }
+                         statuses { code: OK }
+                         statuses { code: OK }
+                         statuses { code: INTERNAL message: "Failed" }
+                         statuses { code: INTERNAL message: "Failed" }
+                         statuses { code: INTERNAL message: "Failed2" }
+                         statuses { code: UNAVAILABLE message: "Failed2" }
+                         statuses { code: UNAVAILABLE message: "Failed2" }
+                       )pb"));
+  EXPECT_EQ(IrWriteResponseToReadableMessage(response),
+            "Batch failed, individual results:\n"
+            "#1-#3: OK\n"
+            "#4-#5: INTERNAL: Failed\n"
+            "#6: INTERNAL: Failed2\n"
+            "#7-#8: UNAVAILABLE: Failed2\n");
+}
+
+TEST(BatchInstallSummaryTest, ReturnsSummary) {
+  EXPECT_THAT(BatchInstallSummary(R"(#1-#2: OK
+#3: RESOURCE_EXHAUSTED: [SAI] Failed to create ACL entry in table ...
+#4: ABORTED: [OrchAgent] SWSS_RC_NOT_EXECUTED)"),
+              UnorderedElementsAre(Pair("OK", 2), Pair("RESOURCE_EXHAUSTED", 1),
+                                   Pair("ABORTED", 1)));
 }
 
 }  // namespace

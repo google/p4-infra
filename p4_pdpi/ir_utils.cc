@@ -31,6 +31,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -54,16 +55,34 @@
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/translation_options.h"
+#include "re2/re2.h"
 #include "string_encodings/byte_string.h"
 #include "utf8_validity.h"
 
 namespace pdpi {
+namespace {
 
 using ::netaddr::Ipv4Address;
 using ::netaddr::Ipv6Address;
 using ::netaddr::MacAddress;
 using ::pdpi::Format;
 using ::pdpi::IrValue;
+
+// Appends a message to `out` that is formatted as:
+//   #<start_index>-#<last_index>: <message>
+//
+// If the index is the same, then just the start index is used:
+//   #<start_index>: <message>
+void AppendRepeatedMessage(std::string& out, absl::string_view message,
+                           int start_index, int last_index) {
+  if (last_index > start_index) {
+    absl::StrAppend(&out, "#", start_index, "-#", last_index, ": ", message);
+  } else {
+    absl::StrAppend(&out, "#", start_index, ": ", message);
+  }
+}
+
+}  // namespace
 
 absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
     const std::string& bytes, int expected_bitwidth) {
@@ -501,21 +520,59 @@ std::string IrWriteResponseToReadableMessage(
   std::string readable_message;
   absl::StrAppend(&readable_message, "Batch failed, individual results:\n");
   int i = 1;
+  // These track the current repeated message and its first index. This is to
+  // compress the output if consecutive messages are the same.
+  std::string repeated_message;
+  int index_of_first_instance = 0;
   for (const auto& ir_update_status : ir_write_response.statuses()) {
-    absl::StrAppend(&readable_message, "#", i, ": ",
-                    absl::StatusCodeToString(static_cast<absl::StatusCode>(
-                        ir_update_status.code())));
+    std::string status_message = absl::StatusCodeToString(
+        static_cast<absl::StatusCode>(ir_update_status.code()));
     if (!ir_update_status.message().empty()) {
-      absl::StrAppend(&readable_message, ": ", ir_update_status.message(),
-                      "\n");
+      absl::StrAppend(&status_message, ": ", ir_update_status.message(), "\n");
     } else {
       // Insert a new line for OK status.
-      absl::StrAppend(&readable_message, "\n");
+      absl::StrAppend(&status_message, "\n");
+    }
+
+    // If the current message is different, append the previous messages.
+    if (repeated_message != status_message) {
+      if (index_of_first_instance != 0) {
+        // Since `i` is the current message, which is different, `i-1` is the
+        // last index of the repeated message.
+        AppendRepeatedMessage(readable_message, repeated_message,
+                              index_of_first_instance, i - 1);
+      }
+      repeated_message = status_message;
+      index_of_first_instance = i;
     }
     ++i;
   }
-
+  // Since this relies on a differing message to trigger the append, we need to
+  // append the last repeated messages explicitly.
+  AppendRepeatedMessage(readable_message, repeated_message,
+                        index_of_first_instance,
+                        ir_write_response.statuses().size());
   return readable_message;
+}
+
+absl::flat_hash_map<std::string, int> BatchInstallSummary(
+    absl::string_view install_status_message) {
+  static constexpr LazyRE2 kRangeRegex = {R"(#(\d+)-#(\d+))"};
+  absl::flat_hash_map<std::string, int> summary;
+  for (const auto& result :
+       absl::StrSplit(install_status_message, absl::ByAnyChar("\r\n"))) {
+    if (result.empty() || result[0] != '#') continue;
+    std::vector<std::string> split_result = absl::StrSplit(result, ':');
+    if (split_result.size() < 2) continue;
+    // If it contains a range, add the length of the range.
+    if (int first, last;
+        RE2::FullMatch(split_result[0], *kRangeRegex, &first, &last)) {
+      summary[absl::StripAsciiWhitespace(split_result[1])] += last - first + 1;
+    } else {
+      summary[absl::StripAsciiWhitespace(split_result[1])]++;
+    }
+  }
+  return summary;
 }
 
 std::string GenerateFormattedError(absl::string_view field,
