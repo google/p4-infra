@@ -15,6 +15,7 @@
 #include "p4_pdpi/p4info_union_lib.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -394,6 +395,12 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   RETURN_IF_ERROR(
       AssertIdsAreEqualForUnioning(action_profile, unioned_action_profile));
 
+  // Union the preambles so that annotations (such as `@required_modes(...)`)
+  // and other preamble metadata across action profiles with identical IDs
+  // are merged as sets.
+  RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
+      action_profile.preamble(), *unioned_action_profile.mutable_preamble()));
+
   // Selector size semantic relationships:
   // NOT_SET == kSumOfWeights (P4RT Spec makes these equivalent)
   // kSumOfWeights is generally less permissive than kSumOfMembers (in terms of
@@ -416,10 +423,14 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
                  action_profile.sum_of_members().max_member_weight()));
   }
 
-  if (auto diff_result = DiffMessages(
-          action_profile, unioned_action_profile,
-          /*ignored_fields=*/
-          {"size", "max_group_size", "sum_of_weights", "sum_of_members"});
+  // We ignore "preamble" during diffing because it was already unioned and
+  // validated above (which may have merged annotations that differ from
+  // `action_profile`).
+  if (auto diff_result =
+          DiffMessages(action_profile, unioned_action_profile,
+                       /*ignored_fields=*/
+                       {"size", "max_group_size", "sum_of_weights",
+                        "sum_of_members", "preamble"});
       diff_result.has_value()) {
     return absl::InvalidArgumentError(absl::Substitute(
         "action profiles with identical id '$0' were incompatible. "
