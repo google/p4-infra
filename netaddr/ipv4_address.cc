@@ -71,4 +71,16 @@ std::string Ipv4Address::ToString() const {
   return absl::StrFormat("%d.%d.%d.%d", byte4, byte3, byte2, byte1);
 }
 
+bool Ipv4Address::IsUnicast() const {
+  std::bitset<8> ipv4_top_8_bits = (ToBitset() >> 24).to_ulong();
+  // IPv4 multicast address ranges from 224.0.0.0/4 to 239.255.255.255/4.
+  return (ipv4_top_8_bits.to_ulong() & 0xF0) != 224;
+}
+
+bool Ipv4Address::IsMulticast() const {
+  std::bitset<8> ipv4_top_8_bits = (ToBitset() >> 24).to_ulong();
+  // IPv4 multicast address ranges from 224.0.0.0/4 to 239.255.255.255/4.
+  return (ipv4_top_8_bits.to_ulong() & 0xF0) == 224;
+}
+
 }  // namespace netaddr

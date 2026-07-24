@@ -15,8 +15,10 @@
 #ifndef P4_INFRA_NETADDR_IPV4_ADDRESS_H_
 #define P4_INFRA_NETADDR_IPV4_ADDRESS_H_
 
+#include <bitset>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -47,6 +49,17 @@ class Ipv4Address : public NetworkAddress<32, Ipv4Address> {
 
   // Returns IP address in dot-decimal notation, e.g. "192.168.2.1".
   std::string ToString() const;
+
+  // Returns true if the IPv4 address is a unicast address.
+  // RFC 6034, Section 4 defines that IPv4 multicast address ranges from
+  // 224.0.0.0/4 to 239.255.255.255/4. IPv4 broadcast address is
+  // 255.255.255.255. All other addresses are unicast addresses.
+  bool IsUnicast() const;
+
+  // Returns true if the IPv4 address is a multicast address.
+  // RFC 6034, Section 4 defines that IPv4 multicast address ranges from
+  // 224.0.0.0/4 to 239.255.255.255/4.
+  bool IsMulticast() const;
 };
 
 }  // namespace netaddr

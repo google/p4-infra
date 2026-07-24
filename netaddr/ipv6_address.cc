@@ -73,4 +73,18 @@ int Ipv6Address::MinimumMaskLength() const {
   return 0;
 }
 
+bool Ipv6Address::IsUnicast() const {
+  std::bitset<128> ipv6_bits = ToBitset();
+  std::bitset<8> ipv6_top_8_bits = (ipv6_bits >> 120).to_ulong();
+  // IPv6 multicast address prefix is ff00::/8.
+  return ipv6_top_8_bits.to_ulong() != 0xFF;
+}
+
+bool Ipv6Address::IsMulticast() const {
+  std::bitset<128> ipv6_bits = ToBitset();
+  std::bitset<8> ipv6_top_8_bits = (ipv6_bits >> 120).to_ulong();
+  // IPv6 multicast address prefix is ff00::/8.
+  return ipv6_top_8_bits.to_ulong() == 0xFF;
+}
+
 }  // namespace netaddr
