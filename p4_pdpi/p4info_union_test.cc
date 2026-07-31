@@ -123,5 +123,60 @@ TEST(P4InfoUnionTest, PlatformPropertiesUseMax) {
   EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
 }
 
+TEST(P4InfoUnionTest, ActionProfilePreamblesAreUnioned) {
+  std::vector<p4::config::v1::P4Info> infos(2);
+  auto* ap1 = infos[0].add_action_profiles();
+  ap1->mutable_preamble()->set_id(100);
+  ap1->mutable_preamble()->set_name("wcmp_group_selector");
+  ap1->mutable_preamble()->add_annotations("@annotation_a");
+
+  auto* ap2 = infos[1].add_action_profiles();
+  ap2->mutable_preamble()->set_id(100);
+  ap2->mutable_preamble()->set_name("wcmp_group_selector");
+  ap2->mutable_preamble()->add_annotations("@annotation_b");
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info(infos));
+
+  ASSERT_EQ(unioned_p4info.action_profiles_size(), 1);
+  const auto& unioned_ap = unioned_p4info.action_profiles(0);
+  EXPECT_THAT(unioned_ap.preamble().annotations(),
+              testing::UnorderedElementsAreArray(
+                  std::vector<std::string>{"@annotation_a", "@annotation_b"}));
+}
+
+TEST(P4InfoUnionTest, StructuredAnnotationsAreUnioned) {
+  std::vector<p4::config::v1::P4Info> infos(2);
+  auto* ap1 = infos[0].add_action_profiles();
+  ap1->mutable_preamble()->set_id(100);
+  ap1->mutable_preamble()->set_name("wcmp_group_selector");
+  auto* sa1 = ap1->mutable_preamble()->add_structured_annotations();
+  sa1->set_name("required_modes");
+  auto* kv1 = sa1->mutable_kv_pair_list()->add_kv_pairs();
+  kv1->set_key("action_selection_mode");
+  kv1->mutable_value()->set_string_value("HASH");
+
+  auto* ap2 = infos[1].add_action_profiles();
+  ap2->mutable_preamble()->set_id(100);
+  ap2->mutable_preamble()->set_name("wcmp_group_selector");
+  // Add identical sa1 (should be deduplicated).
+  *ap2->mutable_preamble()->add_structured_annotations() = *sa1;
+  // Add distinct sa2.
+  auto* sa2 = ap2->mutable_preamble()->add_structured_annotations();
+  sa2->set_name("required_modes");
+  auto* kv2 = sa2->mutable_kv_pair_list()->add_kv_pairs();
+  kv2->set_key("action_selection_mode");
+  kv2->mutable_value()->set_string_value("RANDOM");
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info(infos));
+
+  ASSERT_EQ(unioned_p4info.action_profiles_size(), 1);
+  const auto& unioned_ap = unioned_p4info.action_profiles(0);
+  EXPECT_EQ(unioned_ap.preamble().structured_annotations_size(), 2);
+  EXPECT_THAT(unioned_ap.preamble().structured_annotations(),
+              testing::UnorderedPointwise(gutil::EqualsProto(), {*sa1, *sa2}));
+}
+
 }  // namespace
 }  // namespace pdpi
