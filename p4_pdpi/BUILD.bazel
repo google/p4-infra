@@ -548,6 +548,17 @@ cc_library(
     deps = ["@abseil-cpp//absl/strings:str_format"],
 )
 
+proto_library(
+    name = "action_profile_mode_proto",
+    srcs = ["action_profile_mode.proto"],
+    deps = ["@p4runtime//proto/p4/config/v1:p4info_proto"],
+)
+
+cc_proto_library(
+    name = "action_profile_mode_cc_proto",
+    deps = [":action_profile_mode_proto"],
+)
+
 cc_library(
     name = "annotation_parser",
     srcs = [
