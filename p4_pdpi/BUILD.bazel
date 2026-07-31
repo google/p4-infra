@@ -560,6 +560,38 @@ cc_proto_library(
 )
 
 cc_library(
+    name = "action_profile_modes",
+    srcs = [
+        "action_profile_modes.cc",
+    ],
+    hdrs = [
+        "action_profile_modes.h",
+    ],
+    deps = [
+        ":action_profile_mode_cc_proto",
+        ":annotation_parser",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@p4runtime//proto/p4/config/v1:p4info_cc_proto",
+        "@p4runtime//proto/p4/config/v1:p4types_cc_proto",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "action_profile_modes_test",
+    srcs = ["action_profile_modes_test.cc"],
+    deps = [
+        ":action_profile_mode_cc_proto",
+        ":action_profile_modes",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status_matchers",
+        "@p4runtime//proto/p4/config/v1:p4info_cc_proto",
+        "@p4runtime//proto/p4/config/v1:p4types_cc_proto",
+    ],
+)
+
+cc_library(
     name = "annotation_parser",
     srcs = [
         "annotation_parser.cc",
