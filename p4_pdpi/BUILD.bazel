@@ -548,6 +548,16 @@ cc_library(
     deps = ["@abseil-cpp//absl/strings:str_format"],
 )
 
+proto_library(
+    name = "wcmp_group_mode_proto",
+    srcs = ["wcmp_group_mode.proto"],
+)
+
+cc_proto_library(
+    name = "wcmp_group_mode_cc_proto",
+    deps = [":wcmp_group_mode_proto"],
+)
+
 cc_library(
     name = "annotation_parser",
     srcs = [

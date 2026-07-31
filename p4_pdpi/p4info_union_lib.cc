@@ -15,6 +15,7 @@
 #include "p4_pdpi/p4info_union_lib.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -165,6 +166,17 @@ absl::Status MapUnionFirstRepeatedFieldIntoSecondById(
     const google::protobuf::RepeatedPtrField<T>& fields,
     google::protobuf::RepeatedPtrField<T>& unioned_fields);
 
+// Returns true if field `a` equals field `b`. For proto messages, performs a
+// structural comparison using MessageDifferencer; otherwise, uses `operator==`.
+template <typename T>
+bool FieldEquals(const T& a, const T& b) {
+  if constexpr (std::is_base_of_v<google::protobuf::Message, T>) {
+    return google::protobuf::util::MessageDifferencer::Equals(a, b);
+  } else {
+    return a == b;
+  }
+}
+
 // Unions repeated fields as though they were sets. Barring major changes to PD,
 // this should only be the right thing to do for fields without ids. Otherwise,
 // use MapUnionFirstRepeatedFieldIntoSecondById. This function should only be
@@ -176,7 +188,7 @@ absl::Status SetUnionFirstRepeatedFieldIntoSecond(const T& fields,
   for (const auto& field : fields) {
     bool field_exists = false;
     for (const auto& unioned_field : unioned_fields) {
-      if (field == unioned_field) {
+      if (FieldEquals(field, unioned_field)) {
         field_exists = true;
         break;
       }
@@ -267,10 +279,9 @@ absl::Status UnionFirstPkgInfoIntoSecond(
   return absl::OkStatus();
 }
 
-// Unions the annotations as though they were sets. Ignores the
-// annotation_locations (since we don't currently need them) and asserts that
-// there are no structured_annotations (returning an UnimplementedError
-// otherwise). Checks that everything else is equal.
+// Unions `annotations` and `structured_annotations` as though they were sets.
+// Ignores `annotation_locations` (since we don't currently need them).
+// Checks that everything else is equal.
 // Requires: GetId(preamble) == GetId(unioned_preamble)
 absl::Status UnionFirstPreambleIntoSecondAssertingIdenticalId(
     const p4::config::v1::Preamble& preamble,
@@ -279,22 +290,10 @@ absl::Status UnionFirstPreambleIntoSecondAssertingIdenticalId(
 
   RETURN_IF_ERROR(SetUnionFirstRepeatedFieldIntoSecond(
       preamble.annotations(), *unioned_preamble.mutable_annotations()));
+  RETURN_IF_ERROR(SetUnionFirstRepeatedFieldIntoSecond(
+      preamble.structured_annotations(),
+      *unioned_preamble.mutable_structured_annotations()));
   // `annotation_locations` are ignored.
-  // `structured_annotations` are asserted to be empty.
-  if (!preamble.structured_annotations().empty() ||
-      !unioned_preamble.structured_annotations().empty()) {
-    unioned_preamble.mutable_structured_annotations()->MergeFrom(
-        preamble.structured_annotations());
-    return absl::UnimplementedError(absl::Substitute(
-        "$0 failed since `structured_annotations` was not empty "
-        "for a field with id '$1'. `structured_annotations` = '$2'",
-        __func__, preamble.id(),
-        absl::StrJoin(unioned_preamble.structured_annotations(), ",",
-                      [](std::string* out,
-                         const p4::config::v1::StructuredAnnotation& element) {
-                        return absl::StrAppend(out, element.DebugString());
-                      })));
-  }
 
   return absl::OkStatus();
 }
@@ -394,6 +393,12 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   RETURN_IF_ERROR(
       AssertIdsAreEqualForUnioning(action_profile, unioned_action_profile));
 
+  // Union the preambles so that annotations (such as `@required_modes(...)`)
+  // and other preamble metadata across action profiles with identical IDs
+  // are merged as sets.
+  RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
+      action_profile.preamble(), *unioned_action_profile.mutable_preamble()));
+
   // Selector size semantic relationships:
   // NOT_SET == kSumOfWeights (P4RT Spec makes these equivalent)
   // kSumOfWeights is generally less permissive than kSumOfMembers (in terms of
@@ -416,10 +421,14 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
                  action_profile.sum_of_members().max_member_weight()));
   }
 
-  if (auto diff_result = DiffMessages(
-          action_profile, unioned_action_profile,
-          /*ignored_fields=*/
-          {"size", "max_group_size", "sum_of_weights", "sum_of_members"});
+  // We ignore "preamble" during diffing because it was already unioned and
+  // validated above (which may have merged annotations that differ from
+  // `action_profile`).
+  if (auto diff_result =
+          DiffMessages(action_profile, unioned_action_profile,
+                       /*ignored_fields=*/
+                       {"size", "max_group_size", "sum_of_weights",
+                        "sum_of_members", "preamble"});
       diff_result.has_value()) {
     return absl::InvalidArgumentError(absl::Substitute(
         "action profiles with identical id '$0' were incompatible. "
