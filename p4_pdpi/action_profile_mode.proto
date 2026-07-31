@@ -1,0 +1,52 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package pdpi;
+
+import "p4/config/v1/p4info.proto";
+
+// Supported or required ActionProfile group programming mode.
+message ActionProfileMode {
+  enum ActionSelectionMode {
+    UNDEFINED_ACTION_SELECTION_MODE = 0;
+    HASH = 1;
+    RANDOM = 2;
+  }
+  ActionSelectionMode action_selection_mode = 1;
+
+  // Size semantics specified by P4Runtime ActionProfile.
+  oneof size_semantics {
+    p4.config.v1.ActionProfile.SumOfWeights sum_of_weights = 2;
+    p4.config.v1.ActionProfile.SumOfMembers sum_of_members = 3;
+  }
+
+  // Defines how groups of particular modes use resources.
+  message ResourceUsageMultipliers {
+    // Multiplies the members used by a group of this type by this number.
+    // Affects the guarantee given by ActionProfile `size`.
+    // copybara:strip_begin
+    // On Broadcom switches that support it, Native WCMP member resources are
+    // multiplied by 4, while Legacy ECMP resources are multiplied by 1.
+    // copybara:strip_end
+    // If the field is not present, it is treated as 1.
+    optional int32 member_usage_multiplier = 1;
+  }
+  ResourceUsageMultipliers resource_usage_multipliers = 4;
+}
+
+message ActionProfileModes {
+  repeated ActionProfileMode action_profile_modes = 1;
+}
