@@ -416,10 +416,13 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
                  action_profile.sum_of_members().max_member_weight()));
   }
 
-  if (auto diff_result = DiffMessages(
-          action_profile, unioned_action_profile,
-          /*ignored_fields=*/
-          {"size", "max_group_size", "sum_of_weights", "sum_of_members"});
+  RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
+      action_profile.preamble(), *unioned_action_profile.mutable_preamble()));
+
+  if (auto diff_result = DiffMessages(action_profile, unioned_action_profile,
+                                      /*ignored_fields=*/
+                                      {"preamble", "size", "max_group_size",
+                                       "sum_of_weights", "sum_of_members"});
       diff_result.has_value()) {
     return absl::InvalidArgumentError(absl::Substitute(
         "action profiles with identical id '$0' were incompatible. "
