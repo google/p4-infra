@@ -32,6 +32,7 @@
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/config/v1/p4types.pb.h"
+#include "p4_pdpi/action_profile_modes.h"
 
 namespace pdpi {
 namespace {
@@ -43,6 +44,20 @@ absl::Status ContainsUnsupportedField(
     if (!info.externs().empty()) {
       return absl::UnimplementedError(
           "UnionP4Info can not union Extern field.");
+    }
+  }
+  return absl::OkStatus();
+}
+
+// Checks that the group mode annotations of all action profiles in `infos` are
+// well-formed and free of duplicates. Unioning drops duplicate annotations, so
+// this must happen before the action profiles are unioned.
+absl::Status ValidateActionProfileModes(
+    const std::vector<p4::config::v1::P4Info>& infos) {
+  for (const auto& info : infos) {
+    for (const auto& action_profile : info.action_profiles()) {
+      RETURN_IF_ERROR(
+          ParseRequiredModesFromActionProfile(action_profile).status());
     }
   }
   return absl::OkStatus();
@@ -416,10 +431,13 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
                  action_profile.sum_of_members().max_member_weight()));
   }
 
-  if (auto diff_result = DiffMessages(
-          action_profile, unioned_action_profile,
-          /*ignored_fields=*/
-          {"size", "max_group_size", "sum_of_weights", "sum_of_members"});
+  RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
+      action_profile.preamble(), *unioned_action_profile.mutable_preamble()));
+
+  if (auto diff_result = DiffMessages(action_profile, unioned_action_profile,
+                                      /*ignored_fields=*/
+                                      {"preamble", "size", "max_group_size",
+                                       "sum_of_weights", "sum_of_members"});
       diff_result.has_value()) {
     return absl::InvalidArgumentError(absl::Substitute(
         "action profiles with identical id '$0' were incompatible. "
@@ -498,6 +516,7 @@ absl::Status UnionFirstTypeInfoIntoSecond(
 absl::StatusOr<p4::config::v1::P4Info> UnionP4info(
     const std::vector<p4::config::v1::P4Info>& infos) {
   RETURN_IF_ERROR(ContainsUnsupportedField(infos));
+  RETURN_IF_ERROR(ValidateActionProfileModes(infos));
 
   p4::config::v1::P4Info unioned_info;
   for (const auto& info : infos) {
