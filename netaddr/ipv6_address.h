@@ -15,8 +15,10 @@
 #ifndef P4_INFRA_NETADDR_IPV6_ADDRESS_H_
 #define P4_INFRA_NETADDR_IPV6_ADDRESS_H_
 
+#include <bitset>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "absl/numeric/int128.h"
 #include "absl/status/statusor.h"
@@ -64,6 +66,16 @@ class Ipv6Address : public NetworkAddress<128, Ipv6Address> {
   // starting from the most-significant-bit in the IPv6 address (left-to-right
   // in the string format).
   int MinimumMaskLength() const;
+
+  // Returns true if the IPv6 address is a unicast address.
+  // RFC 3306, Section 4 defines that IPv6 multicast address prefix is
+  // ff00::/8. All other addresses are unicast addresses.
+  bool IsUnicast() const;
+
+  // Returns true if the IPv6 address is a multicast address.
+  // RFC 3306, Section 4 defines that IPv6 multicast address prefix is
+  // ff00::/8.
+  bool IsMulticast() const;
 };
 
 }  // namespace netaddr
