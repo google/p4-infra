@@ -123,5 +123,33 @@ TEST(P4InfoUnionTest, PlatformPropertiesUseMax) {
   EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
 }
 
+TEST(P4InfoUnionTest, ActionProfilePreamblesAreUnioned) {
+  std::vector<p4::config::v1::P4Info> infos(2);
+  auto* ap1 = infos[0].add_action_profiles();
+  ap1->mutable_preamble()->set_id(100);
+  ap1->mutable_preamble()->set_name("wcmp_group_selector");
+  ap1->mutable_preamble()->add_annotations(
+      "@required_modes({\"HASH\", \"sum_of_weights: 1\", \"0\"})");
+
+  auto* ap2 = infos[1].add_action_profiles();
+  ap2->mutable_preamble()->set_id(100);
+  ap2->mutable_preamble()->set_name("wcmp_group_selector");
+  ap2->mutable_preamble()->add_annotations(
+      "@required_modes({\"HASH\", \"sum_of_members: 1\", \"4095\"}, "
+      "{\"HASH\", \"sum_of_weights: 1\", \"0\"})");
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info(infos));
+
+  ASSERT_EQ(unioned_p4info.action_profiles_size(), 1);
+  const auto& unioned_ap = unioned_p4info.action_profiles(0);
+  EXPECT_THAT(
+      unioned_ap.preamble().annotations(),
+      testing::UnorderedElementsAreArray(std::vector<std::string>{
+          "@required_modes({\"HASH\", \"sum_of_weights: 1\", \"0\"})",
+          "@required_modes({\"HASH\", \"sum_of_members: 1\", \"4095\"}, "
+          "{\"HASH\", \"sum_of_weights: 1\", \"0\"})"}));
+}
+
 }  // namespace
 }  // namespace pdpi
