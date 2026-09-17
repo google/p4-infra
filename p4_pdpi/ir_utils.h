@@ -15,11 +15,11 @@
 #ifndef P4_INFRA_P4_PDPI_IR_UTILS_H_
 #define P4_INFRA_P4_PDPI_IR_UTILS_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -63,7 +63,7 @@ constexpr absl::string_view kIndent = "  ";
 // Returns the format for value, given the annotations on it, it's bitwidth
 // and named type (if any).
 absl::StatusOr<Format> GetFormat(const std::vector<std::string>& annotations,
-                                 const int bitwidth, bool is_sdn_string);
+                                 int bitwidth, bool is_sdn_string);
 
 // Checks if the IrValue in the IR table entry is in the same format as
 // specified in the P4Info. If "allow_arbitrary_format" in the translation
@@ -73,11 +73,11 @@ absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
 
 // Converts the IR value to a PI byte string and returns it.
 absl::StatusOr<std::string> IrValueToNormalizedByteString(
-    const IrValue& ir_value, const int bitwidth);
+    const IrValue& ir_value, int bitwidth);
 
 // Converts the PI value to an IR value and returns it.
 absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
-                                                     const int bitwidth,
+                                                     int bitwidth,
                                                      const std::string& bytes);
 
 // Returns an IrValue based on a string value and a format. The value is
@@ -134,6 +134,21 @@ absl::Status ValidateGenericUpdateStatus(google::rpc::Code code,
 // Parses IrUpdateStatus inside of `ir_write_response`` into string.
 std::string IrWriteResponseToReadableMessage(
     const IrWriteResponse& ir_write_response);
+
+// Processes a batch install error message and returns a map of status code
+// string to flow count.
+//
+// Error messages are expected to have the following format:
+//   #<id>-#<id>: <StatusCode>: <Message>
+//   #<id>: <StatusCode>: <Message>
+//   ...
+//
+// Example:
+//   #1-#2: OK
+//   #3: RESOURCE_EXHAUSTED: [SAI] Failed to create ACL entry in table ...
+//   #4: ABORTED: [OrchAgent] SWSS_RC_NOT_EXECUTED
+absl::flat_hash_map<std::string, int> BatchInstallSummary(
+    absl::string_view install_status_message);
 
 // Returns a formatted error message that can be inserted directly into a
 // status.

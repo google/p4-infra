@@ -423,6 +423,7 @@ cc_library(
         "//string_encodings:byte_string",
         "@abseil-cpp//absl/algorithm:container",
         "@abseil-cpp//absl/container:btree",
+        "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
@@ -434,6 +435,7 @@ cc_library(
         "@p4runtime//proto/p4/v1:p4runtime_cc_proto",
         "@protobuf",
         "@protobuf//third_party/utf8_range:utf8_validity",
+        "@re2",
     ],
 )
 
