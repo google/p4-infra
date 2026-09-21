@@ -123,5 +123,51 @@ TEST(P4InfoUnionTest, PlatformPropertiesUseMax) {
   EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
 }
 
+TEST(P4InfoUnionTest, UnionActionProfileSizesAndSelectorSemantics) {
+  std::vector<p4::config::v1::P4Info> infos;
+  infos.push_back(gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    action_profiles {
+      preamble {
+        id: 1
+        name: "ap"
+        annotations: "@group_mode_resource_guarantee(action_selection_mode = HASH, size_semantics = sum_of_weights)"
+      }
+      size: 100
+      max_group_size: 10
+    }
+  )pb"));
+  infos.push_back(gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    action_profiles {
+      preamble {
+        id: 1
+        name: "ap"
+        annotations: "@group_mode_resource_guarantee(action_selection_mode = HASH, size_semantics = sum_of_weights)"
+        annotations: "@group_mode_resource_guarantee(action_selection_mode = RANDOM, size_semantics = sum_of_members)"
+      }
+      size: 200
+      max_group_size: 5
+    }
+  )pb"));
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info(infos));
+
+  p4::config::v1::P4Info expected_p4info = gutil::ParseProtoOrDie<
+      p4::config::v1::P4Info>(R"pb(
+    action_profiles {
+      preamble {
+        id: 1
+        name: "ap"
+        annotations: "@group_mode_resource_guarantee(action_selection_mode = HASH, size_semantics = sum_of_weights)"
+        annotations: "@group_mode_resource_guarantee(action_selection_mode = RANDOM, size_semantics = sum_of_members)"
+      }
+      size: 200
+      max_group_size: 10
+    }
+  )pb");
+
+  EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
+}
+
 }  // namespace
 }  // namespace pdpi

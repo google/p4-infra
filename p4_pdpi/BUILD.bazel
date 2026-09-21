@@ -304,6 +304,7 @@ cc_library(
     # Disable default arguments internally. Using them in PDPI itself is very likely a bug.
     local_defines = ["PDPI_DISABLE_TRANSLATION_OPTIONS_DEFAULT"],
     deps = [
+        ":action_profile_modes",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
@@ -557,6 +558,39 @@ proto_library(
 cc_proto_library(
     name = "action_profile_mode_cc_proto",
     deps = [":action_profile_mode_proto"],
+)
+
+cc_library(
+    name = "action_profile_modes",
+    srcs = [
+        "action_profile_modes.cc",
+    ],
+    hdrs = [
+        "action_profile_modes.h",
+    ],
+    deps = [
+        ":action_profile_mode_cc_proto",
+        ":annotation_parser",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/types:span",
+        "@gutil//gutil:status",
+        "@p4runtime//proto/p4/config/v1:p4info_cc_proto",
+    ],
+)
+
+cc_test(
+    name = "action_profile_modes_test",
+    srcs = ["action_profile_modes_test.cc"],
+    deps = [
+        ":action_profile_mode_cc_proto",
+        ":action_profile_modes",
+        "@abseil-cpp//absl/status",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:proto_matchers",
+        "@gutil//gutil:status_matchers",
+        "@p4runtime//proto/p4/config/v1:p4info_cc_proto",
+    ],
 )
 
 cc_library(
