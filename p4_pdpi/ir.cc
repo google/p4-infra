@@ -848,46 +848,49 @@ absl::Status PiActionSetToIr(
 // Generic helper that works for both packet-in and packet-out. For both, I is
 // one of p4::v1::{PacketIn, PacketOut} and O is one of {IrPacketIn,
 // IrPacketOut}.
+//
+// This function is on the PacketIn/PacketOut hot path, so it avoids copying
+// the metadata definitions and only formats strings on the error path.
 template <typename I, typename O>
-StatusOr<O> PiPacketIoToIr(const IrP4Info& info, const std::string& kind,
+StatusOr<O> PiPacketIoToIr(const IrP4Info& info, absl::string_view kind,
                            const I& packet, const TranslationOptions& options) {
-  O result;
-  result.set_payload(packet.payload());
-
-  const std::string& packet_description = absl::StrCat("'", kind, "' message");
-  google::protobuf::Map<uint32_t, IrPacketIoMetadataDefinition> metadata_by_id;
+  auto packet_description = [kind] {
+    return absl::StrCat("'", kind, "' message");
+  };
+  const google::protobuf::Map<uint32_t, IrPacketIoMetadataDefinition>*
+      metadata_by_id = nullptr;
   if (kind == "packet-in") {
-    metadata_by_id = info.packet_in_metadata_by_id();
+    metadata_by_id = &info.packet_in_metadata_by_id();
   } else if (kind == "packet-out") {
-    metadata_by_id = info.packet_out_metadata_by_id();
+    metadata_by_id = &info.packet_out_metadata_by_id();
   } else {
     return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description,
+        packet_description(),
         absl::StrCat(kNewBullet, "Invalid PacketIo type.")));
   }
 
+  O result;
+  result.set_payload(packet.payload());
+  result.mutable_metadata()->Reserve(packet.metadata().size());
+
   std::vector<std::string> invalid_reasons;
-  absl::flat_hash_set<uint32_t> used_metadata_ids(packet.metadata().size());
+  absl::flat_hash_set<uint32_t> used_metadata_ids;
+  used_metadata_ids.reserve(packet.metadata().size());
   for (const auto& metadata : packet.metadata()) {
-    uint32_t id = metadata.metadata_id();
-    const absl::Status& duplicate = gutil::InsertIfUnique(
-        used_metadata_ids, id,
-        absl::StrCat("Duplicate metadata found with ID ", id, "."));
-    if (!duplicate.ok()) {
-      invalid_reasons.push_back(absl::StrCat(kNewBullet, duplicate.message()));
+    const uint32_t id = metadata.metadata_id();
+    if (!used_metadata_ids.insert(id).second) {
+      invalid_reasons.push_back(absl::StrCat(
+          kNewBullet, "Duplicate metadata found with ID ", id, "."));
       continue;
     }
 
-    const auto& status_or_metadata_definition_ptr =
-        gutil::FindPtrOrStatus(metadata_by_id, id);
-    if (!status_or_metadata_definition_ptr.ok()) {
+    const auto it = metadata_by_id->find(id);
+    if (it == metadata_by_id->end()) {
       invalid_reasons.push_back(
           absl::StrCat(kNewBullet, " Metadata with ID ", id, " not defined."));
       continue;
     }
-
-    const pdpi::IrPacketIoMetadataDefinition metadata_definition =
-        **status_or_metadata_definition_ptr;
+    const pdpi::IrPacketIoMetadataDefinition& metadata_definition = it->second;
 
     // Metadata with @padding annotation must be all zeros and must not be
     // included in IR representation.
@@ -900,10 +903,8 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info& info, const std::string& kind,
       continue;
     }
 
-    IrPacketMetadata ir_metadata;
     const std::string& metadata_name = metadata_definition.metadata().name();
-    ir_metadata.set_name(metadata_name);
-    const absl::StatusOr<IrValue> ir_value = ArbitraryByteStringToIrValue(
+    absl::StatusOr<IrValue> ir_value = ArbitraryByteStringToIrValue(
         metadata_definition.format(), metadata_definition.metadata().bitwidth(),
         metadata.value());
     if (!ir_value.ok()) {
@@ -911,24 +912,26 @@ StatusOr<O> PiPacketIoToIr(const IrP4Info& info, const std::string& kind,
                                                ir_value.status().message()));
       continue;
     }
-    *ir_metadata.mutable_value() = *ir_value;
-    *result.add_metadata() = ir_metadata;
+    IrPacketMetadata* ir_metadata = result.add_metadata();
+    ir_metadata->set_name(metadata_name);
+    *ir_metadata->mutable_value() = *std::move(ir_value);
   }
-  // Check for missing metadata
-  for (const auto& item : metadata_by_id) {
-    const auto& id = item.first;
-    const auto& meta = item.second;
-    if (!used_metadata_ids.contains(id)) {
-      invalid_reasons.push_back(
-          absl::StrCat(kNewBullet, "Metadata '", meta.metadata().name(),
-                       "' with id ", meta.metadata().id(), " is missing."));
-      continue;
+  // Check for missing metadata. If no errors occurred so far, every used ID is
+  // defined, so matching counts imply that nothing is missing.
+  if (used_metadata_ids.size() != metadata_by_id->size() ||
+      !invalid_reasons.empty()) {
+    for (const auto& [id, meta] : *metadata_by_id) {
+      if (!used_metadata_ids.contains(id)) {
+        invalid_reasons.push_back(
+            absl::StrCat(kNewBullet, "Metadata '", meta.metadata().name(),
+                         "' with id ", meta.metadata().id(), " is missing."));
+      }
     }
   }
 
   if (!invalid_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description, absl::StrJoin(invalid_reasons, "\n")));
+        packet_description(), absl::StrJoin(invalid_reasons, "\n")));
   }
 
   return result;

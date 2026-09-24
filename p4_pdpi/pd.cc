@@ -351,7 +351,8 @@ absl::Status SetStringField(google::protobuf::Message* message,
                    GetFieldDescriptor(*message, fieldname));
   RETURN_IF_ERROR(ValidateFieldDescriptorType(field_descriptor,
                                               FieldDescriptor::TYPE_STRING));
-  message->GetReflection()->SetString(message, field_descriptor, value);
+  message->GetReflection()->SetString(message, field_descriptor,
+                                      std::move(value));
   return absl::OkStatus();
 }
 
@@ -361,7 +362,8 @@ absl::Status SetBytesField(google::protobuf::Message* message,
                    GetFieldDescriptor(*message, fieldname));
   RETURN_IF_ERROR(ValidateFieldDescriptorType(field_descriptor,
                                               FieldDescriptor::TYPE_BYTES));
-  message->GetReflection()->SetString(message, field_descriptor, value);
+  message->GetReflection()->SetString(message, field_descriptor,
+                                      std::move(value));
   return absl::OkStatus();
 }
 
@@ -631,20 +633,32 @@ absl::Status IrTableEntriesToPd(const IrP4Info& ir_p4info,
   return absl::OkStatus();
 }
 
+// Defined below. See definition for details.
+template <typename T>
+absl::Status IrPacketIoToPd(const IrP4Info& info, absl::string_view kind,
+                            const T& packet,
+                            google::protobuf::Message* pd_packet,
+                            const TranslationOptions& options,
+                            std::string* movable_payload = nullptr);
+
 absl::Status PiPacketInToPd(const IrP4Info& info,
                             const p4::v1::PacketIn& pi_packet,
                             google::protobuf::Message* pd_packet,
                             const TranslationOptions& options) {
-  ASSIGN_OR_RETURN(const auto ir, PiPacketInToIr(info, pi_packet, options));
-  return IrPacketInToPd(info, ir, pd_packet, options);
+  ASSIGN_OR_RETURN(IrPacketIn ir, PiPacketInToIr(info, pi_packet, options));
+  // `ir` is a temporary, so its payload can be moved rather than copied.
+  return IrPacketIoToPd<IrPacketIn>(info, "packet-in", ir, pd_packet, options,
+                                    ir.mutable_payload());
 }
 
 absl::Status PiPacketOutToPd(const IrP4Info& info,
                              const p4::v1::PacketOut& pi_packet,
                              google::protobuf::Message* pd_packet,
                              const TranslationOptions& options) {
-  ASSIGN_OR_RETURN(const auto ir, PiPacketOutToIr(info, pi_packet, options));
-  return IrPacketOutToPd(info, ir, pd_packet, options);
+  ASSIGN_OR_RETURN(IrPacketOut ir, PiPacketOutToIr(info, pi_packet, options));
+  // `ir` is a temporary, so its payload can be moved rather than copied.
+  return IrPacketIoToPd<IrPacketOut>(info, "packet-out", ir, pd_packet, options,
+                                     ir.mutable_payload());
 }
 
 absl::Status PiReadRequestToPd(const IrP4Info& info,
@@ -1325,54 +1339,74 @@ absl::Status IrTableEntryToPd(const IrP4Info& ir_p4info, const IrTableEntry& ir,
   return absl::OkStatus();
 }
 
+// Generic helper for packet-in and packet-out. If `movable_payload` is
+// non-null, it must point to `packet.payload()` and its contents are moved into
+// `pd_packet` instead of being copied.
+//
+// This function is on the PacketIn/PacketOut hot path, so it avoids copying
+// the metadata definitions and only formats strings on the error path.
 template <typename T>
-absl::Status IrPacketIoToPd(const IrP4Info& info, const std::string& kind,
+absl::Status IrPacketIoToPd(const IrP4Info& info, absl::string_view kind,
                             const T& packet,
                             google::protobuf::Message* pd_packet,
-                            const TranslationOptions& options) {
-  const std::string& packet_description = absl::StrCat("'", kind, "' message");
-  const auto& field_descriptor = GetFieldDescriptor(*pd_packet, "payload");
-  if (!field_descriptor.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description,
-        absl::StrCat(kNewBullet, field_descriptor.status().message())));
-  }
-  const auto& validate_status = ValidateFieldDescriptorType(
-      *field_descriptor, FieldDescriptor::TYPE_BYTES);
-  if (!validate_status.ok()) {
-    return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description,
-        absl::StrCat(kNewBullet, validate_status.message())));
-  }
-  pd_packet->GetReflection()->SetString(pd_packet, *field_descriptor,
-                                        packet.payload());
-
-  google::protobuf::Map<std::string, IrPacketIoMetadataDefinition>
-      metadata_by_name;
+                            const TranslationOptions& options,
+                            std::string* movable_payload) {
+  auto packet_description = [kind] {
+    return absl::StrCat("'", kind, "' message");
+  };
+  const google::protobuf::Map<std::string, IrPacketIoMetadataDefinition>*
+      metadata_by_name = nullptr;
   if (kind == "packet-in") {
-    metadata_by_name = info.packet_in_metadata_by_name();
+    metadata_by_name = &info.packet_in_metadata_by_name();
   } else if (kind == "packet-out") {
-    metadata_by_name = info.packet_out_metadata_by_name();
+    metadata_by_name = &info.packet_out_metadata_by_name();
   } else {
     return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description,
+        packet_description(),
         absl::StrCat(kNewBullet, "Invalid PacketIo type.")));
   }
 
+  const google::protobuf::Descriptor* pd_descriptor =
+      pd_packet->GetDescriptor();
+  const google::protobuf::Reflection* pd_reflection =
+      pd_packet->GetReflection();
+  const FieldDescriptor* payload_field =
+      pd_descriptor->FindFieldByName("payload");
+  if (payload_field == nullptr) {
+    return absl::InvalidArgumentError(GenerateFormattedError(
+        packet_description(),
+        absl::StrCat(kNewBullet, "Field payload missing in ",
+                     pd_packet->GetTypeName())));
+  }
+  const auto& validate_status =
+      ValidateFieldDescriptorType(payload_field, FieldDescriptor::TYPE_BYTES);
+  if (!validate_status.ok()) {
+    return absl::InvalidArgumentError(GenerateFormattedError(
+        packet_description(),
+        absl::StrCat(kNewBullet, validate_status.message())));
+  }
+  if (movable_payload != nullptr) {
+    pd_reflection->SetString(pd_packet, payload_field,
+                             std::move(*movable_payload));
+  } else {
+    pd_reflection->SetString(pd_packet, payload_field, packet.payload());
+  }
+
   std::vector<std::string> invalid_reasons;
+  // Looked up lazily (once) so that packets without metadata leave the PD
+  // `metadata` field unset, as before.
+  absl::StatusOr<google::protobuf::Message*> pd_metadata;
+  bool pd_metadata_initialized = false;
   for (const auto& metadata : packet.metadata()) {
     const std::string& name = metadata.name();
 
-    const auto& status_or_metadata_definition =
-        gutil::FindPtrOrStatus(metadata_by_name, name);
-    if (!status_or_metadata_definition.ok()) {
+    const auto it = metadata_by_name->find(name);
+    if (it == metadata_by_name->end()) {
       invalid_reasons.push_back(absl::StrCat(kNewBullet, "Metadata with name '",
                                              name, "' not defined."));
       continue;
     }
-
-    const pdpi::IrPacketIoMetadataDefinition& metadata_definition =
-        **status_or_metadata_definition;
+    const pdpi::IrPacketIoMetadataDefinition& metadata_definition = it->second;
 
     if (metadata_definition.is_padding()) {
       invalid_reasons.push_back(absl::StrCat(
@@ -1382,22 +1416,17 @@ absl::Status IrPacketIoToPd(const IrP4Info& info, const std::string& kind,
       continue;
     }
 
-    const absl::StatusOr<std::string>& raw_value =
-        IrValueString(metadata.value());
-    if (!raw_value.ok()) {
-      invalid_reasons.push_back(
-          GenerateReason(MetadataName(name), raw_value.status().message()));
-      continue;
+    if (!pd_metadata_initialized) {
+      pd_metadata = GetMutableMessage(pd_packet, "metadata");
+      pd_metadata_initialized = true;
     }
-    const absl::StatusOr<google::protobuf::Message*>& pd_metadata =
-        GetMutableMessage(pd_packet, "metadata");
     if (!pd_metadata.ok()) {
       invalid_reasons.push_back(
           GenerateReason(MetadataName(name), pd_metadata.status().message()));
       continue;
     }
-    const absl::Status& value_status =
-        SetStringField(*pd_metadata, name, *raw_value);
+    const absl::Status value_status =
+        SetStringField(*pd_metadata, name, IrValueString(metadata.value()));
     if (!value_status.ok()) {
       invalid_reasons.push_back(
           GenerateReason(MetadataName(name), value_status.message()));
@@ -1406,7 +1435,7 @@ absl::Status IrPacketIoToPd(const IrP4Info& info, const std::string& kind,
   }
   if (!invalid_reasons.empty()) {
     return absl::InvalidArgumentError(GenerateFormattedError(
-        packet_description, absl::StrJoin(invalid_reasons, "\n")));
+        packet_description(), absl::StrJoin(invalid_reasons, "\n")));
   }
   return absl::OkStatus();
 }
