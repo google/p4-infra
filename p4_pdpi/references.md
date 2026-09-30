@@ -34,7 +34,8 @@ is still referring to it.
   <img src="images/illegal_delete.svg" alt="Illegal delete operation while an incoming reference remains active">
 </p>
 
-WARNING: This library is known to have poor performance. It relies heavily on
+WARNING: This library is known to have poor
+performance. It relies heavily on
 copy-heavy operations and set operations. Use with caution in
 performance-critical paths.
 
