@@ -73,7 +73,11 @@ absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
     return gutil::OutOfRangeErrorBuilder()
            << "Bytestrings must have non-zero length.";
   }
-  std::string canonical_string = ArbitraryToCanonicalByteString(bytes);
+  // Canonicalize (remove leading zeros, keeping at least one byte) without
+  // copying. Equivalent to `ArbitraryToCanonicalByteString`.
+  absl::string_view canonical_string = bytes;
+  canonical_string.remove_prefix(std::min(
+      canonical_string.find_first_not_of('\x00'), canonical_string.size() - 1));
   const int bitwidth =
       string_encodings::GetBitwidthOfByteString(canonical_string);
   if (bitwidth > expected_bitwidth) {
@@ -82,9 +86,12 @@ absl::StatusOr<std::string> ArbitraryToNormalizedByteString(
            << expected_bitwidth << " bits.";
   }
 
-  const int num_bytes = (expected_bitwidth + 7) / 8;
-  return absl::StrCat(std::string(num_bytes - canonical_string.length(), 0),
-                      canonical_string);
+  const size_t num_bytes = (expected_bitwidth + 7) / 8;
+  std::string result;
+  result.reserve(num_bytes);
+  result.append(num_bytes - canonical_string.size(), '\0');
+  result.append(canonical_string);
+  return result;
 }
 
 absl::StatusOr<uint64_t> ArbitraryByteStringToUint(const std::string& bytes,
@@ -230,15 +237,19 @@ absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
     case Format::HEX_STRING: {
       ASSIGN_OR_RETURN(std::string normalized_bytes,
                        ArbitraryToNormalizedByteString(bytes, bitwidth));
-      std::string hex_string = absl::BytesToHexString(normalized_bytes);
-      const int expected_num_hex_chars =
+      const size_t expected_num_hex_chars =
           bitwidth / 4 + (bitwidth % 4 != 0 ? 1 : 0);
-      if (expected_num_hex_chars != hex_string.size()) {
-        // absl::BytesToHexString operates on bytes (= 8 bits), but we want to
-        // operate on nibbles (= 4 bits). This fixes the length as necessary.
-        hex_string = hex_string.substr(1);
-      }
-      result.set_hex_str(absl::StrCat("0x", hex_string));
+      std::string hex_string = absl::BytesToHexString(normalized_bytes);
+      // absl::BytesToHexString operates on bytes (= 8 bits), but we want to
+      // operate on nibbles (= 4 bits). This fixes the length as necessary.
+      const absl::string_view hex_view =
+          expected_num_hex_chars != hex_string.size()
+              ? absl::string_view(hex_string).substr(1)
+              : absl::string_view(hex_string);
+      std::string* result_hex = result.mutable_hex_str();
+      result_hex->reserve(2 + hex_view.size());
+      result_hex->append("0x");
+      result_hex->append(hex_view);
       return result;
     }
     default:
