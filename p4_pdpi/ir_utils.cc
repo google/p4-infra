@@ -230,15 +230,16 @@ absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
     case Format::HEX_STRING: {
       ASSIGN_OR_RETURN(std::string normalized_bytes,
                        ArbitraryToNormalizedByteString(bytes, bitwidth));
-      std::string hex_string = absl::BytesToHexString(normalized_bytes);
       const int expected_num_hex_chars =
           bitwidth / 4 + (bitwidth % 4 != 0 ? 1 : 0);
-      if (expected_num_hex_chars != hex_string.size()) {
+      const std::string hex_string = absl::BytesToHexString(normalized_bytes);
+      absl::string_view hex_view = hex_string;
+      if (expected_num_hex_chars != hex_view.size()) {
         // absl::BytesToHexString operates on bytes (= 8 bits), but we want to
         // operate on nibbles (= 4 bits). This fixes the length as necessary.
-        hex_string = hex_string.substr(1);
+        hex_view.remove_prefix(1);
       }
-      result.set_hex_str(absl::StrCat("0x", hex_string));
+      result.set_hex_str(absl::StrCat("0x", hex_view));
       return result;
     }
     default:
