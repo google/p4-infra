@@ -19,6 +19,7 @@ package pdpi;
 import "google/rpc/code.proto";
 import "google/rpc/status.proto";
 import "p4/config/v1/p4info.proto";
+import "p4/config/v1/p4types.proto";
 import "p4/v1/p4runtime.proto";
 
 // -- P4Info -------------------------------------------------------------------
@@ -42,6 +43,10 @@ enum Format {
   IPV6 = 3;
   // String format, only printable characters.
   STRING = 4;
+  // Serializable enum, represented by the member's name (e.g.
+  // "SAI_HASH_ALGORITHM_NONE") in the IR's `enum` field. In PI, the member's
+  // numeric value is used.
+  ENUM = 5;
 }
 
 // Describes a match field that is being referred to from an action parameter or
@@ -305,6 +310,9 @@ message IrActionDefinition {
     // TODO: b/306016407 - Remove this message once all P4 infrastructure has
     // been moved to `IrTableReference`.
     repeated IrMatchFieldReference references = 3 [deprecated = true];
+    // Present iff `format` is ENUM. The serializable enum (from the P4Info's
+    // `type_info.serializable_enums`) that this parameter's type refers to.
+    p4.config.v1.P4SerializableEnumTypeSpec serializable_enum = 4;
   }
   // Required. From P4Info.
   p4.config.v1.Preamble preamble = 1;
@@ -399,6 +407,7 @@ message IrValue {
     string ipv6 = 3;
     string mac = 4;
     string str = 5;
+    string enum = 6;
   }
 }
 

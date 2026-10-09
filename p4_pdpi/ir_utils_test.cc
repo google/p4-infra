@@ -31,7 +31,9 @@
 #include "gutil/proto.h"
 #include "gutil/proto_matchers.h"
 #include "gutil/status_matchers.h"
+#include "gutil/testing.h"
 #include "netaddr/ipv6_address.h"
+#include "p4/config/v1/p4types.pb.h"
 #include "p4_pdpi/ir.pb.h"
 
 namespace pdpi {
@@ -60,6 +62,108 @@ TEST(StringToIrValueTest, Okay) {
 
 TEST(StringToIrValueTest, InvalidFormatFails) {
   ASSERT_FALSE(FormattedStringToIrValue("abc", (Format)-1).ok());
+}
+
+TEST(StringToIrValueTest, EnumFormatUsesEnum) {
+  EXPECT_THAT(
+      FormattedStringToIrValue("SAI_HASH_ALGORITHM_NONE", Format::ENUM),
+      IsOkAndHolds(EqualsProto(R"pb(enum: "SAI_HASH_ALGORITHM_NONE")pb")));
+}
+
+// An 8-bit serializable enum with members A = 0, B = 1, C = 0xff.
+const p4::config::v1::P4SerializableEnumTypeSpec& TestEnumSpec() {
+  static const auto* const kEnumSpec = new auto(
+      gutil::ParseProtoOrDie<p4::config::v1::P4SerializableEnumTypeSpec>(
+          R"pb(
+            underlying_type { bitwidth: 8 }
+            members { name: "A" value: "\x00" }
+            members { name: "B" value: "\x01" }
+            members { name: "C" value: "\xff" }
+          )pb"));
+  return *kEnumSpec;
+}
+
+TEST(ArbitraryByteStringToIrValueTest, EnumTranslatesMemberValuesToNames) {
+  EXPECT_THAT(ArbitraryByteStringToIrValue(
+                  Format::ENUM, 8, std::string("\x00", 1), &TestEnumSpec()),
+              IsOkAndHolds(EqualsProto(R"pb(enum: "A")pb")));
+  EXPECT_THAT(
+      ArbitraryByteStringToIrValue(Format::ENUM, 8, "\x01", &TestEnumSpec()),
+      IsOkAndHolds(EqualsProto(R"pb(enum: "B")pb")));
+  EXPECT_THAT(
+      ArbitraryByteStringToIrValue(Format::ENUM, 8, "\xff", &TestEnumSpec()),
+      IsOkAndHolds(EqualsProto(R"pb(enum: "C")pb")));
+}
+
+TEST(ArbitraryByteStringToIrValueTest, EnumAcceptsNonCanonicalByteStrings) {
+  // Leading zero bytes are allowed by P4Runtime.
+  EXPECT_THAT(ArbitraryByteStringToIrValue(
+                  Format::ENUM, 8, std::string("\x00\x01", 2), &TestEnumSpec()),
+              IsOkAndHolds(EqualsProto(R"pb(enum: "B")pb")));
+}
+
+TEST(ArbitraryByteStringToIrValueTest, EnumRejectsNonMemberValues) {
+  EXPECT_THAT(
+      ArbitraryByteStringToIrValue(Format::ENUM, 8, "\x02", &TestEnumSpec()),
+      StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(ArbitraryByteStringToIrValueTest, EnumRejectsEmptyByteString) {
+  EXPECT_THAT(
+      ArbitraryByteStringToIrValue(Format::ENUM, 8, "", &TestEnumSpec()),
+      StatusIs(absl::StatusCode::kOutOfRange));
+}
+
+TEST(IrValueToNormalizedByteStringTest, EnumTranslatesNamesToMemberValues) {
+  IrValue value;
+  value.set_enum_("A");
+  EXPECT_THAT(IrValueToNormalizedByteString(value, 8, &TestEnumSpec()),
+              IsOkAndHolds(std::string("\x00", 1)));
+  value.set_enum_("C");
+  EXPECT_THAT(IrValueToNormalizedByteString(value, 8, &TestEnumSpec()),
+              IsOkAndHolds(std::string("\xff")));
+}
+
+TEST(IrValueToNormalizedByteStringTest, EnumRejectsUnknownNames) {
+  IrValue value;
+  value.set_enum_("D");
+  EXPECT_THAT(IrValueToNormalizedByteString(value, 8, &TestEnumSpec()),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(IrValueToNormalizedByteStringTest, EnumWithoutEnumSpecIsRejected) {
+  IrValue value;
+  value.set_enum_("A");
+  EXPECT_THAT(IrValueToNormalizedByteString(value, 8),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(IrValueStringTest, ReturnsEnumMemberName) {
+  IrValue value;
+  value.set_enum_("A");
+  EXPECT_EQ(IrValueString(value), "A");
+}
+
+TEST(ArbitraryByteStringToIrValueTest, EnumFormatWithoutEnumSpecIsRejected) {
+  EXPECT_THAT(ArbitraryByteStringToIrValue(Format::ENUM, 8, "\x01"),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(ValidateIrValueFormatTest, EnumRequiresEnumEvenWithArbitraryFormat) {
+  IrValue enum_value;
+  enum_value.set_enum_("A");
+  EXPECT_OK(ValidateIrValueFormat(enum_value, Format::ENUM,
+                                  {.allow_arbitrary_format = false}));
+  IrValue str_value;
+  str_value.set_str("A");
+  EXPECT_THAT(ValidateIrValueFormat(str_value, Format::ENUM,
+                                    {.allow_arbitrary_format = true}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  IrValue hex_value;
+  hex_value.set_hex_str("0x00");
+  EXPECT_THAT(ValidateIrValueFormat(hex_value, Format::ENUM,
+                                    {.allow_arbitrary_format = true}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST(UintToNormalizedByteStringTest, ValidBitwidthValues) {

@@ -26,6 +26,7 @@
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -65,16 +66,25 @@ std::string HeaderComment(const std::string& title) {
 }
 
 // Returns a comment explaining the format of a match field or parameter, e.g.
-// "Format::HEX_STRING / 10 bits".
-std::string GetFormatComment(Format format, int32_t bitwidth) {
-  std::string bitwidth_str = "";
+// "Format::HEX_STRING / 10 bits". For Format::ENUM, `enum_spec` (if given) is
+// used to list the enum's members, e.g. "Format::ENUM / one of: A, B".
+std::string GetFormatComment(
+    Format format, int32_t bitwidth,
+    const p4::config::v1::P4SerializableEnumTypeSpec* enum_spec = nullptr) {
+  std::string detail_str = "";
   if (format == Format::HEX_STRING) {
-    bitwidth_str = absl::StrCat(" / ", bitwidth, " bits");
+    detail_str = absl::StrCat(" / ", bitwidth, " bits");
   } else if (format == Format::IPV6) {
-    bitwidth_str =
+    detail_str =
         absl::StrCat(" / ", bitwidth == 128 ? "" : "upper ", bitwidth, " bits");
+  } else if (format == Format::ENUM && enum_spec != nullptr) {
+    detail_str = absl::StrCat(
+        " / one of: ", absl::StrJoin(enum_spec->members(), ", ",
+                                     [](std::string* out, const auto& member) {
+                                       absl::StrAppend(out, member.name());
+                                     }));
   }
-  return absl::StrCat("Format::", Format_Name(format), bitwidth_str);
+  return absl::StrCat("Format::", Format_Name(format), detail_str);
 }
 
 // Returns the proto field for a match.
@@ -424,9 +434,11 @@ StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
       absl::StrAppend(&result, "  // Refers to '", reference.table(), ".",
                       reference.match_field(), "'.\n");
     }
-    absl::StrAppend(
-        &result, "  string ", param_name, " = ", param.param().id(), "; // ",
-        GetFormatComment(param.format(), param.param().bitwidth()), "\n");
+    absl::StrAppend(&result, "  string ", param_name, " = ", param.param().id(),
+                    "; // ",
+                    GetFormatComment(param.format(), param.param().bitwidth(),
+                                     &param.serializable_enum()),
+                    "\n");
   }
 
   absl::StrAppend(&result, "}");
