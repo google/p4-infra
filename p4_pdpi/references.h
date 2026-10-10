@@ -216,6 +216,9 @@ class StatefulReferenceChecker {
   // FOR TESTING ONLY.
   absl::Status CheckInvariantsForTesting() const;
 
+  // Returns the IrP4Info used by this reference checker.
+  const IrP4Info& ir_p4_info() const { return info_; }
+
  private:
   IrP4Info info_;
 
