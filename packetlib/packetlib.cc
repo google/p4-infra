@@ -44,6 +44,7 @@
 #include "packetlib/packetlib.pb.h"
 #include "string_encodings/bit_string.h"
 #include "string_encodings/hex_string.h"
+#include "third_party/gloop/util/status/status_macros.h"
 
 namespace packetlib {
 

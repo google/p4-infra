@@ -38,6 +38,7 @@ cc_library(
         "//netaddr:mac_address",
         "//string_encodings:bit_string",
         "//string_encodings:hex_string",
+        "//third_party/gloop/util/status:status_macros",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/numeric:bits",
         "@abseil-cpp//absl/status",
