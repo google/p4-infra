@@ -27,7 +27,9 @@
 namespace pdpi {
 namespace {
 
+using ::gutil::IsOkAndHolds;
 using ::gutil::StatusIs;
+using ::testing::HasSubstr;
 
 // -- Concrete Reference Field Test --------------------------------------------
 
@@ -486,9 +488,11 @@ TEST(StatefulReferenceCheckerTest,
   ASSERT_OK(checker.AddEntity(referenced_entity));
   ASSERT_OK(checker.AddEntity(referring_entity));
 
-  // Return FailedPrecondition when removing referenced entity!
+  // Return FailedPrecondition, listing the dangling reference, when removing
+  // referenced entity!
   EXPECT_THAT(checker.RemoveEntity(referenced_entity),
-              StatusIs(absl::StatusCode::kFailedPrecondition));
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("ConcreteTableReference{")));
 
   // Removing referring entity succeeds
   ASSERT_OK(checker.RemoveEntity(referring_entity));
@@ -654,6 +658,57 @@ TEST(StatefulReferenceCheckerTest, RemovingRedundantSatisfyingEntrySucceeds) {
               StatusIs(absl::StatusCode::kFailedPrecondition));
 
   EXPECT_OK(checker.CheckInvariantsForTesting());
+}
+
+TEST(StatefulReferenceCheckerTest, CanRemoveReturnsTrueForUnreferencedEntity) {
+  StatefulReferenceChecker checker(GetTestIrP4Info());
+  p4::v1::Entity entity =
+      MakeOneMatchFieldTableEntry(/*referred_to_key=*/"key-a");
+  ASSERT_OK(checker.AddEntity(entity));
+
+  EXPECT_THAT(checker.CanRemove(entity), IsOkAndHolds(true));
+}
+
+TEST(StatefulReferenceCheckerTest, CanRemoveReturnsFalseForReferencedEntity) {
+  StatefulReferenceChecker checker(GetTestIrP4Info());
+  p4::v1::Entity referenced_entity =
+      MakeOneMatchFieldTableEntry(/*referred_to_key=*/"key-a");
+  p4::v1::Entity referring_entity = MakeReferringByActionTableEntry(
+      /*key=*/"0x001", /*referring_param=*/"key-a");
+  ASSERT_OK(checker.AddEntity(referenced_entity));
+  ASSERT_OK(checker.AddEntity(referring_entity));
+
+  EXPECT_THAT(checker.CanRemove(referenced_entity), IsOkAndHolds(false));
+}
+
+TEST(StatefulReferenceCheckerTest,
+     CanRemoveReturnsTrueWhenAnotherEntitySatisfiesTheReference) {
+  StatefulReferenceChecker checker(GetTestIrP4Info());
+  p4::v1::Entity referee_1 = MakeTwoMatchFieldsTableEntry("foo", "0x001");
+  p4::v1::Entity referee_2 = MakeTwoMatchFieldsTableEntry("foo", "0x002");
+  // Both satisfy the reference `referring_id_1 = "foo"` used by
+  // `final_referrer`.
+  p4::v1::Entity referrer_shared_1 =
+      MakeReferringByMatchFieldTableEntry("foo", "0x001");
+  p4::v1::Entity referrer_shared_2 =
+      MakeReferringByMatchFieldTableEntry("foo", "0x002");
+  p4::v1::Entity final_referrer =
+      MakeReferringToReferringByMatchFieldTableEntry("foo");
+  ASSERT_OK(checker.AddEntity(referee_1));
+  ASSERT_OK(checker.AddEntity(referee_2));
+  ASSERT_OK(checker.AddEntity(referrer_shared_1));
+  ASSERT_OK(checker.AddEntity(referrer_shared_2));
+  ASSERT_OK(checker.AddEntity(final_referrer));
+
+  EXPECT_THAT(checker.CanRemove(referrer_shared_1), IsOkAndHolds(true));
+}
+
+TEST(StatefulReferenceCheckerTest, CanRemoveReturnsNotFoundForMissingEntity) {
+  StatefulReferenceChecker checker(GetTestIrP4Info());
+  p4::v1::Entity entity =
+      MakeOneMatchFieldTableEntry(/*referred_to_key=*/"key-a");
+
+  EXPECT_THAT(checker.CanRemove(entity), StatusIs(absl::StatusCode::kNotFound));
 }
 
 }  // namespace

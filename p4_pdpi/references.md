@@ -34,8 +34,7 @@ is still referring to it.
   <img src="images/illegal_delete.svg" alt="Illegal delete operation while an incoming reference remains active">
 </p>
 
-WARNING: This library is known to have poor
-performance. It relies heavily on
+WARNING: This library is known to have poor performance. It relies heavily on
 copy-heavy operations and set operations. Use with caution in
 performance-critical paths.
 
@@ -284,6 +283,7 @@ class StatefulReferenceChecker {
   explicit StatefulReferenceChecker(IrP4Info info);
 
   absl::Status AddEntity(const ::p4::v1::Entity& entity);
+  absl::StatusOr<bool> CanRemove(const ::p4::v1::Entity& entity) const;
   absl::Status RemoveEntity(const ::p4::v1::Entity& entity);
   absl::Status UpdateEntity(const ::p4::v1::Entity& entity);
 };
@@ -319,10 +319,14 @@ checker caches:
         entry can satisfy.
     3.  **Increment Counts:** Increments [`referrer_count`][ref_cnt] for its
         outgoing needs and [`satisfying_count`][sat_cnt] for its incoming keys.
+-   **[`CanRemove`][can_rem]**: Read-only query that returns whether an entry
+    can be removed without leaving active referrers dangling. A referenced entry
+    is still removable if another entry also satisfies each of its references.
+    Returns a NOT_FOUND error if the entry is not in the checker.
 -   **[`RemoveEntity`][rem_ent]**: Removes an entry while preventing dangling
     pointers:
-    1.  **Verify Dependencies:** Computes incoming keys and asserts that
-        removing them will not leave active referrers dangling. **If
+    1.  **Verify Dependencies:** Asserts [`CanRemove`][can_rem], i.e. that
+        removing the entry will not leave active referrers dangling. **If
         verification fails**, operation is rejected, state is unchanged, and
         error is returned.
     2.  **Decrement Counts:** Decrements reference counts, erasing depleted
@@ -437,6 +441,7 @@ The function performs a Breadth-First Search (BFS) starting from root entries:
 [rem_ent]: https://github.com/search?q=repo:google/p4-infra+symbol:RemoveEntity&type=code
 [ref_cnt]: https://github.com/search?q=repo:google/p4-infra+symbol:referrer_count&type=code
 [upd_ent]: https://github.com/search?q=repo:google/p4-infra+symbol:UpdateEntity&type=code
+[can_rem]: https://github.com/search?q=repo:google/p4-infra+symbol:CanRemove&type=code
 [incoming_refs]: https://github.com/search?q=repo:google/p4-infra+symbol:PossibleIncomingConcreteTableReferences&type=code
 [get_unreach]: https://github.com/search?q=repo:google/p4-infra+symbol:GetEntitiesUnreachableFromRoots&type=code
 [seq_h]: https://github.com/google/p4-infra/blob/main/p4_pdpi/sequencing.h

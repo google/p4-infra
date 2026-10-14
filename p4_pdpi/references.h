@@ -196,10 +196,15 @@ class StatefulReferenceChecker {
   // - Otherwise, the entity is added and OK is returned.
   absl::Status AddEntity(const ::p4::v1::Entity& entity);
 
+  // Returns whether `entity` can be removed without leaving a dangling
+  // reference: true if no other entity refers to `entity`, or if every
+  // reference to it is also satisfied by another entity. Returns a NOT_FOUND
+  // error if `entity` is not in the checker.
+  absl::StatusOr<bool> CanRemove(const ::p4::v1::Entity& entity) const;
+
   // Attempts to remove an entity from the checker.
   // - If the entity is not found, returns a NOT_FOUND error.
-  // - If removing the entity would leave incoming references dangling (i.e.
-  //   they are still in use), the removal is not committed and a
+  // - If `CanRemove(entity)` is false, the removal is not committed and a
   //   FAILED_PRECONDITION error is returned.
   // - Otherwise, the entity is removed and OK is returned.
   absl::Status RemoveEntity(const ::p4::v1::Entity& entity);
@@ -217,6 +222,21 @@ class StatefulReferenceChecker {
   absl::Status CheckInvariantsForTesting() const;
 
  private:
+  // Returns the key of `entity`, or a NOT_FOUND error if `entity` is not in the
+  // checker.
+  absl::StatusOr<EntityKey> FindEntityKey(const ::p4::v1::Entity& entity) const;
+
+  // Returns the concrete references that `entity` satisfies, i.e. its possible
+  // incoming references.
+  absl::StatusOr<std::vector<ConcreteTableReference>> GetSatisfiedReferences(
+      const ::p4::v1::Entity& entity) const;
+
+  // Returns whether `reference` has at least one referrer and exactly one
+  // satisfying entity, so removing that entity would leave `reference`
+  // dangling. `reference` must be tracked by the checker.
+  bool IsInUseWithExactlyOneSatisfier(
+      const ConcreteTableReference& reference) const;
+
   IrP4Info info_;
 
   struct ReferenceState {
