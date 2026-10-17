@@ -1082,3 +1082,24 @@ cc_test(
         "@p4runtime//proto/p4/v1:p4runtime_cc_proto",
     ],
 )
+
+cc_library(
+    name = "ir_entry_builder",
+    srcs = ["ir_entry_builder.cc"],
+    hdrs = ["ir_entry_builder.h"],
+    deps = [
+        ":ir_cc_proto",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "ir_entry_builder_test",
+    srcs = ["ir_entry_builder_test.cc"],
+    deps = [
+        ":ir_cc_proto",
+        ":ir_entry_builder",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:proto_matchers",
+    ],
+)
