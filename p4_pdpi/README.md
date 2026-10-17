@@ -14,8 +14,8 @@ automatically convert between them.
 
 This includes sub-libraries like (incomplete list):
 
--   [Reference Library](references.md): Validates dependencies expressed through
-    @refers_to and @referenced_by annotations across P4 entities.
+-   [Reference Library](references.md): Validates dependencies expressed
+    through @refers_to and @referenced_by annotations across P4 entities.
 
 This is a work in progress.
 
