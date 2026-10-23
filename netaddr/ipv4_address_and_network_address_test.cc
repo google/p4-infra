@@ -54,6 +54,7 @@ constexpr std::pair<Ipv4Address, absl::string_view> kIpsAndIpStrings[]{
 constexpr absl::string_view kBadIpStrings[]{
     "0.0.0",        "255.256.255.255", "1",           "0",
     "192.168.+1.2", "a.a.a.a",         "00:00:00:00", "",
+    "010.0.0.1",    "192.168.001.1",   "10.0.0.1.2",  "10.0.0.1.",
 };
 
 absl::flat_hash_map<Ipv4Address, std::string> IpsAndPaddedByteStrings() {
