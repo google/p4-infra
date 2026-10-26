@@ -75,6 +75,64 @@ cc_test(
 )
 
 cc_library(
+    name = "ip_address",
+    srcs = ["ip_address.cc"],
+    hdrs = ["ip_address.h"],
+    deps = [
+        ":ipv4_address",
+        ":ipv6_address",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "ip_address_test",
+    srcs = ["ip_address_test.cc"],
+    deps = [
+        ":ip_address",
+        ":ipv4_address",
+        ":ipv6_address",
+        "@abseil-cpp//absl/hash:hash_testing",
+        "@abseil-cpp//absl/status",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status_matchers",
+    ],
+)
+
+cc_library(
+    name = "ip_prefix",
+    srcs = ["ip_prefix.cc"],
+    hdrs = ["ip_prefix.h"],
+    deps = [
+        ":ip_address",
+        ":ipv4_address",
+        ":ipv6_address",
+        "@abseil-cpp//absl/algorithm:container",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@gutil//gutil:status",
+    ],
+)
+
+cc_test(
+    name = "ip_prefix_test",
+    srcs = ["ip_prefix_test.cc"],
+    deps = [
+        ":ip_address",
+        ":ip_prefix",
+        ":ipv4_address",
+        ":ipv6_address",
+        "@abseil-cpp//absl/hash:hash_testing",
+        "@abseil-cpp//absl/status",
+        "@googletest//:gtest_main",
+        "@gutil//gutil:status_matchers",
+    ],
+)
+
+cc_library(
     name = "mac_address",
     srcs = ["mac_address.cc"],
     hdrs = ["mac_address.h"],
