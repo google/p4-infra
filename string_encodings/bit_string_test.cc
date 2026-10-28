@@ -25,7 +25,6 @@ namespace string_encodings {
 
 using ::gutil::IsOkAndHolds;
 using ::gutil::StatusIs;
-using ::testing::Eq;
 
 TEST(ReadableByteStringTest, OfByteStringWorks) {
   BitString test = BitString::OfByteString("\x01\x2a\xff");
@@ -83,14 +82,14 @@ TEST(ReadableByteStringTest, ConsumeHexStringErrorWhenInputGreaterThanSize) {
 
 TEST(ReadableByteStringTest, ConsumeBitsetWorks) {
   BitString test = BitString::OfByteString("\x12\x34");
-  EXPECT_THAT(test.ConsumeBitset<16>(),
-              IsOkAndHolds(Eq(std::bitset<16>(0x1234))));
+  ASSERT_OK_AND_ASSIGN(std::bitset<16> actual, test.ConsumeBitset<16>());
+  EXPECT_EQ(actual, std::bitset<16>(0x1234));
 }
 
 TEST(ReadableByteStringTest, ConsumeBitsetErrorWhenInputGreaterThanSize) {
   BitString test = BitString::OfByteString("\xff\xff\xff\xff\xff");
   EXPECT_THAT(
-      test.ConsumeBitset<100>(),
+      test.ConsumeBitset<100>().status(),
       StatusIs(absl::StatusCode::kFailedPrecondition,
                "Only 40 bits left, but attempted to consume 100 bits."));
 }

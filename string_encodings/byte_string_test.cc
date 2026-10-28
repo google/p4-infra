@@ -35,8 +35,6 @@ namespace string_encodings {
 namespace {
 
 using ::gutil::IsOk;
-using ::gutil::IsOkAndHolds;
-using ::testing::Eq;
 using ::testing::Not;
 
 std::vector<std::pair<std::bitset<9>, std::string>>
@@ -72,28 +70,41 @@ TEST(ByteStringTest, BitsetToP4RuntimeByteStringCorrect) {
 }
 
 TEST(ByteStringTest, ByteStringToBitsetCorrect) {
+  // Unpack `StatusOr<std::bitset<N>>` via `.status()` or `ASSERT_OK_AND_ASSIGN`
+  // rather than matching `StatusOr<std::bitset<N>>` directly with
+  // `EXPECT_THAT`: in libstdc++ 15, gMock's `Matcher<const
+  // StatusOr<std::bitset<N>>&>` conversion probes `std::bitset<N>(const
+  // _CharT*, ...)` with polymorphic `MatcherImpl`, tripping
+  // `std::basic_string`'s `is_trivially_copyable_v` `static_assert`.
+
   // The empty string is rejected.
-  EXPECT_THAT(ByteStringToBitset<9>(""), Not(IsOk()));
+  EXPECT_THAT(ByteStringToBitset<9>("").status(), Not(IsOk()));
 
   // P4Runtime byte strings are accepted.
   for (const auto& [bitset, byte_str] : BitsetsAndP4RuntimeByteStrings()) {
-    EXPECT_THAT(ByteStringToBitset<9>(byte_str), IsOkAndHolds(Eq(bitset)));
+    ASSERT_OK_AND_ASSIGN(std::bitset<9> actual,
+                         ByteStringToBitset<9>(byte_str));
+    EXPECT_EQ(actual, bitset);
   }
 
   // Padded byte strings are accepted.
   for (const auto& [bitset, byte_str] : BitsetsAndPaddedByteStrings()) {
-    EXPECT_THAT(ByteStringToBitset<9>(byte_str), IsOkAndHolds(Eq(bitset)));
+    ASSERT_OK_AND_ASSIGN(std::bitset<9> actual,
+                         ByteStringToBitset<9>(byte_str));
+    EXPECT_EQ(actual, bitset);
 
     // Missing bytes are okay -- they will be assumed to be zero.
-    EXPECT_THAT(ByteStringToBitset<200>(byte_str),
-                IsOkAndHolds(Eq(std::bitset<200>(bitset.to_ulong()))));
+    ASSERT_OK_AND_ASSIGN(std::bitset<200> actual_200,
+                         ByteStringToBitset<200>(byte_str));
+    EXPECT_EQ(actual_200, std::bitset<200>(bitset.to_ulong()));
 
     // Extra bytes are also okay if they are zero.
     const std::vector<std::string> zero_prefixes = {SafeString({0}),
                                                     SafeString({0, 0})};
     for (const auto& prefix : zero_prefixes) {
-      EXPECT_THAT(ByteStringToBitset<9>(prefix + byte_str),
-                  IsOkAndHolds(Eq(bitset)));
+      ASSERT_OK_AND_ASSIGN(std::bitset<9> actual_prefixed,
+                           ByteStringToBitset<9>(prefix + byte_str));
+      EXPECT_EQ(actual_prefixed, bitset);
     }
 
     // Extra bytes are *not* okay if they are non-zero.
@@ -101,19 +112,24 @@ TEST(ByteStringTest, ByteStringToBitsetCorrect) {
         SafeString({1}), SafeString({2}), SafeString({3}), SafeString({100}),
         SafeString({1, 0})};
     for (const auto& prefix : nonzero_prefixes) {
-      EXPECT_THAT(ByteStringToBitset<9>(prefix + byte_str), Not(IsOk()));
+      EXPECT_THAT(ByteStringToBitset<9>(prefix + byte_str).status(),
+                  Not(IsOk()));
     }
   }
 
   // Extra nonzero bits are never okay.
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0b01})), IsOk());
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0b10})), Not(IsOk()));
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0b01})), IsOk());
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0b10})), Not(IsOk()));
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0, 0b01})), IsOk());
-  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0, 0b10})), Not(IsOk()));
-  EXPECT_THAT(ByteStringToBitset<2>(SafeString({0, 0, 0b010})), IsOk());
-  EXPECT_THAT(ByteStringToBitset<2>(SafeString({0, 0, 0b100})), Not(IsOk()));
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0b01})).status(), IsOk());
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0b10})).status(), Not(IsOk()));
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0b01})).status(), IsOk());
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0b10})).status(),
+              Not(IsOk()));
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0, 0b01})).status(), IsOk());
+  EXPECT_THAT(ByteStringToBitset<1>(SafeString({0, 0, 0b10})).status(),
+              Not(IsOk()));
+  EXPECT_THAT(ByteStringToBitset<2>(SafeString({0, 0, 0b010})).status(),
+              IsOk());
+  EXPECT_THAT(ByteStringToBitset<2>(SafeString({0, 0, 0b100})).status(),
+              Not(IsOk()));
 }
 
 TEST(ByteStringTest, BitsetToPaddedByteString_Regression_2020_12_02) {
