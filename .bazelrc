@@ -10,3 +10,8 @@ run --cxxopt='-std=c++20' --host_cxxopt='-std=c++20'
 # includes are forbidden, exposing missing #include directives in dependencies.
 build --features=-layering_check
 build --host_features=-layering_check
+
+# TODO(b/579465008): Remove once @boringssl in MODULE.bazel supports Ubuntu
+# 26.04's glibc 2.43 C23 const-preserving memchr under -Werror.
+build --per_file_copt=external/.*boringssl.*@-Wno-error=discarded-qualifiers
+build --host_per_file_copt=external/.*boringssl.*@-Wno-error=discarded-qualifiers
