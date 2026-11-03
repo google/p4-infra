@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "google/protobuf/repeated_ptr_field.h"
@@ -146,13 +147,16 @@ bool operator<(const ConcreteTableReference& lhs,
 
 // -- END OF PUBLIC INTERFACE -- implementation details follow -----------------
 
+// `field.value` holds raw P4Runtime PI bytes (e.g. binary IPv6 addresses or
+// integers alongside ASCII string IDs); `absl::CEscape` copies how protobuf
+// textformat handles `bytes`.
 template <typename Sink>
 void AbslStringify(Sink& sink, const ConcreteFieldReference& field) {
   absl::Format(
       &sink,
       "ConcreteFieldReference{ source field: '%v', destination field: '%v', "
       "value: '%v' }",
-      field.source_field, field.destination_field, field.value);
+      field.source_field, field.destination_field, absl::CEscape(field.value));
 }
 template <typename H>
 H AbslHashValue(H h, const ConcreteFieldReference& field) {
@@ -225,6 +229,18 @@ class StatefulReferenceChecker {
   const IrP4Info& ir_p4_info() const { return info_; }
 
  private:
+  // Formats `entity` for human-readable error messages. Because this is used
+  // only for diagnostics, translation is lenient (`allow_unsupported = true`)
+  // and tries three representations in order:
+  // 1. Full IR (`IrEntity`), so action parameters (where missing or dangling
+  //    references often live) and entry metadata are shown.
+  // 2. Key-only IR, for entities that full translation rejects, such as
+  //    key-only P4Runtime DELETE entries (which omit the action) or entries
+  //    with an invalid action.
+  // 3. Raw PI (`p4::v1::Entity`), when even the key cannot be translated to IR
+  //    (for example, an unknown table or a key that IR cannot express).
+  std::string PrintEntity(const ::p4::v1::Entity& entity) const;
+
   // Returns the key of `entity`, or a NOT_FOUND error if `entity` is not in the
   // checker.
   absl::StatusOr<EntityKey> FindEntityKey(const ::p4::v1::Entity& entity) const;

@@ -36,8 +36,10 @@ cc_library(
     deps = [
         ":built_ins",
         ":entity_keys",
+        ":ir",
         ":ir_cc_proto",
         ":reference_annotations",
+        ":translation_options",
         "//string_encodings:byte_string",
         "@abseil-cpp//absl/container:btree",
         "@abseil-cpp//absl/container:flat_hash_map",

@@ -34,8 +34,10 @@
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_pdpi/built_ins.h"
 #include "p4_pdpi/entity_keys.h"
+#include "p4_pdpi/ir.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/reference_annotations.h"
+#include "p4_pdpi/translation_options.h"
 #include "string_encodings/byte_string.h"
 
 namespace pdpi {
@@ -850,7 +852,7 @@ absl::Status StatefulReferenceChecker::AddEntity(
   if (entity_key_to_outgoing_references_.contains(key)) {
     return absl::AlreadyExistsError(
         absl::StrCat("Entity already exists in P4 reference checker.\n",
-                     gutil::PrintTextProto(entity)));
+                     PrintEntity(entity)));
   }
 
   // Gather needed references.
@@ -874,11 +876,10 @@ absl::Status StatefulReferenceChecker::AddEntity(
   }
 
   if (!missing_references.empty()) {
-    return absl::FailedPreconditionError(
-        absl::StrCat("Addition aborted. When trying to add entity:\n ",
-                     gutil::PrintTextProto(entity),
-                     "\n found unsatisfied outgoing references:\n  ",
-                     absl::StrJoin(missing_references, "\n  ")));
+    return absl::FailedPreconditionError(absl::StrCat(
+        "Addition aborted. When trying to add entity:\n ", PrintEntity(entity),
+        "\n found unsatisfied outgoing references:\n  ",
+        absl::StrJoin(missing_references, "\n  ")));
   }
 
   // Gather provided references.
@@ -927,8 +928,8 @@ absl::Status StatefulReferenceChecker::RemoveEntity(
     }
     return absl::FailedPreconditionError(
         absl::StrCat("Removal aborted. When trying to remove entity:\n ",
-                     gutil::PrintTextProto(entity),
-                     "\n dectected new dangling incoming references:\n  ",
+                     PrintEntity(entity),
+                     "\n detected new dangling incoming references:\n  ",
                      absl::StrJoin(dangling_refs, "\n  ")));
   }
 
@@ -975,11 +976,10 @@ absl::Status StatefulReferenceChecker::UpdateEntity(
   }
 
   if (!missing_refs.empty()) {
-    return absl::FailedPreconditionError(
-        absl::StrCat("Update aborted. When trying to update entity:\n ",
-                     gutil::PrintTextProto(entity),
-                     ", found unsatisfied outgoing references:\n",
-                     absl::StrJoin(missing_refs, "\n  ")));
+    return absl::FailedPreconditionError(absl::StrCat(
+        "Update aborted. When trying to update entity:\n ", PrintEntity(entity),
+        ", found unsatisfied outgoing references:\n",
+        absl::StrJoin(missing_refs, "\n  ")));
   }
 
   // Use pre-computed old references.
@@ -1039,13 +1039,25 @@ absl::Status StatefulReferenceChecker::CheckInvariantsForTesting() const {
   return absl::OkStatus();
 }
 
+std::string StatefulReferenceChecker::PrintEntity(
+    const ::p4::v1::Entity& entity) const {
+  for (bool key_only : {false, true}) {
+    absl::StatusOr<IrEntity> ir_entity = PiEntityToIr(
+        info_, entity,
+        TranslationOptions{.key_only = key_only, .allow_unsupported = true});
+    if (ir_entity.ok()) {
+      return gutil::PrintTextProto(*ir_entity);
+    }
+  }
+  return gutil::PrintTextProto(entity);
+}
+
 absl::StatusOr<EntityKey> StatefulReferenceChecker::FindEntityKey(
     const ::p4::v1::Entity& entity) const {
   ASSIGN_OR_RETURN(EntityKey key, EntityKey::MakeEntityKey(entity));
   if (!entity_key_to_outgoing_references_.contains(key)) {
-    return absl::NotFoundError(
-        absl::StrCat("Entity not found in P4 reference checker.\n",
-                     gutil::PrintTextProto(entity)));
+    return absl::NotFoundError(absl::StrCat(
+        "Entity not found in P4 reference checker.\n", PrintEntity(entity)));
   }
   return key;
 }
