@@ -21,9 +21,11 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
@@ -36,6 +38,7 @@
 #include "gutil/ordered_map.h"
 #include "gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
+#include "p4/config/v1/p4types.pb.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/pd.h"
 
@@ -75,6 +78,56 @@ std::string GetFormatComment(Format format, int32_t bitwidth) {
         absl::StrCat(" / ", bitwidth == 128 ? "" : "upper ", bitwidth, " bits");
   }
   return absl::StrCat("Format::", Format_Name(format), bitwidth_str);
+}
+
+// Returns the name of the zero-valued placeholder of the PD enum generated for
+// the serializable enum `p4_enum_name`, e.g. "HASH_ALG_T_UNSPECIFIED".
+std::string SerializableEnumUnspecifiedValueName(
+    absl::string_view p4_enum_name) {
+  return absl::StrCat(absl::AsciiStrToUpper(p4_enum_name), "_UNSPECIFIED");
+}
+
+// Returns PD enum definitions for all serializable enums in `info`. Each PD
+// enum has a zero-valued placeholder (meaning "unset"), followed by one value
+// per member of the serializable enum, named after the member. Since the values
+// of all enums share the scope of the package, member names must be unique
+// across all serializable enums.
+StatusOr<std::string> GetSerializableEnumDefinitions(const IrP4Info& info) {
+  std::string result = "";
+  // Maps each PD enum value name to the P4 name of the enum defining it.
+  absl::flat_hash_map<std::string, std::string> enum_by_value_name;
+  auto add_value_name = [&](const std::string& value_name,
+                            const std::string& enum_name) -> absl::Status {
+    auto [it, inserted] = enum_by_value_name.try_emplace(value_name, enum_name);
+    if (!inserted) {
+      return InvalidArgumentErrorBuilder()
+             << "Cannot generate PD enum value \"" << value_name
+             << "\" for serializable enum \"" << enum_name
+             << "\", since serializable enum \"" << it->second
+             << "\" already defines it. PD enum value names must be unique "
+                "across all serializable enums.";
+    }
+    return absl::OkStatus();
+  };
+  for (const auto& [name, enum_spec] :
+       AsOrderedView(info.serializable_enums_by_name())) {
+    ASSIGN_OR_RETURN(const std::string enum_name,
+                     P4NameToProtobufMessageName(name, kP4SerializableEnum));
+    const std::string unspecified = SerializableEnumUnspecifiedValueName(name);
+    RETURN_IF_ERROR(add_value_name(unspecified, name));
+    absl::StrAppend(&result, "// Serializable enum '", name, "' (",
+                    enum_spec.underlying_type().bitwidth(), " bits).\n");
+    absl::StrAppend(&result, "enum ", enum_name, " {\n");
+    absl::StrAppend(&result, "  ", unspecified, " = 0;\n");
+    int number = 1;
+    for (const auto& member : enum_spec.members()) {
+      RETURN_IF_ERROR(add_value_name(member.name(), name));
+      absl::StrAppend(&result, "  ", member.name(), " = ", number++, "; // 0x",
+                      absl::BytesToHexString(member.value()), "\n");
+    }
+    absl::StrAppend(&result, "}\n\n");
+  }
+  return result;
 }
 
 // Returns the proto field for a match.
@@ -392,7 +445,8 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
 }
 
 // Returns the message for the given action.
-StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
+StatusOr<std::string> GetActionMessage(const IrP4Info& info,
+                                       const IrActionDefinition& action) {
   std::string result = "";
 
   if (action.is_unsupported()) {
@@ -424,9 +478,22 @@ StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
       absl::StrAppend(&result, "  // Refers to '", reference.table(), ".",
                       reference.match_field(), "'.\n");
     }
-    absl::StrAppend(
-        &result, "  string ", param_name, " = ", param.param().id(), "; // ",
-        GetFormatComment(param.format(), param.param().bitwidth()), "\n");
+    std::string param_type = "string";
+    if (param.format() == Format::ENUM) {
+      const std::string& enum_name = param.param().type_name().name();
+      if (!info.serializable_enums_by_name().contains(enum_name)) {
+        return InvalidArgumentErrorBuilder()
+               << "Serializable enum \"" << enum_name << "\" of parameter '"
+               << param.param().name() << "' of action '" << name
+               << "' not found.";
+      }
+      ASSIGN_OR_RETURN(param_type, P4NameToProtobufMessageName(
+                                       enum_name, kP4SerializableEnum));
+    }
+    absl::StrAppend(&result, "  ", param_type, " ", param_name, " = ",
+                    param.param().id(), "; // ",
+                    GetFormatComment(param.format(), param.param().bitwidth()),
+                    "\n");
   }
 
   absl::StrAppend(&result, "}");
@@ -517,6 +584,8 @@ import "google/rpc/status.proto";
 //   ports.
 // - Format::HEX_STRING for anything else, i.e. bitstrings of arbitrary length.
 //   E.g., "0x01ab".
+// - Format::ENUM for P4 serializable enums, represented by a PD enum whose
+//   values are named after the members of the P4 enum, e.g., HASH_ALG_CRC.
 
 )");
 
@@ -569,6 +638,14 @@ message Optional {
     return InvalidArgumentErrorBuilder() << "No actions, cannot generate PD";
   }
 
+  // Serializable enums.
+  ASSIGN_OR_RETURN(const std::string enum_definitions,
+                   GetSerializableEnumDefinitions(info));
+  if (!enum_definitions.empty()) {
+    absl::StrAppend(&result, HeaderComment("Serializable enums"), "\n",
+                    enum_definitions);
+  }
+
   // Table messages.
   absl::StrAppend(&result, HeaderComment("Tables"), "\n");
   for (const auto& table : tables) {
@@ -599,7 +676,7 @@ message MulticastGroupTableEntry {
   absl::StrAppend(&result, HeaderComment("Actions"), "\n");
   for (const auto& action : actions) {
     if (IsActionUnused(action, tables)) continue;
-    ASSIGN_OR_RETURN(const auto& action_pd, GetActionMessage(action));
+    ASSIGN_OR_RETURN(const auto& action_pd, GetActionMessage(info, action));
     absl::StrAppend(&result, action_pd, "\n\n");
   }
   if (options.multicast_table_field_number.has_value()) {

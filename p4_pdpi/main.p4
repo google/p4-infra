@@ -13,6 +13,12 @@ typedef bit<16> replica_instance_t;
 
 enum MeterColor_t { GREEN, YELLOW, RED };
 
+// Serializable enum, i.e. Format::ENUM.
+enum bit<8> hash_alg_t {
+  HASH_ALG_CRC = 1,
+  HASH_ALG_RANDOM = 2,
+}
+
 // Note: no format annotations, since these don't affect anything
 struct metadata {
   bit<1> val;
@@ -73,7 +79,8 @@ action do_thing_2(@id(1) bit<10> normal,
                @id(2) @format(IPV4_ADDRESS) bit<32> ipv4,
                @id(3) @format(IPV6_ADDRESS) bit<128> ipv6,
                @id(4) @format(MAC_ADDRESS) bit<48> mac,
-               @id(5) string_id_t str) {
+               @id(5) string_id_t str,
+               @id(6) hash_alg_t hash_alg) {
 }
 
 // Generic action

@@ -187,9 +187,9 @@ absl::StatusOr<Format> GetFormat(const std::vector<std::string>& annotations,
   return format;
 }
 
-absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
-                                                     const int bitwidth,
-                                                     const std::string& bytes) {
+absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(
+    Format format, const int bitwidth, const std::string& bytes,
+    const p4::config::v1::P4SerializableEnumTypeSpec* enum_spec) {
   // If the bytestring length is zero, the server always rejects the string.
   // https://p4.org/p4-spec/p4runtime/main/P4Runtime-Spec.html#sec-bytestrings
   if (bytes.empty()) {
@@ -242,6 +242,32 @@ absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
       result.set_hex_str(absl::StrCat("0x", hex_view));
       return result;
     }
+    case Format::ENUM: {
+      if (enum_spec == nullptr) {
+        return gutil::InvalidArgumentErrorBuilder()
+               << "Values of format ENUM require an `enum_spec`, since the "
+                  "translation depends on the definition of the enum.";
+      }
+      ASSIGN_OR_RETURN(const std::string normalized_bytes,
+                       ArbitraryToNormalizedByteString(bytes, bitwidth));
+      for (const auto& member : enum_spec->members()) {
+        ASSIGN_OR_RETURN(
+            const std::string normalized_member_value,
+            ArbitraryToNormalizedByteString(member.value(), bitwidth),
+            _ << "Invalid value for enum member '" << member.name() << "'.");
+        if (normalized_member_value == normalized_bytes) {
+          result.set_enumeration(member.name());
+          return result;
+        }
+      }
+      return gutil::InvalidArgumentErrorBuilder()
+             << "Value '0x" << absl::BytesToHexString(normalized_bytes)
+             << "' is not the value of any member of the enum. Valid members: "
+             << absl::StrJoin(enum_spec->members(), ", ",
+                              [](std::string* out, const auto& member) {
+                                absl::StrAppend(out, member.name());
+                              });
+    }
     default:
       return gutil::InvalidArgumentErrorBuilder()
              << "Unexpected format: " << Format_Name(format);
@@ -290,6 +316,17 @@ absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
       }
       break;
     }
+    case Format::ENUM: {
+      // Enum values are always represented by the member name, so arbitrary
+      // formats are not accepted.
+      if (format_case != IrValue::kEnumeration) {
+        return gutil::InvalidArgumentErrorBuilder()
+               << "Expected format '" << Format_Name(Format::ENUM)
+               << "', but got '" << absl::AsciiStrToUpper(format_case_name)
+               << "' instead.";
+      }
+      break;
+    }
     case Format::HEX_STRING: {
       if (format_case != IrValue::kHexStr && !options.allow_arbitrary_format) {
         return gutil::InvalidArgumentErrorBuilder()
@@ -308,7 +345,8 @@ absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
 }
 
 absl::StatusOr<std::string> IrValueToNormalizedByteString(
-    const IrValue& ir_value, const int bitwidth) {
+    const IrValue& ir_value, const int bitwidth,
+    const p4::config::v1::P4SerializableEnumTypeSpec* enum_spec) {
   switch (ir_value.format_case()) {
     case IrValue::kMac: {
       ASSIGN_OR_RETURN(MacAddress mac, MacAddress::OfString(ir_value.mac()));
@@ -340,6 +378,26 @@ absl::StatusOr<std::string> IrValueToNormalizedByteString(
       }
       return ir_value.str();
       break;
+    }
+    case IrValue::kEnumeration: {
+      if (enum_spec == nullptr) {
+        return gutil::InvalidArgumentErrorBuilder()
+               << "IR values of format 'enumeration' require an `enum_spec`, "
+                  "since "
+                  "the translation depends on the definition of the enum.";
+      }
+      for (const auto& member : enum_spec->members()) {
+        if (member.name() == ir_value.enumeration()) {
+          return ArbitraryToNormalizedByteString(member.value(), bitwidth);
+        }
+      }
+      return gutil::InvalidArgumentErrorBuilder()
+             << "'" << ir_value.enumeration()
+             << "' is not the name of any member of the enum. Valid members: "
+             << absl::StrJoin(enum_spec->members(), ", ",
+                              [](std::string* out, const auto& member) {
+                                absl::StrAppend(out, member.name());
+                              });
     }
     case IrValue::kHexStr: {
       const std::string& hex_str = ir_value.hex_str();
@@ -394,6 +452,9 @@ absl::StatusOr<IrValue> FormattedStringToIrValue(const std::string& value,
     case Format::STRING:
       result.set_str(value);
       break;
+    case Format::ENUM:
+      result.set_enumeration(value);
+      break;
     case Format::HEX_STRING:
       result.set_hex_str(value);
       break;
@@ -414,6 +475,8 @@ std::string IrValueString(const IrValue& value) {
       return value.ipv6();
     case IrValue::FormatCase::kStr:
       return value.str();
+    case IrValue::FormatCase::kEnumeration:
+      return value.enumeration();
     case IrValue::FormatCase::kHexStr:
       return value.hex_str();
     case IrValue::FormatCase::FORMAT_NOT_SET:

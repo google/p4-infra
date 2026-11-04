@@ -30,6 +30,7 @@ IrValue IrHexStr(absl::string_view value);
 IrValue IrIpv4(absl::string_view value);
 IrValue IrIpv6(absl::string_view value);
 IrValue IrMac(absl::string_view value);
+IrValue IrEnumeration(absl::string_view value);
 
 // Returns an action parameter `name` with `value`, for `IrAction`.
 IrActionInvocation::IrActionParam IrParam(absl::string_view name,

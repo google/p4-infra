@@ -46,6 +46,7 @@ enum P4EntityKind {
   kP4Parameter,
   kP4MatchField,
   kP4MetaField,
+  kP4SerializableEnum,
 };
 
 // Given a P4 name for a given entity kind, returns the name of the

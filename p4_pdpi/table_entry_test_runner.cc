@@ -288,6 +288,69 @@ static void RunPiTests(const pdpi::IrP4Info info) {
                     table_entry { table_id: 33554433 }
                   )pb"));
 
+  RunPiEntityTest(
+      info, "serializable enum action argument",
+      gutil::ParseProtoOrDie<p4::v1::Entity>(R"pb(
+        table_entry {
+          table_id: 33554433
+          match {
+            field_id: 1
+            exact { value: "\xff\x22" }
+          }
+          match {
+            field_id: 2
+            exact { value: "\x10\x24\x32\x52" }
+          }
+          action {
+            action {
+              action_id: 16777218
+              params { param_id: 1 value: "\x54" }
+              params { param_id: 2 value: "\x0a\x2b\x0c\x05" }
+              params {
+                param_id: 3
+                value: "\x32\x42\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfe\xe2"
+              }
+              params { param_id: 4 value: "\x00\x11\x22\x33\x44\x55" }
+              params { param_id: 5 value: "hello" }
+              params { param_id: 6 value: "\x02" }
+            }
+          }
+        }
+      )pb"),
+      /*validity=*/INPUT_IS_VALID);
+
+  RunPiEntityTest(
+      info,
+      "serializable enum action argument that is not an enum "
+      "member",
+      gutil::ParseProtoOrDie<p4::v1::Entity>(R"pb(
+        table_entry {
+          table_id: 33554433
+          match {
+            field_id: 1
+            exact { value: "\xff\x22" }
+          }
+          match {
+            field_id: 2
+            exact { value: "\x10\x24\x32\x52" }
+          }
+          action {
+            action {
+              action_id: 16777218
+              params { param_id: 1 value: "\x54" }
+              params { param_id: 2 value: "\x0a\x2b\x0c\x05" }
+              params {
+                param_id: 3
+                value: "\x32\x42\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfe\xe2"
+              }
+              params { param_id: 4 value: "\x00\x11\x22\x33\x44\x55" }
+              params { param_id: 5 value: "hello" }
+              params { param_id: 6 value: "\x03" }
+            }
+          }
+        }
+      )pb"));
+
   RunPiEntityTest(info, "invalid match type - expect exact",
                   gutil::ParseProtoOrDie<p4::v1::Entity>(R"pb(
                     table_entry {
@@ -2117,6 +2180,10 @@ static void RunIrTests(const pdpi::IrP4Info info) {
                           name: "str"
                           value { str: "" }
                         }
+                        params {
+                          name: "hash_alg"
+                          value { enumeration: "HASH_ALG_CRC" }
+                        }
                       }
                     }
                   )pb"),
@@ -2524,6 +2591,7 @@ static void RunPdTests(const pdpi::IrP4Info info) {
                               ipv6: "3242::fee2"
                               mac: "00:11:22:33:44:55"
                               str: "hello"
+                              hash_alg: HASH_ALG_CRC
                             }
                           }
                         }
@@ -2624,6 +2692,7 @@ static void RunPdTests(const pdpi::IrP4Info info) {
                               ipv6: "3242::fee2"
                               mac: "00:11:22:33:44:55"
                               str: "hello"
+                              hash_alg: HASH_ALG_CRC
                             }
                           }
                         }
@@ -2892,11 +2961,31 @@ static void RunPdTests(const pdpi::IrP4Info info) {
                               ipv6: "3242::fee2"
                               mac: "00:11:22:33:44:55"
                               str: "hello"
+                              hash_alg: HASH_ALG_RANDOM
                             }
                           }
                         }
                       )pb"),
                       INPUT_IS_VALID);
+
+  RunPdTableEntryTest(info,
+                      "serializable enum action argument set to unspecified",
+                      gutil::ParseProtoOrDie<pdpi::TableEntry>(R"pb(
+                        id_test_table_entry {
+                          match { ipv6: "::ff22" ipv4: "16.36.50.82" }
+                          action {
+                            do_thing_2 {
+                              normal: "0x054"
+                              ipv4: "10.43.12.5"
+                              ipv6: "3242::fee2"
+                              mac: "00:11:22:33:44:55"
+                              str: "hello"
+                              hash_alg: HASH_ALG_T_UNSPECIFIED
+                            }
+                          }
+                        }
+                      )pb"),
+                      INPUT_IS_INVALID);
 
   RunPdTableEntryTest(
       info, "table entry without counters and meters",

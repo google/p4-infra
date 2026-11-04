@@ -211,6 +211,30 @@ int main(int argc, char** argv) {
           params { id: 2 name: "param2" annotations: "@format(IPVx_ADDRESS)" }
         })pb"));
 
+  pdpi::RunP4InfoTest(
+      "format annotation on serializable enum",
+      gutil::ParseProtoOrDie<pdpi::P4Info>(R"pb(
+        actions {
+          preamble { id: 1 name: "do_thing_1" alias: "do_thing_1" }
+          params {
+            id: 1
+            name: "param1"
+            bitwidth: 8
+            annotations: "@format(IPV4_ADDRESS)"
+            type_name { name: "hash_alg_t" }
+          }
+        }
+        type_info {
+          serializable_enums {
+            key: "hash_alg_t"
+            value {
+              underlying_type { bitwidth: 8 }
+              members { name: "HASH_ALG_CRC" value: "\001" }
+            }
+          }
+        }
+      )pb"));
+
   pdpi::RunP4InfoTest("main.p4", p4info);
 
   return 0;

@@ -19,6 +19,7 @@ package pdpi;
 import "google/rpc/code.proto";
 import "google/rpc/status.proto";
 import "p4/config/v1/p4info.proto";
+import "p4/config/v1/p4types.proto";
 import "p4/v1/p4runtime.proto";
 
 // -- P4Info -------------------------------------------------------------------
@@ -42,6 +43,11 @@ enum Format {
   IPV6 = 3;
   // String format, only printable characters.
   STRING = 4;
+  // Serializable enum, represented by the member's name (e.g. "HASH_ALG_CRC")
+  // in the IR's `enumeration` field. In PI, the member's numeric value is used.
+  // The enum's definition is in `IrP4Info.serializable_enums_by_name`, keyed by
+  // the element's `type_name`.
+  ENUM = 5;
 }
 
 // Describes a match field that is being referred to from an action parameter or
@@ -386,6 +392,11 @@ message IrP4Info {
   // depend on an entry in B (including transitively), then
   // dependency_rank_by_table_name[B] > dependency_rank_by_table_name[A].
   map<string, int32> dependency_rank_by_table_name = 14;
+  // Maps serializable enum names (i.e. the `type_name` of elements whose
+  // `Format` is ENUM) to their definitions. From the P4Info's
+  // `type_info.serializable_enums`.
+  map<string, p4.config.v1.P4SerializableEnumTypeSpec>
+      serializable_enums_by_name = 15;
 }
 
 // -- Table entries ------------------------------------------------------------
@@ -399,6 +410,7 @@ message IrValue {
     string ipv6 = 3;
     string mac = 4;
     string str = 5;
+    string enumeration = 6;
   }
 }
 

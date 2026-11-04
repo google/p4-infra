@@ -20,6 +20,8 @@ import "google/rpc/status.proto";
 //   ports.
 // - Format::HEX_STRING for anything else, i.e. bitstrings of arbitrary length.
 //   E.g., "0x01ab".
+// - Format::ENUM for P4 serializable enums, represented by a PD enum whose
+//   values are named after the members of the P4 enum, e.g., HASH_ALG_CRC.
 
 
 // -- General definitions ------------------------------------------------------
@@ -40,6 +42,16 @@ message Lpm {
 message Optional {
   string value = 1;
 }
+
+// -- Serializable enums -------------------------------------------------------
+
+// Serializable enum 'hash_alg_t' (8 bits).
+enum HashAlgT {
+  HASH_ALG_T_UNSPECIFIED = 0;
+  HASH_ALG_CRC = 1; // 0x01
+  HASH_ALG_RANDOM = 2; // 0x02
+}
+
 
 // -- Tables -------------------------------------------------------------------
 
@@ -534,6 +546,7 @@ message DoThing2Action {
   string ipv6 = 3; // Format::IPV6 / 128 bits
   string mac = 4; // Format::MAC
   string str = 5; // Format::STRING
+  HashAlgT hash_alg = 6; // Format::ENUM
 }
 
 message DoThing3Action {

@@ -178,7 +178,8 @@ TEST(IrEntityBuilderTest, BuildsAllValueFormatsAndTernaryOptionalMatches) {
           .Optional("in_port", IrStr("opt-1"))
           .Action(IrAction("acl_forward", IrParam("meter_id", IrHexStr("0x01")),
                            IrParam("redirect_ipv4", IrIpv4("10.1.1.1")),
-                           IrParam("redirect_ipv6", IrIpv6("2001:db8::1"))))
+                           IrParam("redirect_ipv6", IrIpv6("2001:db8::1")),
+                           IrParam("hash_alg", IrEnumeration("HASH_ALG_CRC"))))
           .Build()
           .table_entry();
 
@@ -225,6 +226,10 @@ TEST(IrEntityBuilderTest, BuildsAllValueFormatsAndTernaryOptionalMatches) {
                   params {
                     name: "redirect_ipv6"
                     value { ipv6: "2001:db8::1" }
+                  }
+                  params {
+                    name: "hash_alg"
+                    value { enumeration: "HASH_ALG_CRC" }
                   }
                 }
               )pb"));

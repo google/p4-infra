@@ -356,6 +356,48 @@ absl::Status SetStringField(google::protobuf::Message* message,
   return absl::OkStatus();
 }
 
+// Like `GetStringField`, but additionally supports enum fields (which PD uses
+// for serializable enums), returning the name of the enum value.
+absl::StatusOr<std::string> GetStringOrEnumField(
+    const google::protobuf::Message& message, const std::string& fieldname) {
+  ASSIGN_OR_RETURN(auto* field_descriptor,
+                   GetFieldDescriptor(message, fieldname));
+  if (field_descriptor->type() != FieldDescriptor::TYPE_ENUM) {
+    return GetStringField(message, fieldname);
+  }
+  const google::protobuf::EnumValueDescriptor* enum_value =
+      message.GetReflection()->GetEnum(message, field_descriptor);
+  // By PD convention, the zero value of an enum is a placeholder for unset.
+  if (enum_value->number() == 0) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "Expected field \"" << fieldname << "\" to be a member of enum \""
+           << field_descriptor->enum_type()->name() << "\", but got \""
+           << enum_value->name() << "\" instead";
+  }
+  return std::string(enum_value->name());
+}
+
+// Like `SetStringField`, but additionally supports enum fields (which PD uses
+// for serializable enums), where `value` is the name of the enum value.
+absl::Status SetStringOrEnumField(google::protobuf::Message* message,
+                                  const std::string& fieldname,
+                                  std::string value) {
+  ASSIGN_OR_RETURN(auto* field_descriptor,
+                   GetFieldDescriptor(*message, fieldname));
+  if (field_descriptor->type() != FieldDescriptor::TYPE_ENUM) {
+    return SetStringField(message, fieldname, std::move(value));
+  }
+  const google::protobuf::EnumValueDescriptor* enum_value =
+      field_descriptor->enum_type()->FindValueByName(value);
+  if (enum_value == nullptr || enum_value->number() == 0) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "'" << value << "' is not a member of enum \""
+           << field_descriptor->enum_type()->name() << "\"";
+  }
+  message->GetReflection()->SetEnum(message, field_descriptor, enum_value);
+  return absl::OkStatus();
+}
+
 absl::Status SetBytesField(google::protobuf::Message* message,
                            const std::string& fieldname, std::string value) {
   ASSIGN_OR_RETURN(auto* field_descriptor,
@@ -1025,7 +1067,7 @@ static absl::Status IrActionInvocationToPd(
       continue;
     }
     const auto& value_status =
-        SetStringField(*pd_action, ir_param.name(), *pd_value);
+        SetStringOrEnumField(*pd_action, ir_param.name(), *pd_value);
     if (!value_status.ok()) {
       invalid_reasons.push_back(
           GenerateReason(ParamName(param_name), value_status.message()));
@@ -2155,7 +2197,7 @@ static absl::StatusOr<IrActionInvocation> PdActionInvocationToIr(
       continue;
     }
     const absl::StatusOr<std::string>& pd_arg =
-        GetStringField(*pd_action, pd_arg_name);
+        GetStringOrEnumField(*pd_action, pd_arg_name);
     if (!pd_arg.ok()) {
       invalid_reasons.push_back(
           GenerateReason(ParamName(pd_arg_name), pd_arg.status().message()));
