@@ -69,6 +69,40 @@ TEST(EntityKeyTest, PacketReplicationEntityKeyEqualsItself) {
   EXPECT_FALSE(key_a != key_a);
 }
 
+TEST(EntityKeyTest, ImplementsAbslHashCorrectly) {
+  ASSERT_OK_AND_ASSIGN(TableEntry table_entry_a,
+                       gutil::ParseTextProto<TableEntry>(R"pb(
+                         table_id: 42
+                         priority: 1
+                       )pb"));
+  ASSERT_OK_AND_ASSIGN(TableEntry table_entry_b,
+                       gutil::ParseTextProto<TableEntry>(R"pb(
+                         table_id: 43
+                         priority: 1
+                       )pb"));
+  ASSERT_OK_AND_ASSIGN(Entity pre_entry_a, gutil::ParseTextProto<Entity>(R"pb(
+                         packet_replication_engine_entry {
+                           multicast_group_entry { multicast_group_id: 5 }
+                         }
+                       )pb"));
+  ASSERT_OK_AND_ASSIGN(Entity pre_entry_b, gutil::ParseTextProto<Entity>(R"pb(
+                         packet_replication_engine_entry {
+                           multicast_group_entry { multicast_group_id: 6 }
+                         }
+                       )pb"));
+  ASSERT_OK_AND_ASSIGN(EntityKey pre_key_a,
+                       EntityKey::MakeEntityKey(pre_entry_a));
+  ASSERT_OK_AND_ASSIGN(EntityKey pre_key_b,
+                       EntityKey::MakeEntityKey(pre_entry_b));
+  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
+      EntityKey(),
+      EntityKey(table_entry_a),
+      EntityKey(table_entry_b),
+      pre_key_a,
+      pre_key_b,
+  }));
+}
+
 TEST(EntityKeyTest, TableKeysAreEqual) {
   ASSERT_OK_AND_ASSIGN(TableEntry entry, gutil::ParseTextProto<TableEntry>(R"pb(
                          table_id: 42

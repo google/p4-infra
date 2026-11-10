@@ -163,7 +163,7 @@ class EntityKey {
 
 template <typename H>
 H AbslHashValue(H h, const EntityKey& key) {
-  return AbslHashValue(std::move(h), key.key_);
+  return H::combine(std::move(h), key.key_);
 }
 
 }  // namespace pdpi
