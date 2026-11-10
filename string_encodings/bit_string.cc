@@ -15,11 +15,14 @@
 #include "string_encodings/bit_string.h"
 
 #include <algorithm>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "gutil/status.h"
+#include "netaddr/ipv4_address.h"
+#include "netaddr/ipv6_address.h"
 #include "netaddr/mac_address.h"
 
 namespace string_encodings {
@@ -38,17 +41,22 @@ absl::Status BitString::Consume(int num_bits) {
   return absl::OkStatus();
 }
 
-absl::StatusOr<std::string> BitString::PeekHexString(int num_bits) {
+absl::StatusOr<std::string> BitString::PeekHexString(int num_bits, int offset) {
   if (num_bits < 0) {
     return gutil::InvalidArgumentErrorBuilder()
            << "Cannot peek " << num_bits << " bits.";
   }
-  if (size() < num_bits) {
+  if (offset < 0) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "Cannot peek at offset " << offset << ".";
+  }
+  if (size() < offset + num_bits) {
     return gutil::FailedPreconditionErrorBuilder()
            << "Only " << size() << " bits left, but attempted to peek "
-           << num_bits << " bits.";
+           << num_bits << " bits"
+           << (offset > 0 ? absl::StrCat(" at offset ", offset) : "") << ".";
   }
-  return ToHexString(start_index_, num_bits);
+  return ToHexString(start_index_ + offset, num_bits);
 }
 
 absl::StatusOr<std::string> BitString::ConsumeHexString(int num_bits) {

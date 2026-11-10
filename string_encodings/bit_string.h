@@ -69,10 +69,10 @@ class BitString {
     return absl::OkStatus();
   }
 
-  // Peaks at the given number of bits from the front of the bit string, and
-  // returns them as a hex string. Returns an error if there are not enough bits
-  // left.
-  absl::StatusOr<std::string> PeekHexString(int num_bits);
+  // Peeks at `num_bits` bits starting `offset` bits from the front of the bit
+  // string (without consuming them), and returns them as a hex string. Returns
+  // an error if there are not enough bits left.
+  absl::StatusOr<std::string> PeekHexString(int num_bits, int offset = 0);
   // Consumes the given number of bits from the front of the bit string, and
   // returns them as a hex string. Returns an error if there are not enough bits
   // left.

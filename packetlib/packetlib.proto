@@ -312,4 +312,7 @@ message PspHeader {
   string reserved1 = 9;
   string security_parameters_index = 10;
   string initialization_vector = 11;
+  // 64 bits (optional). Present iff `virtualization_cookie_present` is 0x1,
+  // otherwise must be the empty string.
+  string virtualization_cookie = 12;
 }

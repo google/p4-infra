@@ -191,16 +191,21 @@ absl::StatusOr<NextHeader> GetNextHeader(const IbBthHeader& header) {
   return Header::HEADER_NOT_SET;
 }
 absl::StatusOr<NextHeader> GetNextHeader(const PspHeader& header) {
-  if (header.virtualization_cookie_present() == "0x1") {
-    return UnsupportedNextHeader{
-        .reason = "psp_header virtualization_cookie is not supported.",
-    };
-  }
-  // Only parse the UDP header if we have enough unencrypted bits.
+  // Only parse the next header if it is entirely in cleartext. `crypt_offset`
+  // is the number of cleartext 32-bit words after the PSP header, including the
+  // optional virtualization cookie.
   ASSIGN_OR_RETURN(int crypt_offset,
                    string_encodings::HexStringToInt32(header.crypt_offset()));
-  if (header.next_header() == "0x11" && crypt_offset * 32 >= kUdpHeaderBitwidth)
+  int cleartext_bits = crypt_offset * 32;
+  if (header.virtualization_cookie_present() == "0x1") {
+    cleartext_bits -= kPspOptionalVirtualizationCookieBitwidth;
+  }
+  if (header.next_header() == "0x11" && cleartext_bits >= kUdpHeaderBitwidth) {
     return Header::kUdpHeader;
+  }
+  if (header.next_header() == "0x29" && cleartext_bits >= kIpv6HeaderBitwidth) {
+    return Header::kIpv6Header;
+  }
   return Header::HEADER_NOT_SET;
 }
 absl::StatusOr<NextHeader> GetNextHeader(const Header& header) {
@@ -689,6 +694,21 @@ absl::StatusOr<PspHeader> ParsePspHeader(string_encodings::BitString& data) {
            << data.size() << " bits left, need at least " << kPspHeaderBitwidth
            << ".";
   }
+  ASSIGN_OR_RETURN(std::string virtualization_cookie_present_bit,
+                   data.PeekHexString(kPspVirtualizationCookieBitwidth,
+                                      kPspVirtualizationCookieOffset));
+  const bool virtualization_cookie_present =
+      virtualization_cookie_present_bit == "0x1";
+  if (virtualization_cookie_present &&
+      data.size() <
+          kPspHeaderBitwidth + kPspOptionalVirtualizationCookieBitwidth) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "Packet is too short to parse a PSP header with a "
+              "virtualization cookie next. Only "
+           << data.size() << " bits left, need at least "
+           << kPspHeaderBitwidth + kPspOptionalVirtualizationCookieBitwidth
+           << ".";
+  }
   PspHeader header;
 
   header.set_next_header(ParseBits(data, kPspNextHeaderBitwidth));
@@ -705,6 +725,10 @@ absl::StatusOr<PspHeader> ParsePspHeader(string_encodings::BitString& data) {
       ParseBits(data, kPspSecurityParametersIndexBitwidth));
   header.set_initialization_vector(
       ParseBits(data, kPspInitializationVectorBitwidth));
+  if (virtualization_cookie_present) {
+    header.set_virtualization_cookie(
+        ParseBits(data, kPspOptionalVirtualizationCookieBitwidth));
+  }
 
   return header;
 }
@@ -1861,9 +1885,22 @@ void PspHeaderInvalidReasons(const PspHeader& header,
       header.drop_bit(), absl::StrCat(field_prefix, "drop_bit"), output);
   HexStringInvalidReasons<kPspVersionBitwidth>(
       header.version(), absl::StrCat(field_prefix, "version"), output);
-  HexStringInvalidReasons<kPspVirtualizationCookieBitwidth>(
-      header.virtualization_cookie_present(),
-      absl::StrCat(field_prefix, "virtualization_cookie_present"), output);
+  bool virtualization_cookie_present_invalid =
+      HexStringInvalidReasons<kPspVirtualizationCookieBitwidth>(
+          header.virtualization_cookie_present(),
+          absl::StrCat(field_prefix, "virtualization_cookie_present"), output);
+  if (!virtualization_cookie_present_invalid &&
+      header.virtualization_cookie_present() == "0x1") {
+    HexStringInvalidReasons<kPspOptionalVirtualizationCookieBitwidth>(
+        header.virtualization_cookie(),
+        absl::StrCat(field_prefix, "virtualization_cookie"), output);
+  } else if (!header.virtualization_cookie().empty()) {
+    output.push_back(absl::StrCat(
+        field_prefix,
+        "virtualization_cookie: virtualization_cookie_present is not 0x1, so "
+        "virtualization_cookie must be empty, but was '",
+        header.virtualization_cookie(), "' instead."));
+  }
   HexStringInvalidReasons<kPspSecurityParametersIndexBitwidth>(
       header.security_parameters_index(),
       absl::StrCat(field_prefix, "security_parameters_index"), output);
@@ -2518,6 +2555,15 @@ absl::Status SerializePspHeader(const PspHeader& header,
       header.security_parameters_index(), output));
   RETURN_IF_ERROR(SerializeBits<kPspInitializationVectorBitwidth>(
       header.initialization_vector(), output));
+  if (header.virtualization_cookie_present() == "0x1") {
+    if (header.virtualization_cookie().empty()) {
+      return gutil::InvalidArgumentErrorBuilder()
+             << "virtualization_cookie: missing (required because "
+                "virtualization_cookie_present is 0x1)";
+    }
+    RETURN_IF_ERROR(SerializeBits<kPspOptionalVirtualizationCookieBitwidth>(
+        header.virtualization_cookie(), output));
+  }
   return absl::OkStatus();
 }
 
@@ -3155,6 +3201,9 @@ absl::StatusOr<int> PacketSizeInBits(const Packet& packet,
         break;
       case Header::kPspHeader:
         size += kPspHeaderBitwidth;
+        if (header->psp_header().virtualization_cookie_present() == "0x1") {
+          size += kPspOptionalVirtualizationCookieBitwidth;
+        }
         break;
       case Header::kIbBthHeader:
         size += kIbBthHeaderBitwidth;

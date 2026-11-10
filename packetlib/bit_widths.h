@@ -165,8 +165,6 @@ constexpr int kPtpControlFieldBitwidth = 8;
 constexpr int kPtpLogMessageIntervalBitwidth = 8;
 
 // PSP constants
-// NOTE: There is an optional virtualization_cookie field that we do not model
-// since we do not yet have a use-case.
 constexpr int kPspNextHeaderBitwidth = 8;
 constexpr int kPspHeaderExtLengthBitwidth = 8;
 constexpr int kPspReserved0Bitwidth = 2;
@@ -175,9 +173,17 @@ constexpr int kPspSampleBitwidth = 1;
 constexpr int kPspDropBitwidth = 1;
 constexpr int kPspVersionBitwidth = 4;
 constexpr int kPspVirtualizationCookieBitwidth = 1;
+// Offset of the virtualization cookie present (V) bit from the start of the
+// PSP header.
+constexpr int kPspVirtualizationCookieOffset =
+    kPspNextHeaderBitwidth + kPspHeaderExtLengthBitwidth +
+    kPspReserved0Bitwidth + kPspCryptOffsetBitwidth + kPspSampleBitwidth +
+    kPspDropBitwidth + kPspVersionBitwidth;
 constexpr int kPspReserved1Bitwidth = 1;
 constexpr int kPspSecurityParametersIndexBitwidth = 32;
 constexpr int kPspInitializationVectorBitwidth = 64;
+// Optional field, present iff the virtualization cookie present (V) bit is set.
+constexpr int kPspOptionalVirtualizationCookieBitwidth = 64;
 
 // IB BTH constants
 constexpr int kIbBthOpCodeBitwidth = 8;

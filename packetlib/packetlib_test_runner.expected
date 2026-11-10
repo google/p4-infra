@@ -2984,7 +2984,7 @@ headers {
 payload: "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\""
 
 ================================================================================
-Parsing test: PSP packet with virtualization cookie (unsupported)
+Parsing test: PSP packet with virtualization cookie
 ================================================================================
 -- INPUT -----------------------------------------------------------------------
 # Ethernet header
@@ -2996,7 +2996,7 @@ Parsing test: PSP packet with virtualization cookie (unsupported)
                        dscp: 0b000000
                        ecn: 0b00
                        flow_label: 0x12345
-                       payload_length: 0x002a
+                       payload_length: 0x0020
                        next_header: 0x11  # UDP
                        hop_limit: 0x42
                        ipv6_source: 0x00001111222233334444555566667777
@@ -3004,7 +3004,7 @@ Parsing test: PSP packet with virtualization cookie (unsupported)
                        # UDP header
                        source_port: 0x0014
                        destination_port: 0x03e8  # 1000
-                       length: 0x002a
+                       length: 0x0020
                        checksum: 0x0000
                        # PSP Header
                        next_header: 0x04
@@ -3018,10 +3018,7 @@ Parsing test: PSP packet with virtualization cookie (unsupported)
                        reserved1: 0b1
                        security_parameters_index: 0x00000000
                        initialization_vector: 0x0000000000000000
-                       # Payload - 18 octets
-                       payload: 0x 22 22 22 22 22 22 22 22
-                       payload: 0x 22 22 22 22 22 22 22 22
-                       payload: 0x 22 22
+                       virtualization_cookie: 0x1234567890abcdef
 -- OUTPUT ----------------------------------------------------------------------
 headers {
   ethernet_header {
@@ -3036,7 +3033,7 @@ headers {
     dscp: "0x00"
     ecn: "0x0"
     flow_label: "0x12345"
-    payload_length: "0x002a"
+    payload_length: "0x0020"
     next_header: "0x11"
     hop_limit: "0x42"
     ipv6_source: "0:1111:2222:3333:4444:5555:6666:7777"
@@ -3047,7 +3044,7 @@ headers {
   udp_header {
     source_port: "0x0014"
     destination_port: "0x03e8"
-    length: "0x002a"
+    length: "0x0020"
     checksum: "0x0000"
   }
 }
@@ -3064,10 +3061,9 @@ headers {
     reserved1: "0x1"
     security_parameters_index: "0x00000000"
     initialization_vector: "0x0000000000000000"
+    virtualization_cookie: "0x1234567890abcdef"
   }
 }
-payload: "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\""
-reason_not_fully_parsed: "psp_header virtualization_cookie is not supported."
 
 ================================================================================
 Parsing test: PSP packet that is too short (invalid)
@@ -5573,7 +5569,7 @@ ValidatePacket(packet) = OK
 Serialize(Packet) = OK
 
 ================================================================================
-Proto packet test: PSP packet with encrypted payload (valid)
+Proto packet test: PSP packet with encrypted payload (valid), but without virtualization cookie
 ================================================================================
 -- INPUT -----------------------------------------------------------------------
 packet =
@@ -5590,7 +5586,7 @@ headers {
     dscp: "0x00"
     ecn: "0x0"
     flow_label: "0x12345"
-    payload_length: "0x002c"
+    payload_length: "0x0018"
     next_header: "0x11"
     hop_limit: "0x42"
     ipv6_source: "2607:f8b0:11::"
@@ -5601,7 +5597,7 @@ headers {
   udp_header {
     source_port: "0x08ae"
     destination_port: "0x03e8"
-    length: "0x002c"
+    length: "0x0018"
     checksum: "0x0000"
   }
 }
@@ -5614,10 +5610,101 @@ headers {
     sample_bit: "0x0"
     drop_bit: "0x0"
     version: "0x1"
+    virtualization_cookie_present: "0x0"
+    reserved1: "0x1"
+    security_parameters_index: "0x00000000"
+    initialization_vector: "0x0000000000000000"
+  }
+}
+
+-- OUTPUT ----------------------------------------------------------------------
+ValidatePacket(packet) = OK
+
+Serialize(Packet) = OK
+
+================================================================================
+Proto packet test: PSP tunnel mode packet with virtualization cookie and inner IPv6/UDP/IB BTH (valid)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+packet =
+headers {
+  ethernet_header {
+    ethernet_destination: "00:ee:dd:cc:bb:aa"
+    ethernet_source: "00:44:33:22:11:00"
+    ethertype: "0x86dd"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x00"
+    ecn: "0x0"
+    flow_label: "0x12345"
+    payload_length: "0x0070"
+    next_header: "0x11"
+    hop_limit: "0x42"
+    ipv6_source: "2607:f8b0:11::"
+    ipv6_destination: "2607:f8b0:12::"
+  }
+}
+headers {
+  udp_header {
+    source_port: "0x08ae"
+    destination_port: "0x03e8"
+    length: "0x0070"
+    checksum: "0x0000"
+  }
+}
+headers {
+  psp_header {
+    next_header: "0x29"
+    header_ext_length: "0x01"
+    reserved0: "0x0"
+    crypt_offset: "0x0c"
+    sample_bit: "0x0"
+    drop_bit: "0x0"
+    version: "0x1"
     virtualization_cookie_present: "0x1"
     reserved1: "0x1"
     security_parameters_index: "0x00000000"
     initialization_vector: "0x0000000000000000"
+    virtualization_cookie: "0x0123456789abcdef"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x00"
+    ecn: "0x0"
+    flow_label: "0x00000"
+    payload_length: "0x0028"
+    next_header: "0x11"
+    hop_limit: "0x40"
+    ipv6_source: "2001:db8::1"
+    ipv6_destination: "2001:db8::2"
+  }
+}
+headers {
+  udp_header {
+    source_port: "0xc000"
+    destination_port: "0x12b7"
+    length: "0x0028"
+    checksum: "0xb0cd"
+  }
+}
+headers {
+  ib_bth_header {
+    op_code: "0x0a"
+    solicited_event: "0x0"
+    mig_req: "0x0"
+    pad_count: "0x0"
+    transport_ver: "0x0"
+    p_key: "0xffff"
+    reserved1: "0x00"
+    dst_qp: "0x000001"
+    ack_req: "0x1"
+    reserved2: "0x00"
+    psn: "0x000002"
   }
 }
 payload: "ABCDABCDABCDABCDABCD"
@@ -5626,6 +5713,68 @@ payload: "ABCDABCDABCDABCDABCD"
 ValidatePacket(packet) = OK
 
 Serialize(Packet) = OK
+
+================================================================================
+Proto packet test: PSP packet with virtualization_cookie_present but no virtualization_cookie (invalid)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+packet =
+headers {
+  ethernet_header {
+    ethernet_destination: "00:ee:dd:cc:bb:aa"
+    ethernet_source: "00:44:33:22:11:00"
+    ethertype: "0x86dd"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x00"
+    ecn: "0x0"
+    flow_label: "0x12345"
+    payload_length: "0x0020"
+    next_header: "0x11"
+    hop_limit: "0x42"
+    ipv6_source: "2607:f8b0:11::"
+    ipv6_destination: "2607:f8b0:12::"
+  }
+}
+headers {
+  udp_header {
+    source_port: "0x08ae"
+    destination_port: "0x03e8"
+    length: "0x0020"
+    checksum: "0x0000"
+  }
+}
+headers {
+  psp_header {
+    next_header: "0xfd"
+    header_ext_length: "0x01"
+    reserved0: "0x0"
+    crypt_offset: "0x00"
+    sample_bit: "0x0"
+    drop_bit: "0x0"
+    version: "0x1"
+    virtualization_cookie_present: "0x1"
+    reserved1: "0x1"
+    security_parameters_index: "0x00000000"
+    initialization_vector: "0x0000000000000000"
+  }
+}
+
+-- OUTPUT ----------------------------------------------------------------------
+ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
+- in UdpHeader headers[2]: checksum: Couldn't compute expected checksum: INVALID_ARGUMENT: while trying to serialize packet.headers(3): virtualization_cookie: missing (required because virtualization_cookie_present is 0x1)
+- in PspHeader headers[3]: virtualization_cookie: missing
+
+PadPacketToMinimumSize(packet) = false
+
+UpdateMissingComputedFields(packet) = false
+
+Serialize(Packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
+- in UdpHeader headers[2]: checksum: Couldn't compute expected checksum: INVALID_ARGUMENT: while trying to serialize packet.headers(3): virtualization_cookie: missing (required because virtualization_cookie_present is 0x1)
+- in PspHeader headers[3]: virtualization_cookie: missing
 
 ================================================================================
 Proto packet test: PSP packet with UDP payload but not crypt_offset (invalid)

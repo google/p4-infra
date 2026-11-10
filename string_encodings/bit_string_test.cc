@@ -41,6 +41,30 @@ TEST(ReadableByteStringTest, PeekHexStringWorksWithValidInputs) {
   EXPECT_THAT(test.PeekHexString(9), IsOkAndHolds("0x1ff"));
 }
 
+TEST(ReadableByteStringTest, PeekHexStringWorksWithOffset) {
+  BitString test = BitString::OfByteString("\x0f\xa5");
+  EXPECT_THAT(test.PeekHexString(4, /*offset=*/4), IsOkAndHolds("0xf"));
+  EXPECT_THAT(test.PeekHexString(8, /*offset=*/8), IsOkAndHolds("0xa5"));
+  EXPECT_THAT(test.PeekHexString(1, /*offset=*/15), IsOkAndHolds("0x1"));
+  // Peeking does not consume any bits.
+  EXPECT_EQ(test.size(), 16);
+}
+
+TEST(ReadableByteStringTest, PeekHexStringErrorWithNegativeOffset) {
+  BitString test = BitString::OfByteString("\xff");
+  EXPECT_THAT(test.PeekHexString(1, /*offset=*/-1),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "Cannot peek at offset -1."));
+}
+
+TEST(ReadableByteStringTest, PeekHexStringErrorWhenOffsetPlusInputTooLarge) {
+  BitString test = BitString::OfByteString("\xff");
+  EXPECT_THAT(test.PeekHexString(4, /*offset=*/6),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       "Only 8 bits left, but attempted to peek 4 bits at "
+                       "offset 6."));
+}
+
 // If input is negative, return invalid argument error.
 TEST(ReadableByteStringTest, PeekHexStringErrorWithNegativeInputs) {
   BitString test = BitString::OfByteString("\xff\xff\xff\xff\xff");
