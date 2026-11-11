@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "gmock/gmock.h"
@@ -79,6 +80,132 @@ TEST(P4InfoUnionTest, UnionTypeInfo) {
       unioned_p4info.type_info().new_types().contains(kSharedNewTypeKey));
   EXPECT_THAT(unioned_p4info.type_info().new_types().at(kSharedNewTypeKey),
               EqualsProto(kSharedNewType));
+}
+
+// Test that enums and serializable_enums in each P4Info are included in the
+// unioned P4Info, whether they are unique or shared among P4Infos.
+TEST(P4InfoUnionTest, UnionEnumsAndSerializableEnums) {
+  constexpr absl::string_view kSharedEnum = R"pb(
+    members { name: "SHARED_A" }
+    members { name: "SHARED_B" }
+  )pb";
+  constexpr absl::string_view kSharedSerializableEnum = R"pb(
+    underlying_type { bitwidth: 8 }
+    members { name: "SHARED_NONE" value: "\000" }
+  )pb";
+  std::vector<p4::config::v1::P4Info> infos;
+  for (int i = 0; i < 2; ++i) {
+    infos.push_back(gutil::ParseProtoOrDie<p4::config::v1::P4Info>(
+        absl::Substitute(R"pb(
+                           type_info {
+                             enums {
+                               key: "enum_$0_t"
+                               value { members { name: "MEMBER_$0" } }
+                             }
+                             enums { key: "shared_enum_t" value { $1 } }
+                             serializable_enums {
+                               key: "serializable_enum_$0_t"
+                               value {
+                                 underlying_type { bitwidth: 4 }
+                                 members { name: "MEMBER_$0" value: "\001" }
+                               }
+                             }
+                             serializable_enums {
+                               key: "shared_serializable_enum_t"
+                               value { $2 }
+                             }
+                           }
+                         )pb",
+                         i, kSharedEnum, kSharedSerializableEnum)));
+  }
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info(infos));
+  EXPECT_THAT(unioned_p4info.type_info(),
+              EqualsProto(absl::Substitute(
+                  R"pb(
+                    enums {
+                      key: "enum_0_t"
+                      value { members { name: "MEMBER_0" } }
+                    }
+                    enums {
+                      key: "enum_1_t"
+                      value { members { name: "MEMBER_1" } }
+                    }
+                    enums { key: "shared_enum_t" value { $0 } }
+                    serializable_enums {
+                      key: "serializable_enum_0_t"
+                      value {
+                        underlying_type { bitwidth: 4 }
+                        members { name: "MEMBER_0" value: "\001" }
+                      }
+                    }
+                    serializable_enums {
+                      key: "serializable_enum_1_t"
+                      value {
+                        underlying_type { bitwidth: 4 }
+                        members { name: "MEMBER_1" value: "\001" }
+                      }
+                    }
+                    serializable_enums {
+                      key: "shared_serializable_enum_t"
+                      value { $1 }
+                    }
+                  )pb",
+                  kSharedEnum, kSharedSerializableEnum)));
+}
+
+TEST(P4InfoUnionTest, UnionFailsForEnumsWithSameNameButDifferentMembers) {
+  std::vector<p4::config::v1::P4Info> infos = {
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        type_info {
+          enums {
+            key: "enum_t"
+            value { members { name: "A" } }
+          }
+        }
+      )pb"),
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        type_info {
+          enums {
+            key: "enum_t"
+            value { members { name: "B" } }
+          }
+        }
+      )pb"),
+  };
+  EXPECT_THAT(UnionP4info(infos),
+              gutil::StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(P4InfoUnionTest,
+     UnionFailsForSerializableEnumsWithSameNameButDifferentValues) {
+  std::vector<p4::config::v1::P4Info> infos = {
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        type_info {
+          serializable_enums {
+            key: "enum_t"
+            value {
+              underlying_type { bitwidth: 8 }
+              members { name: "A" value: "\000" }
+            }
+          }
+        }
+      )pb"),
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        type_info {
+          serializable_enums {
+            key: "enum_t"
+            value {
+              underlying_type { bitwidth: 8 }
+              members { name: "A" value: "\001" }
+            }
+          }
+        }
+      )pb"),
+  };
+  EXPECT_THAT(UnionP4info(infos),
+              gutil::StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST(P4InfoUnionTest, PlatformPropertiesUseMax) {

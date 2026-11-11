@@ -30,6 +30,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
@@ -286,6 +287,17 @@ StatusOr<Format> GetFormatForP4InfoElement(const T& element,
   bool is_sdn_string = false;
   if (element.has_type_name()) {
     const auto& name = element.type_name().name();
+    // Serializable enums are represented by their member names.
+    if (type_info.serializable_enums().contains(name)) {
+      if (absl::c_any_of(element.annotations(), [](absl::string_view a) {
+            return absl::StartsWith(a, "@format(");
+          })) {
+        return InvalidArgumentErrorBuilder()
+               << "Elements of serializable enum type \"" << name
+               << "\" must not have a @format annotation.";
+      }
+      return Format::ENUM;
+    }
     ASSIGN_OR_RETURN(const auto* named_type,
                      gutil::FindPtrOrStatus(type_info.new_types(), name),
                      _ << "Type definition for \"" << name << "\" not found");
@@ -320,6 +332,11 @@ absl::Status ProcessPacketIoMetadataDefinition(
     *ir_metadata.mutable_metadata() = metadata;
     ASSIGN_OR_RETURN(const auto& format,
                      GetFormatForP4InfoElement(metadata, type_info));
+    if (format == Format::ENUM) {
+      return gutil::UnimplementedErrorBuilder()
+             << "Serializable enums are not yet supported for \"" << kind
+             << "\" controller packet metadata '" << metadata.name() << "'.";
+    }
     ir_metadata.set_format(format);
     if (absl::c_any_of(metadata.annotations(),
                        [](absl::string_view annotation) {
@@ -763,7 +780,7 @@ absl::Status PiActionToIr(
     param_entry->set_name(ir_param_definition->param().name());
     const absl::StatusOr<IrValue>& ir_value = ArbitraryByteStringToIrValue(
         ir_param_definition->format(), ir_param_definition->param().bitwidth(),
-        param.value());
+        param.value(), &ir_param_definition->serializable_enum());
     if (!ir_value.ok()) {
       invalid_reasons.push_back(
           GenerateReason(ParamName(ir_param_definition->param().name()),
@@ -1223,7 +1240,8 @@ absl::Status IrActionInvocationToPi(
       continue;
     }
     const absl::StatusOr<std::string>& value = IrValueToNormalizedByteString(
-        param.value(), ir_param_definition->param().bitwidth());
+        param.value(), ir_param_definition->param().bitwidth(),
+        &ir_param_definition->serializable_enum());
     if (!value.ok()) {
       invalid_reasons.push_back(
           GenerateReason(ParamName(param.name()), value.status().message()));
@@ -1585,6 +1603,10 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info& p4_info) {
       ASSIGN_OR_RETURN(const auto format,
                        GetFormatForP4InfoElement(param, type_info));
       ir_param.set_format(format);
+      if (format == Format::ENUM) {
+        *ir_param.mutable_serializable_enum() =
+            type_info.serializable_enums().at(param.type_name().name());
+      }
       ASSIGN_OR_RETURN(
           const std::vector<IrMatchFieldReference> references,
           GetRefersToAnnotations(p4_info, ir_param.param().annotations()));
@@ -1649,6 +1671,12 @@ StatusOr<IrP4Info> CreateIrP4Info(const p4::config::v1::P4Info& p4_info) {
       *ir_match_definition.mutable_match_field() = match_field;
       ASSIGN_OR_RETURN(const auto& format,
                        GetFormatForP4InfoElement(match_field, type_info));
+      if (format == Format::ENUM) {
+        return gutil::UnimplementedErrorBuilder()
+               << "Serializable enums are not yet supported for match fields. "
+               << "Table '" << table.preamble().alias() << "' match field '"
+               << match_field.name() << "'.";
+      }
       ir_match_definition.set_format(format);
       RETURN_IF_ERROR(ValidateMatchFieldDefinition(ir_match_definition))
           << "Table " << table.preamble().alias() << " has invalid match field";

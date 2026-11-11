@@ -26,6 +26,7 @@
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/map.h"
 #include "google/protobuf/message.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "gutil/proto.h"
@@ -474,39 +475,57 @@ absl::Status MapUnionFirstRepeatedFieldIntoSecondById(
   return absl::OkStatus();
 }
 
-// Unions all type_info in `info` into `unioned_info` using the key of
-// P4TypeInfo::new_types. Return UnimplementedError if fields other than
-// new_types is in type_info of any of `info`
-absl::Status UnionFirstTypeInfoIntoSecond(
-    const p4::config::v1::P4Info& info, p4::config::v1::P4Info& unioned_info) {
-  if (info.type_info().structs_size() != 0 ||
-      info.type_info().headers_size() != 0 ||
-      info.type_info().header_unions_size() != 0 ||
-      info.type_info().enums_size() != 0 || info.type_info().has_error() ||
-      info.type_info().serializable_enums_size()) {
-    return absl::InvalidArgumentError(absl::Substitute(
-        "$0 only supports P4TypeInfo::new_types. P4TypeInfo: $1", __func__,
-        info.type_info().DebugString()));
-  }
-  if (!unioned_info.has_type_info()) {
-    *unioned_info.mutable_type_info() = info.type_info();
-    return absl::OkStatus();
-  }
-  for (const auto& [type_name, type_spec] : info.type_info().new_types()) {
-    auto it = unioned_info.type_info().new_types().find(type_name);
-    if (it != unioned_info.type_info().new_types().end()) {
-      if (auto diff_result = DiffMessages(type_spec, it->second);
-          diff_result.has_value()) {
-        return absl::InvalidArgumentError(absl::Substitute(
-            "$0 failed since type specifications sharing the same key, '$1', "
-            "were different: $2",
-            __func__, it->first, *diff_result));
-      }
-    } else {
-      (*unioned_info.mutable_type_info()->mutable_new_types())[type_name] =
-          type_spec;
+// Unions the P4TypeInfo map `type_map` (e.g. `new_types`, `enums`) into
+// `unioned_type_map`. Entries sharing the same key must be identical, otherwise
+// an InvalidArgumentError is returned. `map_name` is used for error messages.
+template <typename TypeSpec>
+absl::Status UnionFirstTypeMapIntoSecond(
+    absl::string_view map_name,
+    const google::protobuf::Map<std::string, TypeSpec>& type_map,
+    google::protobuf::Map<std::string, TypeSpec>& unioned_type_map) {
+  for (const auto& [type_name, type_spec] : type_map) {
+    auto it = unioned_type_map.find(type_name);
+    if (it == unioned_type_map.end()) {
+      unioned_type_map[type_name] = type_spec;
+      continue;
+    }
+    if (auto diff_result = DiffMessages(type_spec, it->second);
+        diff_result.has_value()) {
+      return absl::InvalidArgumentError(absl::Substitute(
+          "failed to union P4TypeInfo::$0 since type specifications sharing "
+          "the same key, '$1', were different: $2",
+          map_name, type_name, *diff_result));
     }
   }
+  return absl::OkStatus();
+}
+
+// Unions all type_info in `info` into `unioned_info` using the keys of
+// P4TypeInfo::new_types, P4TypeInfo::enums, and P4TypeInfo::serializable_enums.
+// Returns InvalidArgumentError if any other field is present in the type_info
+// of `info`.
+absl::Status UnionFirstTypeInfoIntoSecond(
+    const p4::config::v1::P4Info& info, p4::config::v1::P4Info& unioned_info) {
+  const p4::config::v1::P4TypeInfo& type_info = info.type_info();
+  if (type_info.structs_size() != 0 || type_info.headers_size() != 0 ||
+      type_info.header_unions_size() != 0 || type_info.has_error()) {
+    return absl::InvalidArgumentError(absl::Substitute(
+        "$0 only supports P4TypeInfo::new_types, P4TypeInfo::enums, and "
+        "P4TypeInfo::serializable_enums. P4TypeInfo: $1",
+        __func__, type_info.DebugString()));
+  }
+  if (!info.has_type_info()) return absl::OkStatus();
+
+  p4::config::v1::P4TypeInfo& unioned_type_info =
+      *unioned_info.mutable_type_info();
+  RETURN_IF_ERROR(
+      UnionFirstTypeMapIntoSecond("new_types", type_info.new_types(),
+                                  *unioned_type_info.mutable_new_types()));
+  RETURN_IF_ERROR(UnionFirstTypeMapIntoSecond(
+      "enums", type_info.enums(), *unioned_type_info.mutable_enums()));
+  RETURN_IF_ERROR(UnionFirstTypeMapIntoSecond(
+      "serializable_enums", type_info.serializable_enums(),
+      *unioned_type_info.mutable_serializable_enums()));
   return absl::OkStatus();
 }
 

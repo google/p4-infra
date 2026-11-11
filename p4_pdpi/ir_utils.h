@@ -25,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "google/rpc/code.pb.h"
+#include "p4/config/v1/p4types.pb.h"
 #include "p4_pdpi/ir.pb.h"
 #include "p4_pdpi/translation_options.h"
 #if !defined(ABSL_IS_LITTLE_ENDIAN)
@@ -72,13 +73,25 @@ absl::Status ValidateIrValueFormat(const IrValue& ir_value, Format format,
                                    const TranslationOptions& options);
 
 // Converts the IR value to a PI byte string and returns it.
+//
+// If `ir_value` holds an `enum` (the name of a member of a serializable enum),
+// `enum_spec` must be the definition of that enum, and the result is the
+// member's value. Returns an InvalidArgumentError if `enum_spec` is null or the
+// name is not a member of the enum. `enum_spec` is ignored for other formats.
 absl::StatusOr<std::string> IrValueToNormalizedByteString(
-    const IrValue& ir_value, const int bitwidth);
+    const IrValue& ir_value, const int bitwidth,
+    const p4::config::v1::P4SerializableEnumTypeSpec* enum_spec = nullptr);
 
 // Converts the PI value to an IR value and returns it.
-absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(Format format,
-                                                     const int bitwidth,
-                                                     const std::string& bytes);
+//
+// If `format` is ENUM, `enum_spec` must be the definition of the serializable
+// enum that is the value's type, and the result holds the name of the
+// corresponding enum member (in the `enum` field). Returns an
+// InvalidArgumentError if `enum_spec` is null or `bytes` does not encode the
+// value of any member of the enum. `enum_spec` is ignored for other formats.
+absl::StatusOr<IrValue> ArbitraryByteStringToIrValue(
+    Format format, const int bitwidth, const std::string& bytes,
+    const p4::config::v1::P4SerializableEnumTypeSpec* enum_spec = nullptr);
 
 // Returns an IrValue based on a string value and a format. The value is
 // expected to already be formatted correctly, and is just copied to the correct

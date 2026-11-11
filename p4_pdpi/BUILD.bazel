@@ -325,6 +325,7 @@ cc_test(
     srcs = ["p4info_union_test.cc"],
     deps = [
         ":p4info_union_lib",
+        "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
         "@googletest//:gtest_main",
         "@gutil//gutil:proto_matchers",
@@ -405,6 +406,7 @@ proto_library(
         "@googleapis//google/rpc:code_proto",
         "@googleapis//google/rpc:status_proto",
         "@p4runtime//proto/p4/config/v1:p4info_proto",
+        "@p4runtime//proto/p4/config/v1:p4types_proto",
         "@p4runtime//proto/p4/v1:p4runtime_proto",
     ],
 )
@@ -454,6 +456,8 @@ cc_test(
         "@gutil//gutil:proto",
         "@gutil//gutil:proto_matchers",
         "@gutil//gutil:status_matchers",
+        "@gutil//gutil:testing",
+        "@p4runtime//proto/p4/config/v1:p4types_cc_proto",
         "@protobuf",
     ],
 )
