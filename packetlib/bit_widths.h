@@ -37,6 +37,7 @@ constexpr int kPsampHeaderBitwidth = 224;
 constexpr int kPtpHeaderBitwidth = 272;
 constexpr int kPspHeaderBitwidth = 128;
 constexpr int kIbBthHeaderBitwidth = 96;
+constexpr int kFalconBhHeaderBitwidth = 192;
 constexpr int kCsigHeaderBitwidth = 32;
 constexpr int kCsigWideHeaderBitwidth = 64;
 
@@ -197,6 +198,19 @@ constexpr int kIbBthDstQpBitwidth = 24;
 constexpr int kIbBthAckReqBitwidth = 1;
 constexpr int kIbBthReserved2Bitwidth = 7;
 constexpr int kIbBthPsnBitwidth = 24;
+
+// Falcon Base Header constants
+constexpr int kFalconBhVersionBitwidth = 4;
+constexpr int kFalconBhReserved0Bitwidth = 4;
+constexpr int kFalconBhDstCidBitwidth = 24;
+constexpr int kFalconBhDstFunctionBitwidth = 24;
+constexpr int kFalconBhProtocolTypeBitwidth = 3;
+constexpr int kFalconBhPacketTypeBitwidth = 4;
+constexpr int kFalconBhAckReqBitwidth = 1;
+constexpr int kFalconBhRxDataWindowBasePsnBitwidth = 32;
+constexpr int kFalconBhRxReqWindowBasePsnBitwidth = 32;
+constexpr int kFalconBhPsnBitwidth = 32;
+constexpr int kFalconBhRsnBitwidth = 32;
 
 }  // namespace packetlib
 

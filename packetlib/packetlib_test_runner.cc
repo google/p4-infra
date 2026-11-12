@@ -1642,6 +1642,103 @@ void RunPacketParseTests() {
                        reserved1: 0b1
                        security_parameters_index: 0x00000000
                      )pb");
+  RunPacketParseTest(
+      "PSP packet without virtualization cookie, but with Falcon base header "
+      "(valid)",
+      R"pb(
+        # Ethernet header
+        ethernet_destination: 0xaabbccddeeff
+        ethernet_source: 0x112233445566
+        ethertype: 0x86DD
+        # IPv6 header.
+        version: 0x6
+        dscp: 0b000000
+        ecn: 0b00
+        flow_label: 0x12345
+        payload_length: 0x0030
+        next_header: 0x11  # UDP
+        hop_limit: 0x42
+        ipv6_source: 0x00001111222233334444555566667777
+        ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+        # UDP header
+        source_port: 0x0014
+        destination_port: 0x03e8  # 1000
+        length: 0x0030
+        checksum: 0x0000
+        # PSP Header
+        next_header: 0xfc  # Falcon
+        header_ext_length: 0x00
+        reserved0: 0b00
+        crypt_offset: 0b000110
+        sample_bit: 0b0
+        drop_bit: 0b0
+        version: 0x1
+        virtualization_cookie_present: 0b0
+        reserved1: 0b1
+        security_parameters_index: 0x00000000
+        initialization_vector: 0x0000000000000000
+        # Falcon base header
+        version: 0x1
+        reserved0: 0x0
+        dst_cid: 0x123456
+        dst_function: 0xabcdef
+        protocol_type: 0b010
+        packet_type: 0b0101
+        ack_req: 0b1
+        rx_data_window_base_psn: 0x11111111
+        rx_req_window_base_psn: 0x22222222
+        psn: 0x33333333
+        rsn: 0x44444444
+      )pb");
+
+  RunPacketParseTest(
+      "PSP packet with virtualization cookie and Falcon base header (valid)",
+      R"pb(
+        # Ethernet header
+        ethernet_destination: 0xaabbccddeeff
+        ethernet_source: 0x112233445566
+        ethertype: 0x86DD
+        # IPv6 header.
+        version: 0x6
+        dscp: 0b000000
+        ecn: 0b00
+        flow_label: 0x12345
+        payload_length: 0x0038
+        next_header: 0x11  # UDP
+        hop_limit: 0x42
+        ipv6_source: 0x00001111222233334444555566667777
+        ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+        # UDP header
+        source_port: 0x0014
+        destination_port: 0x03e8  # 1000
+        length: 0x0038
+        checksum: 0x0000
+        # PSP Header
+        next_header: 0xfc  # Falcon
+        header_ext_length: 0x00
+        reserved0: 0b00
+        crypt_offset: 0b001000
+        sample_bit: 0b0
+        drop_bit: 0b0
+        version: 0x1
+        virtualization_cookie_present: 0b1
+        reserved1: 0b1
+        security_parameters_index: 0x00000000
+        initialization_vector: 0x0000000000000000
+        virtualization_cookie: 0x1234567890abcdef
+        # Falcon base header
+        version: 0x1
+        reserved0: 0x0
+        dst_cid: 0x123456
+        dst_function: 0xabcdef
+        protocol_type: 0b010
+        packet_type: 0b0101
+        ack_req: 0b1
+        rx_data_window_base_psn: 0x11111111
+        rx_req_window_base_psn: 0x22222222
+        psn: 0x33333333
+        rsn: 0x44444444
+      )pb");
 }  // NOLINT(readability/fn_size)
 
 void RunProtoPacketTests() {

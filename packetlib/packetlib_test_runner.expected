@@ -3137,6 +3137,222 @@ UpdateAllComputedFields(packet) = true
 ValidatePacket(packet) = INVALID_ARGUMENT: Packet invalid for the following reasons:
 - headers[3]: header missing - expected PspHeader
 ================================================================================
+Parsing test: PSP packet without virtualization cookie, but with Falcon base header (valid)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+# Ethernet header
+        ethernet_destination: 0xaabbccddeeff
+        ethernet_source: 0x112233445566
+        ethertype: 0x86DD
+        # IPv6 header.
+        version: 0x6
+        dscp: 0b000000
+        ecn: 0b00
+        flow_label: 0x12345
+        payload_length: 0x0030
+        next_header: 0x11  # UDP
+        hop_limit: 0x42
+        ipv6_source: 0x00001111222233334444555566667777
+        ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+        # UDP header
+        source_port: 0x0014
+        destination_port: 0x03e8  # 1000
+        length: 0x0030
+        checksum: 0x0000
+        # PSP Header
+        next_header: 0xfc  # Falcon
+        header_ext_length: 0x00
+        reserved0: 0b00
+        crypt_offset: 0b000110
+        sample_bit: 0b0
+        drop_bit: 0b0
+        version: 0x1
+        virtualization_cookie_present: 0b0
+        reserved1: 0b1
+        security_parameters_index: 0x00000000
+        initialization_vector: 0x0000000000000000
+        # Falcon base header
+        version: 0x1
+        reserved0: 0x0
+        dst_cid: 0x123456
+        dst_function: 0xabcdef
+        protocol_type: 0b010
+        packet_type: 0b0101
+        ack_req: 0b1
+        rx_data_window_base_psn: 0x11111111
+        rx_req_window_base_psn: 0x22222222
+        psn: 0x33333333
+        rsn: 0x44444444
+-- OUTPUT ----------------------------------------------------------------------
+headers {
+  ethernet_header {
+    ethernet_destination: "aa:bb:cc:dd:ee:ff"
+    ethernet_source: "11:22:33:44:55:66"
+    ethertype: "0x86dd"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x00"
+    ecn: "0x0"
+    flow_label: "0x12345"
+    payload_length: "0x0030"
+    next_header: "0x11"
+    hop_limit: "0x42"
+    ipv6_source: "0:1111:2222:3333:4444:5555:6666:7777"
+    ipv6_destination: "8888:9999:aaaa:bbbb:cccc:dddd:eeee:ffff"
+  }
+}
+headers {
+  udp_header {
+    source_port: "0x0014"
+    destination_port: "0x03e8"
+    length: "0x0030"
+    checksum: "0x0000"
+  }
+}
+headers {
+  psp_header {
+    next_header: "0xfc"
+    header_ext_length: "0x00"
+    reserved0: "0x0"
+    crypt_offset: "0x06"
+    sample_bit: "0x0"
+    drop_bit: "0x0"
+    version: "0x1"
+    virtualization_cookie_present: "0x0"
+    reserved1: "0x1"
+    security_parameters_index: "0x00000000"
+    initialization_vector: "0x0000000000000000"
+  }
+}
+headers {
+  falcon_bh_header {
+    version: "0x1"
+    reserved0: "0x0"
+    dst_cid: "0x123456"
+    dst_function: "0xabcdef"
+    protocol_type: "0x2"
+    packet_type: "0x5"
+    ack_req: "0x1"
+    rx_data_window_base_psn: "0x11111111"
+    rx_req_window_base_psn: "0x22222222"
+    psn: "0x33333333"
+    rsn: "0x44444444"
+  }
+}
+
+================================================================================
+Parsing test: PSP packet with virtualization cookie and Falcon base header (valid)
+================================================================================
+-- INPUT -----------------------------------------------------------------------
+# Ethernet header
+        ethernet_destination: 0xaabbccddeeff
+        ethernet_source: 0x112233445566
+        ethertype: 0x86DD
+        # IPv6 header.
+        version: 0x6
+        dscp: 0b000000
+        ecn: 0b00
+        flow_label: 0x12345
+        payload_length: 0x0038
+        next_header: 0x11  # UDP
+        hop_limit: 0x42
+        ipv6_source: 0x00001111222233334444555566667777
+        ipv6_destination: 0x88889999aaaabbbbccccddddeeeeffff
+        # UDP header
+        source_port: 0x0014
+        destination_port: 0x03e8  # 1000
+        length: 0x0038
+        checksum: 0x0000
+        # PSP Header
+        next_header: 0xfc  # Falcon
+        header_ext_length: 0x00
+        reserved0: 0b00
+        crypt_offset: 0b001000
+        sample_bit: 0b0
+        drop_bit: 0b0
+        version: 0x1
+        virtualization_cookie_present: 0b1
+        reserved1: 0b1
+        security_parameters_index: 0x00000000
+        initialization_vector: 0x0000000000000000
+        virtualization_cookie: 0x1234567890abcdef
+        # Falcon base header
+        version: 0x1
+        reserved0: 0x0
+        dst_cid: 0x123456
+        dst_function: 0xabcdef
+        protocol_type: 0b010
+        packet_type: 0b0101
+        ack_req: 0b1
+        rx_data_window_base_psn: 0x11111111
+        rx_req_window_base_psn: 0x22222222
+        psn: 0x33333333
+        rsn: 0x44444444
+-- OUTPUT ----------------------------------------------------------------------
+headers {
+  ethernet_header {
+    ethernet_destination: "aa:bb:cc:dd:ee:ff"
+    ethernet_source: "11:22:33:44:55:66"
+    ethertype: "0x86dd"
+  }
+}
+headers {
+  ipv6_header {
+    version: "0x6"
+    dscp: "0x00"
+    ecn: "0x0"
+    flow_label: "0x12345"
+    payload_length: "0x0038"
+    next_header: "0x11"
+    hop_limit: "0x42"
+    ipv6_source: "0:1111:2222:3333:4444:5555:6666:7777"
+    ipv6_destination: "8888:9999:aaaa:bbbb:cccc:dddd:eeee:ffff"
+  }
+}
+headers {
+  udp_header {
+    source_port: "0x0014"
+    destination_port: "0x03e8"
+    length: "0x0038"
+    checksum: "0x0000"
+  }
+}
+headers {
+  psp_header {
+    next_header: "0xfc"
+    header_ext_length: "0x00"
+    reserved0: "0x0"
+    crypt_offset: "0x08"
+    sample_bit: "0x0"
+    drop_bit: "0x0"
+    version: "0x1"
+    virtualization_cookie_present: "0x1"
+    reserved1: "0x1"
+    security_parameters_index: "0x00000000"
+    initialization_vector: "0x0000000000000000"
+    virtualization_cookie: "0x1234567890abcdef"
+  }
+}
+headers {
+  falcon_bh_header {
+    version: "0x1"
+    reserved0: "0x0"
+    dst_cid: "0x123456"
+    dst_function: "0xabcdef"
+    protocol_type: "0x2"
+    packet_type: "0x5"
+    ack_req: "0x1"
+    rx_data_window_base_psn: "0x11111111"
+    rx_req_window_base_psn: "0x22222222"
+    psn: "0x33333333"
+    rsn: "0x44444444"
+  }
+}
+
+================================================================================
 Proto packet test: UDP header not preceded by other header
 ================================================================================
 -- INPUT -----------------------------------------------------------------------

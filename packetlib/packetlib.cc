@@ -190,6 +190,9 @@ absl::StatusOr<NextHeader> GetNextHeader(const PtpHeader& header) {
 absl::StatusOr<NextHeader> GetNextHeader(const IbBthHeader& header) {
   return Header::HEADER_NOT_SET;
 }
+absl::StatusOr<NextHeader> GetNextHeader(const FalconBhHeader& header) {
+  return Header::HEADER_NOT_SET;
+}
 absl::StatusOr<NextHeader> GetNextHeader(const PspHeader& header) {
   // Only parse the next header if it is entirely in cleartext. `crypt_offset`
   // is the number of cleartext 32-bit words after the PSP header, including the
@@ -205,6 +208,10 @@ absl::StatusOr<NextHeader> GetNextHeader(const PspHeader& header) {
   }
   if (header.next_header() == "0x29" && cleartext_bits >= kIpv6HeaderBitwidth) {
     return Header::kIpv6Header;
+  }
+  if (header.next_header() == "0xfc" &&
+      cleartext_bits >= kFalconBhHeaderBitwidth) {
+    return Header::kFalconBhHeader;
   }
   return Header::HEADER_NOT_SET;
 }
@@ -246,6 +253,8 @@ absl::StatusOr<NextHeader> GetNextHeader(const Header& header) {
       return GetNextHeader(header.psp_header());
     case Header::kIbBthHeader:
       return GetNextHeader(header.ib_bth_header());
+    case Header::kFalconBhHeader:
+      return GetNextHeader(header.falcon_bh_header());
     case Header::HEADER_NOT_SET:
       return Header::HEADER_NOT_SET;
   }
@@ -756,6 +765,31 @@ absl::StatusOr<IbBthHeader> ParseIbBthHeader(
   return header;
 }
 
+absl::StatusOr<FalconBhHeader> ParseFalconBhHeader(
+    string_encodings::BitString& data) {
+  if (data.size() < kFalconBhHeaderBitwidth) {
+    return gutil::InvalidArgumentErrorBuilder()
+           << "Packet is too short to parse a Falcon base header next. Only "
+           << data.size() << " bits left, need at least "
+           << kFalconBhHeaderBitwidth << ".";
+  }
+  FalconBhHeader header;
+  header.set_version(ParseBits(data, kFalconBhVersionBitwidth));
+  header.set_reserved0(ParseBits(data, kFalconBhReserved0Bitwidth));
+  header.set_dst_cid(ParseBits(data, kFalconBhDstCidBitwidth));
+  header.set_dst_function(ParseBits(data, kFalconBhDstFunctionBitwidth));
+  header.set_protocol_type(ParseBits(data, kFalconBhProtocolTypeBitwidth));
+  header.set_packet_type(ParseBits(data, kFalconBhPacketTypeBitwidth));
+  header.set_ack_req(ParseBits(data, kFalconBhAckReqBitwidth));
+  header.set_rx_data_window_base_psn(
+      ParseBits(data, kFalconBhRxDataWindowBasePsnBitwidth));
+  header.set_rx_req_window_base_psn(
+      ParseBits(data, kFalconBhRxReqWindowBasePsnBitwidth));
+  header.set_psn(ParseBits(data, kFalconBhPsnBitwidth));
+  header.set_rsn(ParseBits(data, kFalconBhRsnBitwidth));
+  return header;
+}
+
 absl::StatusOr<Header> ParseHeader(Header::HeaderCase header_case,
                                    string_encodings::BitString& data) {
   Header result;
@@ -834,6 +868,11 @@ absl::StatusOr<Header> ParseHeader(Header::HeaderCase header_case,
     }
     case Header::kIbBthHeader: {
       ASSIGN_OR_RETURN(*result.mutable_ib_bth_header(), ParseIbBthHeader(data));
+      return result;
+    }
+    case Header::kFalconBhHeader: {
+      ASSIGN_OR_RETURN(*result.mutable_falcon_bh_header(),
+                       ParseFalconBhHeader(data));
       return result;
     }
     case Header::HEADER_NOT_SET:
@@ -1956,6 +1995,37 @@ void IbBthHeaderInvalidReasons(const IbBthHeader& header,
       header.psn(), absl::StrCat(field_prefix, "psn"), output);
 }
 
+void FalconBhHeaderInvalidReasons(const FalconBhHeader& header,
+                                  const std::string& field_prefix,
+                                  std::vector<std::string>& output) {
+  HexStringInvalidReasons<kFalconBhVersionBitwidth>(
+      header.version(), absl::StrCat(field_prefix, "version"), output);
+  HexStringInvalidReasons<kFalconBhReserved0Bitwidth>(
+      header.reserved0(), absl::StrCat(field_prefix, "reserved0"), output);
+  HexStringInvalidReasons<kFalconBhDstCidBitwidth>(
+      header.dst_cid(), absl::StrCat(field_prefix, "dst_cid"), output);
+  HexStringInvalidReasons<kFalconBhDstFunctionBitwidth>(
+      header.dst_function(), absl::StrCat(field_prefix, "dst_function"),
+      output);
+  HexStringInvalidReasons<kFalconBhProtocolTypeBitwidth>(
+      header.protocol_type(), absl::StrCat(field_prefix, "protocol_type"),
+      output);
+  HexStringInvalidReasons<kFalconBhPacketTypeBitwidth>(
+      header.packet_type(), absl::StrCat(field_prefix, "packet_type"), output);
+  HexStringInvalidReasons<kFalconBhAckReqBitwidth>(
+      header.ack_req(), absl::StrCat(field_prefix, "ack_req"), output);
+  HexStringInvalidReasons<kFalconBhRxDataWindowBasePsnBitwidth>(
+      header.rx_data_window_base_psn(),
+      absl::StrCat(field_prefix, "rx_data_window_base_psn"), output);
+  HexStringInvalidReasons<kFalconBhRxReqWindowBasePsnBitwidth>(
+      header.rx_req_window_base_psn(),
+      absl::StrCat(field_prefix, "rx_req_window_base_psn"), output);
+  HexStringInvalidReasons<kFalconBhPsnBitwidth>(
+      header.psn(), absl::StrCat(field_prefix, "psn"), output);
+  HexStringInvalidReasons<kFalconBhRsnBitwidth>(
+      header.rsn(), absl::StrCat(field_prefix, "rsn"), output);
+}
+
 }  // namespace
 
 std::string HeaderCaseName(Header::HeaderCase header_case) {
@@ -1996,6 +2066,8 @@ std::string HeaderCaseName(Header::HeaderCase header_case) {
       return "PspHeader";
     case Header::kIbBthHeader:
       return "IbBthHeader";
+    case Header::kFalconBhHeader:
+      return "FalconBhHeader";
     case Header::HEADER_NOT_SET:
       return "HEADER_NOT_SET";
   }
@@ -2187,6 +2259,11 @@ std::vector<std::string> PacketInvalidReasons(const Packet& packet) {
       }
       case Header::kIbBthHeader: {
         IbBthHeaderInvalidReasons(header.ib_bth_header(), error_prefix, result);
+        break;
+      }
+      case Header::kFalconBhHeader: {
+        FalconBhHeaderInvalidReasons(header.falcon_bh_header(), error_prefix,
+                                     result);
         break;
       }
       case Header::HEADER_NOT_SET:
@@ -2591,6 +2668,31 @@ absl::Status SerializeIbBthHeader(const IbBthHeader& header,
   return absl::OkStatus();
 }
 
+absl::Status SerializeFalconBhHeader(const FalconBhHeader& header,
+                                     string_encodings::BitString& output) {
+  RETURN_IF_ERROR(
+      SerializeBits<kFalconBhVersionBitwidth>(header.version(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kFalconBhReserved0Bitwidth>(header.reserved0(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kFalconBhDstCidBitwidth>(header.dst_cid(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhDstFunctionBitwidth>(
+      header.dst_function(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhProtocolTypeBitwidth>(
+      header.protocol_type(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kFalconBhPacketTypeBitwidth>(header.packet_type(), output));
+  RETURN_IF_ERROR(
+      SerializeBits<kFalconBhAckReqBitwidth>(header.ack_req(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhRxDataWindowBasePsnBitwidth>(
+      header.rx_data_window_base_psn(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhRxReqWindowBasePsnBitwidth>(
+      header.rx_req_window_base_psn(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhPsnBitwidth>(header.psn(), output));
+  RETURN_IF_ERROR(SerializeBits<kFalconBhRsnBitwidth>(header.rsn(), output));
+  return absl::OkStatus();
+}
+
 absl::Status SerializeHeader(const Header& header,
                              string_encodings::BitString& output) {
   switch (header.header_case()) {
@@ -2628,6 +2730,8 @@ absl::Status SerializeHeader(const Header& header,
       return SerializePspHeader(header.psp_header(), output);
     case Header::kIbBthHeader:
       return SerializeIbBthHeader(header.ib_bth_header(), output);
+    case Header::kFalconBhHeader:
+      return SerializeFalconBhHeader(header.falcon_bh_header(), output);
     case Header::kCsigHeader:
       return SerializeCsigHeader(header.csig_header(), output);
     case Header::kCsigWideHeader:
@@ -3036,7 +3140,8 @@ absl::StatusOr<bool> UpdateComputedFields(Packet& packet, bool overwrite) {
       case Header::kVlanHeader:
       case Header::kCsigHeader:
       case Header::kCsigWideHeader:
-      case Header::kPspHeader: {
+      case Header::kPspHeader:
+      case Header::kFalconBhHeader: {
         // No computed fields.
         break;
       }
@@ -3090,6 +3195,7 @@ absl::StatusOr<bool> PadPacketToMinimumSizeFromHeaderIndex(Packet& packet,
     case Header::kPtpHeader:
     case Header::kPspHeader:
     case Header::kIbBthHeader:
+    case Header::kFalconBhHeader:
     case Header::kCsigHeader:
     case Header::kCsigWideHeader:
       return PadPacketToMinimumSizeFromHeaderIndex(packet, header_index + 1);
@@ -3207,6 +3313,9 @@ absl::StatusOr<int> PacketSizeInBits(const Packet& packet,
         break;
       case Header::kIbBthHeader:
         size += kIbBthHeaderBitwidth;
+        break;
+      case Header::kFalconBhHeader:
+        size += kFalconBhHeaderBitwidth;
         break;
       case Header::kCsigHeader:
         size += kCsigHeaderBitwidth;

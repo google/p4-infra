@@ -19,6 +19,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
@@ -1086,6 +1087,33 @@ TEST(PacketLib, RoundTrippingForIbBthHeader) {
 
   Packet parsed_packet = ParsePacket(raw_packet, Header::kIbBthHeader);
   EXPECT_THAT(PacketSizeInBits(parsed_packet, 0), IsOkAndHolds(96));
+  EXPECT_THAT(parsed_packet, EqualsProto(packet));
+}
+
+TEST(PacketLib, RoundTrippingForFalconBhHeader) {
+  Packet packet;
+  *packet.add_headers() = gutil::ParseProtoOrDie<Header>(R"pb(
+    falcon_bh_header {
+      version: "0x1"
+      reserved0: "0x0"
+      dst_cid: "0x123456"
+      dst_function: "0xabcdef"
+      protocol_type: "0x2"
+      packet_type: "0x5"
+      ack_req: "0x1"
+      rx_data_window_base_psn: "0x11111111"
+      rx_req_window_base_psn: "0x22222222"
+      psn: "0x33333333"
+      rsn: "0x44444444"
+    }
+  )pb");
+  ASSERT_OK_AND_ASSIGN(std::string raw_packet,
+                       packetlib::RawSerializePacket(packet));
+  EXPECT_EQ(absl::BytesToHexString(raw_packet),
+            "10123456abcdef4b11111111222222223333333344444444");
+
+  Packet parsed_packet = ParsePacket(raw_packet, Header::kFalconBhHeader);
+  EXPECT_THAT(PacketSizeInBits(parsed_packet, 0), IsOkAndHolds(192));
   EXPECT_THAT(parsed_packet, EqualsProto(packet));
 }
 

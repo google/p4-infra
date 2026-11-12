@@ -72,6 +72,7 @@ message Header {
     HopByHopOptionsHeader hop_by_hop_options_header = 16;
     IbBthHeader ib_bth_header = 17;
     CsigWideHeader csig_wide_header = 18;
+    FalconBhHeader falcon_bh_header = 19;
   }
 }
 
@@ -315,4 +316,19 @@ message PspHeader {
   // 64 bits (optional). Present iff `virtualization_cookie_present` is 0x1,
   // otherwise must be the empty string.
   string virtualization_cookie = 12;
+}
+
+// Falcon Base Header. Follows a PSP header with next_header 0xfc.
+message FalconBhHeader {
+  string version = 1;                  // 4 bits
+  string reserved0 = 2;                // 4 bits
+  string dst_cid = 3;                  // 24 bits
+  string dst_function = 4;             // 24 bits
+  string protocol_type = 5;            // 3 bits
+  string packet_type = 6;              // 4 bits
+  string ack_req = 7;                  // 1 bit
+  string rx_data_window_base_psn = 8;  // 32 bits
+  string rx_req_window_base_psn = 9;   // 32 bits
+  string psn = 10;                     // 32 bits
+  string rsn = 11;                     // 32 bits
 }
