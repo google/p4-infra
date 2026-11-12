@@ -45,6 +45,169 @@ INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid for the following r
   - Action is required.
 
 =========================================================================
+serializable enum action argument
+=========================================================================
+
+--- PI (Input):
+table_entry {
+  table_id: 33554433
+  match {
+    field_id: 1
+    exact {
+      value: "\377\""
+    }
+  }
+  match {
+    field_id: 2
+    exact {
+      value: "\020$2R"
+    }
+  }
+  action {
+    action {
+      action_id: 16777218
+      params {
+        param_id: 1
+        value: "T"
+      }
+      params {
+        param_id: 2
+        value: "\n+\014\005"
+      }
+      params {
+        param_id: 3
+        value: "2B\000\000\000\000\000\000\000\000\000\000\000\000\376\342"
+      }
+      params {
+        param_id: 4
+        value: "\000\021\"3DU"
+      }
+      params {
+        param_id: 5
+        value: "hello"
+      }
+      params {
+        param_id: 6
+        value: "\002"
+      }
+    }
+  }
+}
+
+--- IR:
+table_entry {
+  table_name: "id_test_table"
+  matches {
+    name: "ipv6"
+    exact {
+      ipv6: "::ff22"
+    }
+  }
+  matches {
+    name: "ipv4"
+    exact {
+      ipv4: "16.36.50.82"
+    }
+  }
+  action {
+    name: "do_thing_2"
+    params {
+      name: "normal"
+      value {
+        hex_str: "0x054"
+      }
+    }
+    params {
+      name: "ipv4"
+      value {
+        ipv4: "10.43.12.5"
+      }
+    }
+    params {
+      name: "ipv6"
+      value {
+        ipv6: "3242::fee2"
+      }
+    }
+    params {
+      name: "mac"
+      value {
+        mac: "00:11:22:33:44:55"
+      }
+    }
+    params {
+      name: "str"
+      value {
+        str: "hello"
+      }
+    }
+    params {
+      name: "hash_alg"
+      value {
+        enumeration: "HASH_ALG_RANDOM"
+      }
+    }
+  }
+}
+
+
+=========================================================================
+serializable enum action argument that is not an enum member
+=========================================================================
+
+--- PI (Input):
+table_entry {
+  table_id: 33554433
+  match {
+    field_id: 1
+    exact {
+      value: "\377\""
+    }
+  }
+  match {
+    field_id: 2
+    exact {
+      value: "\020$2R"
+    }
+  }
+  action {
+    action {
+      action_id: 16777218
+      params {
+        param_id: 1
+        value: "T"
+      }
+      params {
+        param_id: 2
+        value: "\n+\014\005"
+      }
+      params {
+        param_id: 3
+        value: "2B\000\000\000\000\000\000\000\000\000\000\000\000\376\342"
+      }
+      params {
+        param_id: 4
+        value: "\000\021\"3DU"
+      }
+      params {
+        param_id: 5
+        value: "hello"
+      }
+      params {
+        param_id: 6
+        value: "\003"
+      }
+    }
+  }
+}
+
+--- PI is invalid/unsupported:
+INVALID_ARGUMENT: Table entry for 'id_test_table' is invalid for the following reasons:
+  - Action 'do_thing_2' is invalid for the following reasons:
+    - Param 'hash_alg': Value '0x03' is not the value of any member of the enum. Valid members: HASH_ALG_CRC, HASH_ALG_RANDOM
+    - Missing parameters: 'hash_alg'. Expected 6 parameters, but found 5 instead.
+
+=========================================================================
 invalid match type - expect exact
 =========================================================================
 
@@ -2701,6 +2864,12 @@ table_entry {
         str: ""
       }
     }
+    params {
+      name: "hash_alg"
+      value {
+        enumeration: "HASH_ALG_CRC"
+      }
+    }
   }
 }
 
@@ -4292,6 +4461,7 @@ id_test_table_entry {
       ipv6: "3242::fee2"
       mac: "00:11:22:33:44:55"
       str: "hello"
+      hash_alg: HASH_ALG_CRC
     }
   }
 }
@@ -4490,7 +4660,7 @@ id_test_table_entry {
 }
 
 --- PD is invalid/unsupported (detected when translating IR to PI):
-Table entry for 'id_test_table' is invalid: Action 'do_thing_2' is invalid: Missing parameters: 'ipv4'. 'ipv6'. Expected 5 parameters, but found 3 instead.
+Table entry for 'id_test_table' is invalid: Action 'do_thing_2' is invalid: Missing parameters: 'hash_alg'. 'ipv4'. 'ipv6'. Expected 6 parameters, but found 3 instead.
 =========================================================================
 action with wrong argument format
 pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
@@ -4509,6 +4679,7 @@ id_test_table_entry {
       ipv6: "3242::fee2"
       mac: "00:11:22:33:44:55"
       str: "hello"
+      hash_alg: HASH_ALG_CRC
     }
   }
 }
@@ -5896,6 +6067,7 @@ id_test_table_entry {
       ipv6: "3242::fee2"
       mac: "00:11:22:33:44:55"
       str: "hello"
+      hash_alg: HASH_ALG_RANDOM
     }
   }
 }
@@ -5947,6 +6119,12 @@ table_entry {
         str: "hello"
       }
     }
+    params {
+      name: "hash_alg"
+      value {
+        enumeration: "HASH_ALG_RANDOM"
+      }
+    }
   }
 }
 
@@ -5988,11 +6166,39 @@ table_entry {
         param_id: 5
         value: "hello"
       }
+      params {
+        param_id: 6
+        value: "\002"
+      }
     }
   }
 }
 
 
+=========================================================================
+serializable enum action argument set to unspecified
+pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}
+=========================================================================
+
+--- PD (Input):
+id_test_table_entry {
+  match {
+    ipv6: "::ff22"
+    ipv4: "16.36.50.82"
+  }
+  action {
+    do_thing_2 {
+      normal: "0x054"
+      ipv4: "10.43.12.5"
+      ipv6: "3242::fee2"
+      mac: "00:11:22:33:44:55"
+      str: "hello"
+    }
+  }
+}
+
+--- PD is invalid/unsupported (detected when translating IR to PI):
+Table entry for 'id_test_table' is invalid: Action 'do_thing_2' is invalid: Missing parameters: 'hash_alg'. Expected 6 parameters, but found 5 instead.
 =========================================================================
 table entry without counters and meters
 pdpi::TranslationOptions{.key_only = false, .allow_unsupported = false}

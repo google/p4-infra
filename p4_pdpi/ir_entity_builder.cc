@@ -35,6 +35,12 @@ IrValue IrHexStr(absl::string_view value) {
   return ir_value;
 }
 
+IrValue IrEnumeration(absl::string_view value) {
+  IrValue ir_value;
+  ir_value.set_enumeration(std::string(value));
+  return ir_value;
+}
+
 IrValue IrIpv4(absl::string_view value) {
   IrValue ir_value;
   ir_value.set_ipv4(std::string(value));
