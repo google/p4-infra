@@ -966,6 +966,41 @@ TEST(PacketLib,
               HasSubstr("data length exceeds"));
 }
 
+TEST(PacketLib, HopByHopOptionsExceedingDataLengthByOneByteIsInvalid) {
+  // 6-byte options_and_padding where option_type = 0x01 at index 0 and
+  // option_data_length = 0x05 at index 1, leaving only 4 remaining bytes.
+  Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
+    headers {
+      hop_by_hop_options_header {
+        next_header: "0xfe"
+        header_extension_length: "0x00"
+        options_and_padding: "0x010500000000"
+      }
+    }
+  )pb");
+  EXPECT_THAT(PacketInvalidReasons(packet),
+              ElementsAre(HasSubstr(
+                  "expected data length exceeds the remaining bytes: 5 > 4")));
+}
+
+TEST(PacketLib, HopByHopOptionsWithHighBitDataLengthIsInvalid) {
+  // High-bit option_data_length (0xff = 255) must be interpreted as unsigned
+  // rather than sign-extended to -1.
+  Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
+    headers {
+      hop_by_hop_options_header {
+        next_header: "0xfe"
+        header_extension_length: "0x00"
+        options_and_padding: "0x01ff00000000"
+      }
+    }
+  )pb");
+  EXPECT_THAT(
+      PacketInvalidReasons(packet),
+      ElementsAre(HasSubstr(
+          "expected data length exceeds the remaining bytes: 255 > 4")));
+}
+
 TEST(PacketLib,
      UpdateAllComputedFieldsHasNonZeroPaddingForNPaddingInHopByHopOptions) {
   Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
