@@ -325,6 +325,7 @@ cc_test(
     srcs = ["p4info_union_test.cc"],
     deps = [
         ":p4info_union_lib",
+        "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
         "@googletest//:gtest_main",
         "@gutil//gutil:proto_matchers",

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "gmock/gmock.h"
@@ -31,6 +32,8 @@ namespace {
 
 using ::gutil::EqualsProto;
 using ::gutil::Partially;
+using ::gutil::StatusIs;
+using ::testing::ElementsAre;
 using ::testing::SizeIs;
 
 // Test that all new_types in each P4Info are included in the unioned P4Info,
@@ -167,6 +170,120 @@ TEST(P4InfoUnionTest, UnionActionProfileSizesAndSelectorSemantics) {
   )pb");
 
   EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
+}
+
+TEST(P4InfoUnionTest, UnionMatchFieldAnnotations) {
+  const auto info1 = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    tables {
+      preamble { id: 1 name: "acl_table" }
+      match_fields {
+        id: 17
+        name: "psp_next_header"
+        annotations: "@format(HEX_STRING)"
+        annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)"
+        annotation_locations { file: "a.p4" line: 10 }
+        bitwidth: 8
+        match_type: TERNARY
+      }
+    }
+  )pb");
+  const auto info2 = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    tables {
+      preamble { id: 1 name: "acl_table" }
+      match_fields {
+        id: 17
+        name: "psp_next_header"
+        annotations: "@format(HEX_STRING)"
+        annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1 , container_select = SAI_UDF_CONTAINER_SELECT_EXT_CONT_ID2)"
+        annotation_locations { file: "b.p4" line: 20 }
+        bitwidth: 8
+        match_type: TERNARY
+      }
+    }
+  )pb");
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_p4info,
+                       UnionP4info({info1, info2}));
+
+  EXPECT_THAT(
+      unioned_p4info.tables(0).match_fields(0).annotations(),
+      ElementsAre("@format(HEX_STRING)",
+                  "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)",
+                  "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1 , "
+                  "container_select = SAI_UDF_CONTAINER_SELECT_EXT_CONT_ID2)"));
+}
+
+TEST(P4InfoUnionTest, RejectsIncompatibleMatchFields) {
+  const auto base = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    tables {
+      preamble { id: 1 name: "acl_table" }
+      match_fields {
+        id: 17
+        name: "psp_next_header"
+        annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)"
+        bitwidth: 8
+        match_type: TERNARY
+      }
+    }
+  )pb");
+  const auto different_name = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(
+      R"pb(
+        tables {
+          preamble { id: 1 name: "acl_table" }
+          match_fields {
+            id: 17
+            name: "other_name"
+            bitwidth: 8
+            match_type: TERNARY
+          }
+        }
+      )pb");
+  const auto different_bitwidth =
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        tables {
+          preamble { id: 1 name: "acl_table" }
+          match_fields {
+            id: 17
+            name: "psp_next_header"
+            bitwidth: 16
+            match_type: TERNARY
+          }
+        }
+      )pb");
+  const auto different_match_type =
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        tables {
+          preamble { id: 1 name: "acl_table" }
+          match_fields {
+            id: 17
+            name: "psp_next_header"
+            bitwidth: 8
+            match_type: OPTIONAL
+          }
+        }
+      )pb");
+  const auto different_structured_annotation =
+      gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+        tables {
+          preamble { id: 1 name: "acl_table" }
+          match_fields {
+            id: 17
+            name: "psp_next_header"
+            structured_annotations { name: "custom" }
+            bitwidth: 8
+            match_type: TERNARY
+          }
+        }
+      )pb");
+
+  EXPECT_THAT(UnionP4info({base, different_name}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(UnionP4info({base, different_bitwidth}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(UnionP4info({base, different_match_type}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(UnionP4info({base, different_structured_annotation}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 }  // namespace

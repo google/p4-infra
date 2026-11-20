@@ -32,6 +32,8 @@ namespace pdpi {
 // Entities that need not be identical include:
 // - Tables, which will have their match fields, action refs,
 //   direct resource ids and preambles unioned.
+// - Match fields, which will have their annotations unioned (and
+//   annotation_locations ignored).
 absl::StatusOr<::p4::config::v1::P4Info> UnionP4info(
     const std::vector<::p4::config::v1::P4Info>& infos);
 

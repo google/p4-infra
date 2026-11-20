@@ -338,6 +338,31 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   return absl::OkStatus();
 }
 
+// Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for match fields.
+// Instead of requiring equality for all fields, it unions `annotations` as a
+// set (matching preamble unioning for tables, actions, and action profiles) and
+// ignores `annotation_locations`. All other fields must be identical.
+// Requires: GetId(match_field) == GetId(unioned_match_field)
+absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
+    const p4::config::v1::MatchField& match_field,
+    p4::config::v1::MatchField& unioned_match_field) {
+  RETURN_IF_ERROR(
+      AssertIdsAreEqualForUnioning(match_field, unioned_match_field));
+
+  if (auto diff_result = DiffMessages(
+          match_field, unioned_match_field,
+          /*ignored_fields=*/{"annotations", "annotation_locations"});
+      diff_result.has_value()) {
+    return absl::InvalidArgumentError(absl::Substitute(
+        "match fields with identical id '$0' were incompatible. "
+        "Relevant differences: $1",
+        match_field.id(), *diff_result));
+  }
+
+  return SetUnionFirstRepeatedFieldIntoSecond(
+      match_field.annotations(), *unioned_match_field.mutable_annotations());
+}
+
 // Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for tables. Instead
 // of requiring equality for all fields, it unions all repeated fields and the
 // preamble. It asserts that other_properties is unset, giving an
