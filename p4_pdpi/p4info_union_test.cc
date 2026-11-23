@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "gmock/gmock.h"
@@ -31,6 +32,9 @@ namespace {
 
 using ::gutil::EqualsProto;
 using ::gutil::Partially;
+using ::gutil::StatusIs;
+using ::testing::ElementsAre;
+using ::testing::HasSubstr;
 using ::testing::SizeIs;
 
 // Test that all new_types in each P4Info are included in the unioned P4Info,
@@ -167,6 +171,176 @@ TEST(P4InfoUnionTest, UnionActionProfileSizesAndSelectorSemantics) {
   )pb");
 
   EXPECT_THAT(unioned_p4info, Partially(EqualsProto(expected_p4info)));
+}
+
+TEST(P4InfoUnionTest, UnionMatchFieldSaiUdfAnnotations) {
+  const auto info1 = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    tables {
+      preamble { id: 1 name: "acl_table" }
+      match_fields {
+        id: 17
+        name: "psp_next_header"
+        annotations: "@unsupported"
+        annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)"
+        annotation_locations { file: "a.p4" line: 10 }
+        bitwidth: 8
+        match_type: TERNARY
+      }
+    }
+  )pb");
+  const auto info2 = gutil::ParseProtoOrDie<p4::config::v1::P4Info>(R"pb(
+    tables {
+      preamble { id: 1 name: "acl_table" }
+      match_fields {
+        id: 17
+        name: "psp_next_header"
+        annotations: "@unsupported"
+        annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1 , container_select = SAI_UDF_CONTAINER_SELECT_EXT_CONT_ID2)"
+        annotation_locations { file: "b.p4" line: 20 }
+        bitwidth: 8
+        match_type: TERNARY
+      }
+    }
+  )pb");
+
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_12,
+                       UnionP4info({info1, info2}));
+  EXPECT_THAT(
+      unioned_12.tables(0).match_fields(0).annotations(),
+      ElementsAre("@unsupported",
+                  "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)",
+                  "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1 , "
+                  "container_select = SAI_UDF_CONTAINER_SELECT_EXT_CONT_ID2)"));
+
+  // Output order follows input order.
+  ASSERT_OK_AND_ASSIGN(p4::config::v1::P4Info unioned_21,
+                       UnionP4info({info2, info1}));
+  EXPECT_THAT(
+      unioned_21.tables(0).match_fields(0).annotations(),
+      ElementsAre(
+          "@unsupported",
+          "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1 , "
+          "container_select = SAI_UDF_CONTAINER_SELECT_EXT_CONT_ID2)",
+          "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)"));
+}
+
+TEST(P4InfoUnionTest, RejectsIncompatibleMatchFields) {
+  auto make_info = [](absl::string_view match_field_pb) {
+    return gutil::ParseProtoOrDie<p4::config::v1::P4Info>(absl::Substitute(
+        R"pb(
+          tables {
+            preamble { id: 1 name: "acl_table" }
+            match_fields { $0 }
+          }
+        )pb",
+        match_field_pb));
+  };
+
+  const p4::config::v1::P4Info base = make_info(R"pb(
+    id: 17
+    name: "psp_next_header"
+    annotations: "@sai_udf(base = SAI_UDF_BASE_L4 , offset = 8 , length = 1)"
+    bitwidth: 8
+    match_type: TERNARY
+  )pb");
+
+  // Non-`@sai_udf` annotations must match identically.
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     annotations: "@unsupported"
+                     bitwidth: 8
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("@unsupported")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     annotations: "@format(IPV4_ADDRESS)"
+                     bitwidth: 8
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("@format")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     annotations: "@refers_to(other_table, f)"
+                     bitwidth: 8
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("@refers_to")));
+  EXPECT_THAT(UnionP4info({base, make_info(R"pb(
+                             id: 17
+                             name: "psp_next_header"
+                             annotations: "@referenced_by(caller_table, g)"
+                             bitwidth: 8
+                             match_type: TERNARY
+                           )pb")}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("@referenced_by")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     annotations: "@sai_field(SAI_ACL_TABLE_ATTR_FIELD_TTL)"
+                     bitwidth: 8
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("@sai_field")));
+
+  // Other proto fields must match identically.
+  EXPECT_THAT(UnionP4info({base, make_info(R"pb(
+                             id: 17
+                             name: "other_name"
+                             bitwidth: 8
+                             match_type: TERNARY
+                           )pb")}),
+              StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("name")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     bitwidth: 16
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("bitwidth")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     bitwidth: 8
+                     match_type: OPTIONAL
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("match_type")));
+  EXPECT_THAT(UnionP4info({base, make_info(R"pb(
+                             id: 17
+                             name: "psp_next_header"
+                             doc { brief: "different" }
+                             bitwidth: 8
+                             match_type: TERNARY
+                           )pb")}),
+              StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("doc")));
+  EXPECT_THAT(
+      UnionP4info({base, make_info(R"pb(
+                     id: 17
+                     name: "psp_next_header"
+                     type_name { name: "custom_t" }
+                     bitwidth: 8
+                     match_type: TERNARY
+                   )pb")}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("type_name")));
+  EXPECT_THAT(UnionP4info({base, make_info(R"pb(
+                             id: 17
+                             name: "psp_next_header"
+                             structured_annotations { name: "custom" }
+                             bitwidth: 8
+                             match_type: TERNARY
+                           )pb")}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("structured_annotations")));
 }
 
 }  // namespace

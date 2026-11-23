@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
@@ -336,6 +337,45 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
         __func__, field.GetDescriptor()->name(), GetId(field), *diff_result));
   }
   return absl::OkStatus();
+}
+
+// Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for match fields.
+// Conservatively allows only certain annotations to differ across inputs and
+// unions them as a set. All other annotations and fields must match.
+// Requires: GetId(match_field) == GetId(unioned_match_field)
+absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
+    const p4::config::v1::MatchField& match_field,
+    p4::config::v1::MatchField& unioned_match_field) {
+  RETURN_IF_ERROR(
+      AssertIdsAreEqualForUnioning(match_field, unioned_match_field));
+
+  // Conservatively allow only `@sai_udf(...)` to differ for now, needed for
+  // per-role UDF container pinning (see b/588540129 for details).
+  auto without_sai_udf_annotations =
+      [](const p4::config::v1::MatchField& field) {
+        p4::config::v1::MatchField copy = field;
+        copy.clear_annotations();
+        copy.clear_annotation_locations();
+        for (const std::string& annotation : field.annotations()) {
+          if (!absl::StartsWith(annotation, "@sai_udf(")) {
+            copy.add_annotations(annotation);
+          }
+        }
+        return copy;
+      };
+  if (auto diff_result =
+          DiffMessages(without_sai_udf_annotations(match_field),
+                       without_sai_udf_annotations(unioned_match_field));
+      diff_result.has_value()) {
+    return absl::InvalidArgumentError(absl::Substitute(
+        "match fields with identical id '$0' ('$1') were incompatible. "
+        "Relevant differences: $2",
+        match_field.id(), match_field.name(), *diff_result));
+  }
+
+  // `annotation_locations` are ignored (consistent with `Preamble` unioning).
+  return SetUnionFirstRepeatedFieldIntoSecond(
+      match_field.annotations(), *unioned_match_field.mutable_annotations());
 }
 
 // Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for tables. Instead

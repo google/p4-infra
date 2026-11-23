@@ -22,7 +22,9 @@
 
 namespace pdpi {
 
-// Unions `infos` into one unioned version.
+// Unions `infos` into one unioned version. The resulting unioned P4Info is
+// intended for controller-side tooling (e.g., PD/IR translation) and is not
+// expected to be pushed directly to a switch.
 // Entities (i.e. tables, actions, etc.) with distinct IDs are unioned as if
 // they were declared in the same P4 program. Entities with identical IDs must
 // be identical (except for those described below) and are unioned into a single
@@ -32,6 +34,8 @@ namespace pdpi {
 // Entities that need not be identical include:
 // - Tables, which will have their match fields, action refs,
 //   direct resource ids and preambles unioned.
+// - Match fields, which conservatively allow only certain annotations to differ
+//   and union them as a set.
 absl::StatusOr<::p4::config::v1::P4Info> UnionP4info(
     const std::vector<::p4::config::v1::P4Info>& infos);
 
